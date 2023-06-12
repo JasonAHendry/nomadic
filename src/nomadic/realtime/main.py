@@ -9,7 +9,7 @@ from nomadic.realtime.watchers import BarcodeWatcher
 # from nomadic.realtime.barcode_pipelines import BasicBarcodeInRT, MappingInRT2
 from nomadic.realtime.pipelines.barcode import BarcodePipelineRT
 from nomadic.realtime.pipelines.experiment import MappingInRTExptPipeline
-#from nomadic.dashboard.app import create_the_app
+from nomadic.realtime.dashboard.creator import create_dashboard
 
 
 WAIT_INTERVAL = 5
@@ -46,9 +46,13 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str) -> 
     expt_pipeline = MappingInRTExptPipeline(metadata, expt_dirs)
 
     # Initiliase the dashboard
-    # dashboard = create_the_app(csv_path=f"{expt_dirs.approach_dir}/summary.fastq.csv")
-    # dashboard_thread = threading.Thread(target=dashboard.run, name="dashboard")
-    # dashboard_thread.start()
+    dashboard = create_dashboard(
+        expt_name=expt_name,
+        flagstats_csv=f"{expt_dirs.approach_dir}/summary.bam_flagstats.csv",
+        bedcov_csv=f"{expt_dirs.approach_dir}/summary.bedcov.csv"
+    )
+    dashboard_thread = threading.Thread(target=dashboard.run, name="dashboard")
+    dashboard_thread.start()
 
     # BEGIN REALTIME WATCHING
     try:
