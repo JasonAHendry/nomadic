@@ -1,0 +1,51 @@
+#overall {
+    font-family: Arial, sans-serif;
+    margin-left: 20px;
+}
+
+.top-row {
+    display: flex;
+    flex-direction: row;
+}
+
+#logo {
+    margin-left: 0px;
+    width: 500px;
+    flex: 0.1;
+}
+
+#expt-summary {
+    margin-left: 20px;
+    flex: 0.9;
+}
+
+
+.middle-row {
+    display: flex;
+    flex-direction: row;
+}
+
+#mapping-pie {
+    /* width: 400px; */
+    flex: 0.25;
+}
+
+#mapping-barplot {
+    margin: 20px;
+    flex: 0.75;
+}
+
+.bottom-row {
+    display: flex;
+    flex-direction: row;
+}
+
+#bedcov-pie {
+    /* width: 400px; */
+    flex: 0.25;
+}
+
+#bedcov-stripplot {
+    margin: 20px;
+    flex: 0.75;
+}
