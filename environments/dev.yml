@@ -1,0 +1,19 @@
+name: nomadic3-dev
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - python=3.7
+  - minimap2
+  - samtools
+  - bcftools
+  - htslib
+  - bedtools
+  - pysam
+  - jupyter
+  - scipy=1.4
+  - seaborn
+  - click
+  - black
+  - flake8
+  - pip

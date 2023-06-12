@@ -1,0 +1,4 @@
+﻿barcode,sample_id,parasite_per_ul,location,platform
+barcode01,3D7 (NB01),10000,Oxford,flongle
+barcode02,Dd2 (NB02),10000,Oxford,flongle
+barcode03,CamC580Y (NB03),10000,Oxford,flongle
