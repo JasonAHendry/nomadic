@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v3
-        
+
       - name: Prepare Python
         uses: actions/setup-python@v4
         with:
@@ -27,7 +27,9 @@ jobs:
       - name: Prepare Conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: base
+          mamba-version: "*"
+          use-mamba: true
+          activate-environment: nomadic3
           environment-file: environments/run.yml
 
       - name: Install dependencies with Pip
