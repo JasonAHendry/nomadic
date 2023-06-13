@@ -1,11 +1,10 @@
 name: build
 
 on:
+  pull_request:
   push:
     branches:
       - develop
-  pull_request:
-    branches:
       - master
 
 jobs:
@@ -17,8 +16,11 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+        
       - name: Prepare Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.x
 
