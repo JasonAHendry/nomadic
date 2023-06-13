@@ -5,4 +5,4 @@ nomadic realtime \
 -e 0000-00-00_example \
 -f example_data/minknow/fastq_pass \
 -m example_data/metadata/sample_info.csv \
--b resources/beds/nomads8.amplicons.bed
+-b example_data/beds/nomads8.amplicons.bed

@@ -1,7 +1,7 @@
 name: nomadic3-dev
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
 dependencies:
   - python=3.7
   - minimap2

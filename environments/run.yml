@@ -10,9 +10,7 @@ dependencies:
   - htslib
   - bedtools
   - pysam
-  - streamlit
   - scipy=1.4
   - seaborn
   - click
-  - blast
   - pip
