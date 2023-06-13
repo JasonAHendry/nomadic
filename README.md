@@ -82,7 +82,7 @@ Flag information:
 - `-b`: Path to a BED file defining your regions of interest.
   - Note the BED file specification [here](https://en.wikipedia.org/wiki/BED_(file_format)).
   - This BED file *must* contain a forth column for region name information, and the names must be unique. They are used to generate plots and compute summary statistics.
-  - See `resources/beds/nomads8.amplicons.bed` for an example.
+  - See `example_data/beds/nomads8.amplicons.bed` for an example.
 
 For a full running example look at `scripts/run_realtime.sh`
 
