@@ -1,0 +1,47 @@
+name: build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - master
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+
+      - name: Prepare Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+
+      - name: Prepare Conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          use-mamba: true
+          activate-environment: nomadic3
+          environment-file: environments/run.yml
+
+      - name: Install dependencies with Pip
+        run: |
+          pip install --upgrade wheel
+          pip install --upgrade setuptools
+          pip install -e .
+      
+      - name: Test build
+        run: |
+          nomadic --help
+
+      # - name: Run tests
+      #   run: |
+      #     pytest

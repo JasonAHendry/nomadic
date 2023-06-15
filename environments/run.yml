@@ -5,10 +5,13 @@ channels:
 dependencies:
   - python=3.7
   - minimap2
-  - samtools
+  - samtools=1.17
   - bcftools
   - htslib
   - bedtools
+  - dash
+  - pandas
+  - numpy
   - pysam
   - scipy=1.4
   - seaborn
