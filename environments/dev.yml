@@ -11,6 +11,9 @@ dependencies:
   - bedtools
   - pysam
   - jupyter
+  - dash
+  - pandas
+  - numpy
   - scipy=1.4
   - seaborn
   - click

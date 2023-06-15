@@ -9,6 +9,9 @@ dependencies:
   - bcftools
   - htslib
   - bedtools
+  - dash
+  - pandas
+  - numpy
   - pysam
   - scipy=1.4
   - seaborn
