@@ -1,6 +1,6 @@
 #overall {
-    font-family: Arial, sans-serif;
-    margin-left: 20px;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 20px;
 }
 
 .logo-and-summary {
@@ -19,33 +19,49 @@
     flex: 0.9;
 }
 
+#table {
+    padding: 20px;
+    width: 400px;
+}
+
 
 .middle-row {
+    border: 3px solid gainsboro;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px;
+}
+
+.mapping-plots {
     display: flex;
     flex-direction: row;
 }
 
 #mapping-pie {
-    /* width: 400px; */
     flex: 0.25;
 }
 
 #mapping-barplot {
-    margin: 20px;
     flex: 0.75;
 }
 
+
 .bottom-row {
+    border: 3px solid gainsboro;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px;
+}
+
+.region-plots {
     display: flex;
     flex-direction: row;
 }
 
 #bedcov-pie {
-    /* width: 400px; */
     flex: 0.25;
 }
 
-#bedcov-stripplot {
-    margin: 20px;
+#bedcov-strip {
     flex: 0.75;
 }

@@ -3,7 +3,7 @@ import datetime
 import pandas as pd
 
 from abc import ABC, abstractmethod
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, dash_table
 from dash.dependencies import Input, Output
 
 import numpy as np
@@ -159,6 +159,82 @@ class ExperimentSummary(RealtimeDashboardComponent):
             return children
 
 
+class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
+    """
+    Overview of the experimental state, and number of FASTQ files
+    processed
+
+    """
+
+    logo_src_path = "assets/nomadic_logo-01.png"
+
+    def __init__(self, expt_name: str, component_id: str, fastq_csv: str):
+        super().__init__(expt_name, component_id)
+        self.t0 = datetime.datetime.now().replace(microsecond=0)
+        self.fastq_csv = fastq_csv
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+
+        layout = html.Div(
+            className="logo-and-summary",
+            children=[
+                html.Img(id="logo", src=self.logo_src_path),
+                html.Div(id="expt-summary"),
+            ],
+        )
+
+        return layout
+
+    def callback(self, app: Dash) -> None:
+        """
+        Define the update callback for the pie chart
+
+        """
+
+        @app.callback(
+            Output(self.component_id, "children"), Input("interval", "n_intervals")
+        )
+        def _update(_):
+            """Called every time an input changes"""
+
+            # Re-load the number of FASTQ processed
+            n_fastq = 0
+            if os.path.exists(self.fastq_csv):
+                df = pd.read_csv(self.fastq_csv)
+                n_fastq = df["n_processed_fastq"].sum()
+
+            # Update time
+            t1 = datetime.datetime.now().replace(microsecond=0)
+
+            # Define the text section
+            # TODO: this is pretty horrible to make look decent
+            tab = '\t'
+            n_tabs = 4
+            children = [
+                html.H3("Run Overview", style=dict(margin="0px", marginTop="20px")),
+                html.Pre(
+                # pre_contents,
+                    [
+                        f"Experiment Name:{tab*(n_tabs-1)}{self.expt_name}",
+                        html.Br(),
+                        f"Started at:{tab*n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                        html.Br(),
+                        f"Time elapsed:{tab*n_tabs}{t1 - self.t0}",
+                        html.Br(),
+                        f"No. FASTQ Processed:{tab*(n_tabs-2)}{n_fastq}"
+                    ],
+                    style=dict(fontFamily="Arial", margin="0px")
+                ),
+            ]
+
+            return children
+
+
 class MappingStatsPie(RealtimeDashboardComponent):
     """
     Make a pie chart that shows read mapping statistics
@@ -282,7 +358,16 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 yaxis_title="No. Reads",
                 barmode="stack",
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
-                yaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                yaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    showgrid=True,
+                    gridcolor="lightgray",
+                    gridwidth=0.5,
+                    griddash="dot",
+                ),
                 plot_bgcolor="rgba(0,0,0,0)",
                 hovermode="x",
             )
@@ -368,7 +453,7 @@ class RegionCoveragePie(RealtimeDashboardComponent):
 
 class RegionCoverageStrip(RealtimeDashboardComponent):
     """
-    Make a pie chart that shows read mapping statistics
+    Make a stripplot that shows read mapping statistics
 
     """
 
@@ -439,8 +524,102 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             fig.update_layout(
                 yaxis_title=dropdown_stat,
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
-                yaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                yaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    showgrid=True,
+                    gridcolor="lightgray",
+                    gridwidth=0.5,
+                    griddash="dot",
+                ),
                 plot_bgcolor="rgba(0,0,0,0)",
+            )
+
+            return fig
+
+
+class OverallGauge(RealtimeDashboardComponent):
+    """
+    Present a gauge indicating what percentage of all
+    basepairs have exceeded the set coverage threshold
+    
+    """
+
+    def __init__(
+        self,
+        expt_name: str,
+        component_id: str,
+        bedcov_csv: str
+    ):
+        # Store inputs
+        super().__init__(expt_name, component_id)
+        self.bedcov_csv = bedcov_csv
+
+    def _define_layout(self):
+        """
+        The layout for this graph
+        """
+        return dcc.Graph(id=self.component_id)
+    
+    def callback(self, app: Dash) -> None:
+        """
+        Define the update callback for the gauge
+        """
+
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.interval_id, "n_intervals")
+        )
+        def _update(_):
+            """ Update each interval """
+
+            # Load data, and sort
+            if not os.path.exists(self.bedcov_csv):
+                return go.Figure()
+            df = pd.read_csv(self.bedcov_csv)
+
+            # Compute key statistics
+            total_bp = df["length"].sum()
+            covered_bp = df["cov_gr100"].sum()
+            per_covered = 100 * (covered_bp / total_bp)
+
+            # Create the figure
+            fig = go.Figure(go.Indicator(
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                value = per_covered,
+                #gauge = {'shape': "bullet"},
+                number = dict(suffix="%"),
+                mode = "gauge+number+delta",
+                title = {'text': ""},
+                #delta = {'reference': 94, 'suffix': '%'},
+                gauge = {'axis': {'range': [None, 100]},
+                        'steps' : [
+                            {'range': [0, 50], 'color': 'lightgrey'},
+                        ],
+                        'threshold' : {'line': {'color': "steelblue", 'width': 4}, 'thickness': 1, 'value': 95}},
+                        #'shape': 'bullet'}
+                        ))
+
+            # Add text annotation
+            fig.update_layout(
+                font=dict(size=8),
+                annotations=[
+                    go.layout.Annotation(
+                        x=0.5,
+                        y=-0.15,
+                        xref='paper',
+                        yref='paper',
+                        text='<B>Target Coverage Achieved (of all bp)</B>',
+                        showarrow=False,
+                        font=dict(
+                            size=10,
+                            color='black',
+                            family="Helvetica"
+                        )
+                    )
+                ]
             )
 
             return fig
