@@ -54,6 +54,55 @@ class AnalysisStepRT(ABC):
 
 
 # --------------------------------------------------------------------------------
+# FASTQ counting step
+#
+# --------------------------------------------------------------------------------
+
+
+class FASTQCountRT(AnalysisStepRT):
+    """
+    Map a set of FASTQ files from a given barcode,
+    merge them with the cumulative BAM
+
+    """
+
+    step_name = ""
+
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories):
+        """
+        Define initial directories and file paths
+        TODO: choose mapping algorithm and reference genome
+
+        """
+        super().__init__(barcode_name, expt_dirs)
+
+        self.n_processed_fastq = 0
+        self.output_json = (
+            f"{self.barcode_dir}/{self.barcode_name}.n_processed_fastq.json"
+        )
+
+    def run(self, new_fastqs: List[str]):
+        """
+        Increase count of processed FASTQs, store in JSON
+
+        """
+
+        self.n_processed_fastq += len(new_fastqs)
+        json.dump(
+            {"barcode": self.barcode_name, "n_processed_fastq": self.n_processed_fastq},
+            open(self.output_json, "w"),
+        )
+
+    def merge(self):
+        """
+        We do not need to merge because we are keeping a running count of the
+        total number of FASTQ seen for this barcdoe
+        """
+
+        pass
+
+
+# --------------------------------------------------------------------------------
 # Mapping Step
 #
 # --------------------------------------------------------------------------------
