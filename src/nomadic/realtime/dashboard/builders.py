@@ -165,11 +165,6 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         self.expt_summary = ExperimentSummaryFASTQ(
             expt_name=expt_name, component_id="expt-summary", fastq_csv=fastq_csv
         )
-        # self.gauge = OverallGauge(expt_name,
-        #     "gauge",
-        #     bedcov_csv
-        # )
-
         self.mapping_pie = MappingStatsPie(
             expt_name,
             component_id="mapping-pie",
@@ -200,7 +195,6 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
 
         # Put them into the components
         self.components.append(self.expt_summary)
-        #self.components.append(self.gauge)
         self.components.append(self.mapping_pie)
         self.components.append(self.mapping_bar)
         self.components.append(self.region_pie)
