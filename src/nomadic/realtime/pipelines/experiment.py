@@ -73,7 +73,7 @@ class MappingInRTExptPipeline(ExperimentPipeline):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(open(f"{barcode_dir}/n_processed_fastq.json", "r"))
+                dt = json.load(open(f"{barcode_dir}/{b}.n_processed_fastq.json", "r"))
                 fastq_dts.append(dt)
             except FileNotFoundError:
                 continue

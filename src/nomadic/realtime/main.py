@@ -1,15 +1,14 @@
 import time
-import threading
 
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.dirs import ExperimentDirectories
-from nomadic.realtime.watchers import BarcodeWatcher
+from nomadic.util.regions import RegionBEDParser
 
-# from nomadic.realtime.barcode_pipelines import BasicBarcodeInRT, MappingInRT2
+from nomadic.realtime.watchers import BarcodeWatcher
 from nomadic.realtime.pipelines.barcode import BarcodePipelineRT
 from nomadic.realtime.pipelines.experiment import MappingInRTExptPipeline
-from nomadic.realtime.dashboard.creator import create_dashboard
+from nomadic.realtime.dashboard.builders import MappingRTDashboard
 
 
 WAIT_INTERVAL = 5
@@ -28,12 +27,16 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str) -> 
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
     log.info(f"  Metadata (.csv): {metadata_csv}")
     log.info(f"  Regions (.bed): {region_bed}")
-    log.info("Done.")
+    log.info("Processing...")
 
     # PREPARE TO RUN
     metadata = MetadataTableParser(metadata_csv)
     expt_dirs = ExperimentDirectories(expt_name, metadata)
-    log.info(f"Found {len(metadata.barcodes)} barcodes to track.")
+    regions = RegionBEDParser(region_bed)
+    log.info(f"  Found {len(metadata.barcodes) - 1} barcodes to track.")
+    log.info(f"  Found {regions.n_regions} regions of interest.")
+    log.info(f"  Outputs will be written to: {expt_dirs.expt_dir}.")
+    log.info("Done.\n")
 
     # INITIALISE WATCHERS
     watchers = [
@@ -46,13 +49,15 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str) -> 
     expt_pipeline = MappingInRTExptPipeline(metadata, expt_dirs)
 
     # Initiliase the dashboard
-    dashboard = create_dashboard(
+    dashboard = MappingRTDashboard(
         expt_name=expt_name,
+        regions=regions,
+        css_style_sheets=["assets/dashboard-style.css"],
+        fastq_csv=f"{expt_dirs.approach_dir}/summary.fastq.csv",
         flagstats_csv=f"{expt_dirs.approach_dir}/summary.bam_flagstats.csv",
         bedcov_csv=f"{expt_dirs.approach_dir}/summary.bedcov.csv"
     )
-    dashboard_thread = threading.Thread(target=dashboard.run, name="dashboard")
-    dashboard_thread.start()
+    dashboard.run(in_thread=True)
 
     # BEGIN REALTIME WATCHING
     try:
