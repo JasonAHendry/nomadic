@@ -3,7 +3,7 @@
     margin-left: 20px;
 }
 
-.top-row {
+.logo-and-summary {
     display: flex;
     flex-direction: row;
 }

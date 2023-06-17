@@ -6,9 +6,12 @@ from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
 
+import numpy as np
 import seaborn as sns
 import plotly.graph_objects as go
 from matplotlib.colors import rgb2hex
+
+from nomadic.util.regions import RegionBEDParser
 
 
 # --------------------------------------------------------------------------------
@@ -23,7 +26,11 @@ MAPPING_CATS = ["n_uniq_mapped", "n_chim_mapped", "n_mult_mapped", "n_unmapped"]
 MAPPING_COLS = dict(
     zip(
         MAPPING_CATS,
-        [rgb2hex(c) for c in sns.color_palette("Blues_r") + [(0.75, 0.75, 0.75)]],
+        [
+            rgb2hex(c)
+            for c in sns.color_palette("Blues_r", len(MAPPING_CATS) - 1)
+            + [(0.75, 0.75, 0.75)]
+        ],
     )
 )
 
@@ -129,8 +136,7 @@ class ExperimentSummary(RealtimeDashboardComponent):
         """
 
         @app.callback(
-            Output(self.component_id, "children"), 
-            Input("interval", "n_intervals")
+            Output(self.component_id, "children"), Input("interval", "n_intervals")
         )
         def _update(_):
             """Called every time an input changes"""
@@ -281,5 +287,160 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 hovermode="x",
             )
             fig.update_traces(marker=dict(line=dict(color="black", width=1)))
+
+            return fig
+
+
+class RegionCoveragePie(RealtimeDashboardComponent):
+    """
+    Make a pie chart that shows read mapping statistics
+
+    """
+
+    def __init__(
+        self,
+        expt_name: str,
+        component_id: str,
+        regions: RegionBEDParser,
+        bedcov_csv: str,
+        dropdown_id: str,
+    ):
+
+        # Store inputs
+        super().__init__(expt_name, component_id)
+        self.bedcov_csv = bedcov_csv
+        self.regions = regions
+        self.dropdown_id = dropdown_id
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        """
+        Define the update callback for the pie chart
+
+        """
+
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.interval_id, "n_intervals"),
+            Input(self.dropdown_id, "value"),
+        )
+        def _update(_, dropdown_stat):
+            """Called every time an input changes"""
+
+            # Load data
+            if not os.path.exists(self.bedcov_csv):
+                return go.Figure()
+            df = pd.read_csv(self.bedcov_csv)
+            df["name"] = pd.Categorical(
+                values=df["name"], categories=self.regions.names, ordered=True
+            )
+
+            # Compute totals
+            pie_data = df.groupby("name")[dropdown_stat].sum()
+
+            # Generate figure
+            fig = go.Figure(
+                data=[
+                    go.Pie(
+                        values=pie_data.values,
+                        labels=pie_data.index,
+                        marker=dict(
+                            colors=[
+                                self.regions.col_map_hex[name]
+                                for name in pie_data.index
+                            ]
+                        ),
+                        sort=False,
+                    )
+                ]
+            )
+
+            return fig
+
+
+class RegionCoverageStrip(RealtimeDashboardComponent):
+    """
+    Make a pie chart that shows read mapping statistics
+
+    """
+
+    def __init__(
+        self,
+        expt_name: str,
+        component_id: str,
+        regions: RegionBEDParser,
+        bedcov_csv: str,
+        dropdown_id: str,
+    ):
+
+        # Store inputs
+        super().__init__(expt_name, component_id)
+        self.bedcov_csv = bedcov_csv
+        self.regions = regions
+        self.dropdown_id = dropdown_id
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        """
+        Define the update callback for the pie chart
+
+        """
+
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.interval_id, "n_intervals"),
+            Input(self.dropdown_id, "value"),
+        )
+        def _update(_, dropdown_stat, shift=0):
+            """Called every time an input changes"""
+
+            # Load data, and sort
+            if not os.path.exists(self.bedcov_csv):
+                return go.Figure()
+            df = pd.read_csv(self.bedcov_csv)
+            df["name"] = pd.Categorical(
+                values=df["name"], categories=self.regions.names, ordered=True
+            )
+
+            # Compute totals
+            plot_data = [
+                go.Scatter(
+                    x=tdf[
+                        "barcode"
+                    ],  # + np.random.uniform(-shift, shift, tdf.shape[0]),
+                    y=tdf[dropdown_stat],
+                    mode="markers",
+                    marker=dict(size=10, color=self.regions.col_map_hex[target]),
+                    name=target,
+                )
+                for target, tdf in df.groupby("name")
+            ]
+
+            fig = go.Figure()
+            for plot_trace in plot_data:
+                fig.add_trace(plot_trace)
+
+            fig.update_layout(
+                yaxis_title=dropdown_stat,
+                xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                yaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                plot_bgcolor="rgba(0,0,0,0)",
+            )
 
             return fig

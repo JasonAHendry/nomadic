@@ -3,10 +3,13 @@ import threading
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
 
+from nomadic.util.regions import RegionBEDParser
 from nomadic.realtime.dashboard.components import (
+    ExperimentSummary,
     MappingStatsPie,
     MappingStatsBarplot,
-    ExperimentSummary,
+    RegionCoveragePie,
+    RegionCoverageStrip,
 )
 
 
@@ -136,17 +139,29 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
     # TODO: this is bad, need better way to handle repeated constants
     CATEGORIES = ["n_uniq_mapped", "n_chim_mapped", "n_mult_mapped", "n_unmapped"]
 
-    def __init__(self, expt_name, css_style_sheets, flagstats_csv):
+    def __init__(
+        self,
+        expt_name,
+        regions: RegionBEDParser,
+        css_style_sheets,
+        flagstats_csv,
+        bedcov_csv,
+    ):
         """
         Initialise all of the dashboard components
 
         """
-        
+
         super().__init__(expt_name, css_style_sheets)
 
+        self.regions = regions
         self.flagstats_csv = flagstats_csv
+        self.bedcov_csv = bedcov_csv
 
         # Initialise all the components
+        self.expt_summary = ExperimentSummary(
+            expt_name=expt_name, component_id="expt-summary"
+        )
         self.mapping_pie = MappingStatsPie(
             expt_name,
             component_id="mapping-pie",
@@ -159,21 +174,34 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
             flagstats_csv=flagstats_csv,
             checklist_id="mapping-checklist",
         )
-        self.expt_summary = ExperimentSummary(
-            expt_name=expt_name,
-            component_id="expt-summary"
+        self.region_pie = RegionCoveragePie(
+            expt_name,
+            component_id="bedcov-pie",
+            regions=regions,
+            bedcov_csv=bedcov_csv,
+            dropdown_id="bedcov-dropdown",
+        )
+        self.region_strip = RegionCoverageStrip(
+            expt_name,
+            component_id="bedcov-strip",
+            regions=regions,
+            bedcov_csv=bedcov_csv,
+            dropdown_id="bedcov-dropdown",
         )
 
         # Put them into the components
+        self.components.append(self.expt_summary)
         self.components.append(self.mapping_pie)
         self.components.append(self.mapping_bar)
-        self.components.append(self.expt_summary)
+        self.components.append(self.region_pie)
+        self.components.append(self.region_strip)
 
     def _gen_layout(self):
         """
         Generate the layout
 
         """
+
         checklist = dcc.Checklist(
             id="mapping-checklist",
             options=self.CATEGORIES,
@@ -181,13 +209,34 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
             inline=True,
         )
 
+        dropdown = dcc.Dropdown(
+            id="bedcov-dropdown",
+            options=["mean_cov", "n_reads", "cov_gr100_per"],
+            value="n_reads",
+        )
+
+        top_row = html.Div(className="top-row", children=self.expt_summary.get_layout())
+        middle_row = html.Div(
+            className="middle-row",
+            children=[self.mapping_pie.get_layout(), self.mapping_bar.get_layout()],
+        )
+        bottom_row = html.Div(
+            className="bottom-row",
+            children=[self.region_pie.get_layout(), self.region_strip.get_layout()],
+        )
+
         layout = [
-            html.H2("Testing"),
-            self.expt_summary.get_layout(),
+            top_row,
             html.Hr(),
-            self.mapping_pie.get_layout(),
-            self.mapping_bar.get_layout(),
+            html.H2("Read Mapping Statistics"),
+            middle_row,
             checklist,
+            html.Hr(),
+            html.H2("Region Coverage Statistics"),
+            dropdown,
+            bottom_row,
+            html.Br(),
+            html.Br(),
         ]
 
         return layout
