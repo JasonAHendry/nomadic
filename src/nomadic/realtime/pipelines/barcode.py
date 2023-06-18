@@ -1,7 +1,14 @@
 from typing import List
 
 from nomadic.util.dirs import ExperimentDirectories
-from nomadic.realtime.steps import FASTQCountRT, MappingRT, FlagstatsRT, BedCovRT
+from nomadic.util.regions import RegionBEDParser
+from nomadic.realtime.steps import (
+    FASTQCountRT,
+    MappingRT,
+    FlagstatsRT,
+    BedCovRT,
+    RegionDepthRT,
+)
 
 
 class BarcodePipelineRT:
@@ -10,10 +17,9 @@ class BarcodePipelineRT:
 
     """
 
-    def __init__(self, barcode_name: str, 
-                 expt_dirs: ExperimentDirectories,
-                 bed_path: str
-                 ):
+    def __init__(
+        self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str
+    ):
         """
         Initialise the barcode pipeline
 
@@ -28,10 +34,9 @@ class BarcodePipelineRT:
         self.fastq_step = FASTQCountRT(barcode_name, expt_dirs)
         self.map_step = MappingRT(barcode_name, expt_dirs)
         self.flagstat_step = FlagstatsRT(barcode_name, expt_dirs)
-        self.bedcov_step = BedCovRT(
-            barcode_name, 
-            expt_dirs, 
-            bed_path
+        self.bedcov_step = BedCovRT(barcode_name, expt_dirs, bed_path)
+        self.depth_step = RegionDepthRT(
+            barcode_name, expt_dirs, RegionBEDParser(bed_path)
         )
 
     def run(self, new_fastq):
@@ -50,5 +55,5 @@ class BarcodePipelineRT:
 
         self.fastq_step.run(new_fastq)
 
-        # self.depth_step.run(inter_bam)
-        # self.depth_step.merge()
+        self.depth_step.run(inter_bam)
+        self.depth_step.merge()
