@@ -53,7 +53,7 @@ class BarcodePipelineRT:
         self.bedcov_step.run(final_bam)
         self.bedcov_step.merge()
 
-        self.fastq_step.run(new_fastq)
-
-        self.depth_step.run(inter_bam)
+        self.depth_step.run(final_bam)
         self.depth_step.merge()
+
+        self.fastq_step.run(new_fastq)

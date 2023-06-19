@@ -52,10 +52,10 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str) -> 
     dashboard = MappingRTDashboard(
         expt_name=expt_name,
         regions=regions,
-        css_style_sheets=["assets/dashboard-style.css"],
         fastq_csv=f"{expt_dirs.approach_dir}/summary.fastq.csv",
         flagstats_csv=f"{expt_dirs.approach_dir}/summary.bam_flagstats.csv",
-        bedcov_csv=f"{expt_dirs.approach_dir}/summary.bedcov.csv"
+        bedcov_csv=f"{expt_dirs.approach_dir}/summary.bedcov.csv",
+        depth_csv=f"{expt_dirs.approach_dir}/summary.depth.csv"
     )
     dashboard.run(in_thread=True)
 
