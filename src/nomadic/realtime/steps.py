@@ -7,10 +7,16 @@ import pandas as pd
 from typing import List
 from abc import ABC, abstractmethod
 
-from nomadic.util.dirs import produce_dir, ExperimentDirectories
 from nomadic.map.mappers import Minimap2
 from nomadic.download.references import PlasmodiumFalciparum3D7
-from nomadic.util.samtools import samtools_merge, samtools_index, samtools_flagstats
+from nomadic.util.dirs import produce_dir, ExperimentDirectories
+from nomadic.util.regions import RegionBEDParser
+from nomadic.util.samtools import (
+    samtools_merge,
+    samtools_index,
+    samtools_flagstats,
+    samtools_depth,
+)
 
 
 # --------------------------------------------------------------------------------
@@ -250,7 +256,7 @@ class FlagstatsRT(AnalysisStepRT):
 
 
 # --------------------------------------------------------------------------------
-# Analysis of coveragee over BED regions
+# Analysis of coverage over BED regions
 #
 # --------------------------------------------------------------------------------
 
@@ -325,3 +331,67 @@ class BedCovRT(AnalysisStepRT):
 
         """
         pass
+
+
+# --------------------------------------------------------------------------------
+# Analysis of depth profile across regions
+#
+# --------------------------------------------------------------------------------
+
+
+class RegionDepthRT(AnalysisStepRT):
+    """
+    Analyse coverage across a set of regions defined
+    by a BED file
+
+    """
+
+    step_name = "depth"  # currently unused
+
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        regions: RegionBEDParser,
+    ):
+        """Initialise output directory and define file names"""
+
+        super().__init__(barcode_name, expt_dirs)
+
+        self.regions = regions
+        self.output_dir = produce_dir(self.barcode_dir, self.step_name)
+        self.region_output_dir = produce_dir(self.output_dir, "by_region")
+        self.output_csv = f"{self.output_dir}/{self.barcode_name}.depth.csv"
+
+    def run(self, input_bam):
+        """
+        Compute coverage and summary statistics from an `input_bam`
+
+        """
+
+        for region_name, region_str in self.regions.str_format.items():
+            samtools_depth(
+                input_bam=input_bam,
+                output_path=f"{self.region_output_dir}/{self.barcode_name}.{region_name}.depth",
+                region_str=region_str,
+            )
+
+    def merge(self):
+        """
+        Not needed here, we are not computing from intermediate BAMS
+
+        """
+
+        dfs = []
+        for region_name in self.regions.names:
+            df = pd.read_csv(
+                f"{self.region_output_dir}/{self.barcode_name}.{region_name}.depth",
+                sep="\t",
+                header=None,
+                names=["chrom", "pos", "depth"],
+            )
+            df.insert(0, "barcode", self.barcode_name)
+            df.insert(0, "name", region_name)
+            dfs.append(df)
+        merged_df = pd.concat(dfs)
+        merged_df.to_csv(self.output_csv, index=False)

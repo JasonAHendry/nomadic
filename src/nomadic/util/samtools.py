@@ -104,3 +104,36 @@ def samtools_flagstats(input_bam: str, output_json: str) -> None:
 
     # Remove temporary JSON
     os.remove(temp_json)
+
+
+def samtools_depth(input_bam, output_path, region_str=None):
+    """
+    Run `samtools depth` on a given `input_bam`, focussing
+    on regions defined by a `bed_file`
+
+    params
+        input_bam : str
+            Path to bam file.
+        output_path : str
+            Path to write output file.
+        region_bed : str
+            BED file defining regions over which depth
+            should be calculated. [optional]
+    
+    returns
+        None
+
+    """
+
+    cmd = "samtools depth"
+    if region_str is not None:
+        cmd += f" -r {region_str}"
+    cmd += " -aa" # output all positions
+    cmd += " -J"
+    cmd += f" -o {output_path}"
+    cmd += f" {input_bam}"
+    subprocess.run(cmd, shell=True, check=True)
+
+    return None
+
+

@@ -26,6 +26,7 @@ class RegionBEDParser:
         self.names = self.df["name"].tolist()
 
         self._set_colors()
+        self._set_str_formats()
 
     def _check_names_unique(self):
         """Check all of the region names are unique"""
@@ -45,3 +46,14 @@ class RegionBEDParser:
         self.colors_hex = [rgb2hex(c) for c in self.colors]
         self.col_map = dict(zip(self.names, self.colors))
         self.col_map_hex = dict(zip(self.names, self.colors_hex))
+
+    def _set_str_formats(self):
+        """
+        Prepare a dictionary with strings in the format 
+        `chrom:start-end` for each region
+        """
+        
+        self.str_format = {
+            row["name"]: f"{row['chrom']}:{row['start']}-{row['end']}"
+            for _, row in self.df.iterrows()
+        }

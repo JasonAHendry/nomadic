@@ -109,3 +109,17 @@ class MappingInRTExptPipeline(ExperimentPipeline):
         bedcov_df = pd.concat(bedcov_dfs)
         df_path = f"{self.expt_dirs.approach_dir}/summary.bedcov.csv"
         bedcov_df.to_csv(df_path, index=False)
+
+
+        # CONCAT DEPTH DFS
+        depth_dfs = []
+        for b in self.metadata.barcodes:
+            barcode_dir = self.expt_dirs.get_barcode_dir(b)
+            try:
+                df = pd.read_csv(f"{barcode_dir}/depth/{b}.depth.csv")
+                depth_dfs.append(df)
+            except FileNotFoundError:
+                continue
+        depth_df = pd.concat(depth_dfs)
+        df_path = f"{self.expt_dirs.approach_dir}/summary.depth.csv"
+        depth_df.to_csv(df_path, index=False)

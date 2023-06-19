@@ -36,7 +36,7 @@ MAPPING_COLS = dict(
 
 
 # --------------------------------------------------------------------------------
-# Abstract base class
+# Interface for a single real-time dashboard component
 #
 # --------------------------------------------------------------------------------
 
@@ -97,6 +97,10 @@ class RealtimeDashboardComponent(ABC):
 # --------------------------------------------------------------------------------
 # Concrete components
 #
+# --------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------
+# OVERALL STATISTICS
 # --------------------------------------------------------------------------------
 
 
@@ -197,7 +201,7 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
         """
 
         @app.callback(
-            Output(self.component_id, "children"), Input("interval", "n_intervals")
+            Output(self.component_id, "children"), Input("fast-interval", "n_intervals")
         )
         def _update(_):
             """Called every time an input changes"""
@@ -213,12 +217,12 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
 
             # Define the text section
             # TODO: this is pretty horrible to make look decent
-            tab = '\t'
+            tab = "\t"
             n_tabs = 4
             children = [
                 html.H3("Run Overview", style=dict(margin="0px", marginTop="20px")),
                 html.Pre(
-                # pre_contents,
+                    # pre_contents,
                     [
                         f"Experiment Name:{tab*(n_tabs-1)}{self.expt_name}",
                         html.Br(),
@@ -226,13 +230,18 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
                         html.Br(),
                         f"Time elapsed:{tab*n_tabs}{t1 - self.t0}",
                         html.Br(),
-                        f"No. FASTQ Processed:{tab*(n_tabs-2)}{n_fastq}"
+                        f"No. FASTQ Processed:{tab*(n_tabs-2)}{n_fastq}",
                     ],
-                    style=dict(fontFamily="Arial", margin="0px")
+                    style=dict(fontFamily="Arial", margin="0px"),
                 ),
             ]
 
             return children
+
+
+# --------------------------------------------------------------------------------
+# MAPPING STATISTICS
+# --------------------------------------------------------------------------------
 
 
 class MappingStatsPie(RealtimeDashboardComponent):
@@ -293,6 +302,9 @@ class MappingStatsPie(RealtimeDashboardComponent):
                     )
                 ]
             )
+
+            MAR = 20
+            fig.update_layout(margin=dict(t=MAR, l=MAR, r=MAR, b=MAR), showlegend=False)
 
             return fig
 
@@ -370,10 +382,18 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 ),
                 plot_bgcolor="rgba(0,0,0,0)",
                 hovermode="x",
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
+                ),
             )
             fig.update_traces(marker=dict(line=dict(color="black", width=1)))
 
             return fig
+
+
+# --------------------------------------------------------------------------------
+# BED COVERAGE SUMMARIES
+# --------------------------------------------------------------------------------
 
 
 class RegionCoveragePie(RealtimeDashboardComponent):
@@ -448,6 +468,9 @@ class RegionCoveragePie(RealtimeDashboardComponent):
                 ]
             )
 
+            MAR = 20
+            fig.update_layout(showlegend=False, margin=dict(t=MAR, l=MAR, r=MAR, b=MAR))
+
             return fig
 
 
@@ -503,7 +526,7 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
                 values=df["name"], categories=self.regions.names, ordered=True
             )
 
-            # Compute totals
+            # Prepare plotting data
             plot_data = [
                 go.Scatter(
                     x=tdf[
@@ -517,6 +540,11 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
                 for target, tdf in df.groupby("name")
             ]
 
+            # Fix y-axis minimum at zero
+            min_y = 0
+            max_y = df[dropdown_stat].max() * 1.1
+
+            # Create plot
             fig = go.Figure()
             for plot_trace in plot_data:
                 fig.add_trace(plot_trace)
@@ -533,8 +561,12 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
                     gridcolor="lightgray",
                     gridwidth=0.5,
                     griddash="dot",
+                    range=[min_y, max_y],
                 ),
                 plot_bgcolor="rgba(0,0,0,0)",
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
+                ),
             )
 
             return fig
@@ -544,15 +576,10 @@ class OverallGauge(RealtimeDashboardComponent):
     """
     Present a gauge indicating what percentage of all
     basepairs have exceeded the set coverage threshold
-    
+
     """
 
-    def __init__(
-        self,
-        expt_name: str,
-        component_id: str,
-        bedcov_csv: str
-    ):
+    def __init__(self, expt_name: str, component_id: str, bedcov_csv: str):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.bedcov_csv = bedcov_csv
@@ -562,64 +589,277 @@ class OverallGauge(RealtimeDashboardComponent):
         The layout for this graph
         """
         return dcc.Graph(id=self.component_id)
-    
+
     def callback(self, app: Dash) -> None:
         """
         Define the update callback for the gauge
         """
 
         @app.callback(
-            Output(self.component_id, "figure"),
-            Input(self.interval_id, "n_intervals")
+            Output(self.component_id, "figure"), Input(self.interval_id, "n_intervals")
         )
         def _update(_):
-            """ Update each interval """
+            """Update each interval"""
 
             # Load data, and sort
             if not os.path.exists(self.bedcov_csv):
                 return go.Figure()
             df = pd.read_csv(self.bedcov_csv)
 
-            # Compute key statistics
+            # Compute key statistics
             total_bp = df["length"].sum()
             covered_bp = df["cov_gr100"].sum()
             per_covered = 100 * (covered_bp / total_bp)
 
-            # Create the figure
-            fig = go.Figure(go.Indicator(
-                domain = {'x': [0, 1], 'y': [0, 1]},
-                value = per_covered,
-                #gauge = {'shape': "bullet"},
-                number = dict(suffix="%"),
-                mode = "gauge+number+delta",
-                title = {'text': ""},
-                #delta = {'reference': 94, 'suffix': '%'},
-                gauge = {'axis': {'range': [None, 100]},
-                        'steps' : [
-                            {'range': [0, 50], 'color': 'lightgrey'},
+            # Create the figure
+            fig = go.Figure(
+                go.Indicator(
+                    domain={"x": [0, 1], "y": [0, 1]},
+                    value=per_covered,
+                    # gauge = {'shape': "bullet"},
+                    number=dict(suffix="%"),
+                    mode="gauge+number+delta",
+                    title={"text": ""},
+                    # delta = {'reference': 94, 'suffix': '%'},
+                    gauge={
+                        "axis": {"range": [None, 100]},
+                        "steps": [
+                            {"range": [0, 50], "color": "lightgrey"},
                         ],
-                        'threshold' : {'line': {'color': "steelblue", 'width': 4}, 'thickness': 1, 'value': 95}},
-                        #'shape': 'bullet'}
-                        ))
+                        "threshold": {
+                            "line": {"color": "steelblue", "width": 4},
+                            "thickness": 1,
+                            "value": 95,
+                        },
+                    },
+                    #'shape': 'bullet'}
+                )
+            )
 
             # Add text annotation
+            MAR = 10
             fig.update_layout(
                 font=dict(size=8),
+                margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
                 annotations=[
                     go.layout.Annotation(
                         x=0.5,
                         y=-0.15,
-                        xref='paper',
-                        yref='paper',
-                        text='<B>Target Coverage Achieved (of all bp)</B>',
+                        xref="paper",
+                        yref="paper",
+                        text="<B>Target Coverage Achieved (of all bp)</B>",
                         showarrow=False,
-                        font=dict(
-                            size=10,
-                            color='black',
-                            family="Helvetica"
-                        )
+                        font=dict(size=10, color="black", family="Helvetica"),
                     )
-                ]
+                ],
+            )
+
+            return fig
+
+
+# --------------------------------------------------------------------------------
+# DEPTH SUMMARIES
+# --------------------------------------------------------------------------------
+
+
+class DepthProfileLinePlot(RealtimeDashboardComponent):
+    """
+    Make a depth profile plot
+
+    """
+
+    pal = "inferno"
+
+    def __init__(
+        self,
+        expt_name: str,
+        regions: RegionBEDParser,
+        component_id: str,
+        depth_csv: str,
+        region_dropdown_id: str,
+    ):
+        # Store inputs
+        super().__init__(expt_name, component_id)
+        self.regions = regions
+        self.depth_csv = depth_csv
+        self.region_dropdown_id = region_dropdown_id
+
+    def _define_layout(self):
+        """Layout is graph"""
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        """Check the timer, selected region, and plot all lines"""
+
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.interval_id, "n_intervals"),
+            Input(self.region_dropdown_id, "value"),
+        )
+        def _update(_, target_region):
+            """Called every time an input changes"""
+
+            # Load data
+            if not os.path.exists(self.depth_csv):
+                return go.Figure()
+            df = pd.read_csv(self.depth_csv)
+
+            # Select target gene and group by barcode
+            region_df = df.query("name == @target_region")
+            grps = region_df.groupby("barcode")
+            n_barcodes = len(grps)
+            col_map = dict(
+                zip(
+                    grps.groups.keys(),
+                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_barcodes)],
+                )
+            )
+
+            # Control axes
+            min_y = 0
+            max_y = region_df["depth"].max() * 1.1
+
+            # Plot data
+            plot_data = [
+                go.Scatter(
+                    x=bdf["pos"],
+                    y=bdf["depth"],
+                    mode="lines",
+                    marker=dict(color=col_map[barcode_name]),
+                    name=barcode_name,
+                )
+                for barcode_name, bdf in region_df.groupby("barcode")
+            ]
+
+            # Create the plot
+            fig = go.Figure(plot_data)
+
+            MAR = 40
+            # Format
+            fig.update_layout(
+                title=dict(text=f"{target_region}"),
+                margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
+                yaxis_title="Depth",
+                xaxis_title="Genomic Position",
+                xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                yaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    showgrid=True,
+                    gridcolor="lightgray",
+                    gridwidth=0.5,
+                    griddash="dot",
+                    range=[min_y, max_y],
+                ),
+                plot_bgcolor="rgba(0,0,0,0)",
+                hovermode="x",
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0
+                ),
+                showlegend=False,
+            )
+
+            return fig
+
+
+class DepthProfileHistogram(RealtimeDashboardComponent):
+    """
+    Make a histogram of the depth profile
+
+    """
+
+    pal = "inferno"
+
+    def __init__(
+        self,
+        expt_name: str,
+        regions: RegionBEDParser,
+        component_id: str,
+        depth_csv: str,
+        region_dropdown_id: str,
+    ):
+        # Store inputs
+        super().__init__(expt_name, component_id)
+        self.regions = regions
+        self.depth_csv = depth_csv
+        self.region_dropdown_id = region_dropdown_id
+
+    def _define_layout(self):
+        """Layout is graph"""
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        """Check the timer, selected region, and plot all lines"""
+
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.interval_id, "n_intervals"),
+            Input(self.region_dropdown_id, "value"),
+        )
+        def _update(_, target_region):
+            """Called every time an input changes"""
+
+            # Load data
+            if not os.path.exists(self.depth_csv):
+                return go.Figure()
+            df = pd.read_csv(self.depth_csv)
+
+            # Select target gene and group by barcode
+            region_df = df.query("name == @target_region")
+            grps = region_df.groupby("barcode")
+            n_barcodes = len(grps)
+            col_map = dict(
+                zip(
+                    grps.groups.keys(),
+                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_barcodes)],
+                )
+            )
+
+            # Control axes
+            min_x = 0
+            max_x = region_df["depth"].max() * 1.1
+
+            # Plot data
+            plot_data = [
+                go.Histogram(x=bdf["depth"], marker=dict(color=col_map[barcode_name]), name=barcode_name)
+                for barcode_name, bdf in region_df.groupby("barcode")
+            ]
+
+            # Create the plot
+            fig = go.Figure(plot_data)
+
+            MAR = 40
+            # Format
+            fig.update_layout(
+                barmode="stack",
+                margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
+                yaxis_title="Count",
+                xaxis_title="Depth",
+                xaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    range=[min_x, max_x],
+                ),
+                yaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    showgrid=True,
+                    gridcolor="lightgray",
+                    gridwidth=0.5,
+                    griddash="dot",
+                ),
+                plot_bgcolor="rgba(0,0,0,0)",
+                hovermode="x",
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0
+                ),
+                showlegend=False,
             )
 
             return fig
