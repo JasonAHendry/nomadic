@@ -47,8 +47,8 @@ class BEDRecord:
         fields = line.strip().split("\t")
         if not len(fields) == 4:
             raise BEDFormatError(
-                "BED file must have four tab-separated columns."
-                f"Currently parsing {len(fields)}."
+                "Region BED file must have four tab-separated columns, "
+                f"but finding {len(fields)} columns after parsing."
             )
 
         # Convert fields to required data types
@@ -71,6 +71,11 @@ def load_bed_as_dataframe(bed_path: str) -> pd.DataFrame:
         for line in bed:
             if line.startswith("#"):
                 continue
+            if not line.strip():  # handle blank lines, sometimes at end
+                continue
             records.append(BEDRecord.from_line(line))
+    
+    if not records:
+        raise BEDFormatError(f"No BED records were found in file {bed_path}.")
 
     return pd.DataFrame(records)
