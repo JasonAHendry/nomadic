@@ -30,8 +30,15 @@ import click
     required=True,
     help="Path to BED file specifying genomic regions of interest.",
 )
-def realtime(expt_name, fastq_dir, metadata_csv, region_bed):
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Increase logging verbosity. Helpful for debugging."
+)
+def realtime(expt_name, fastq_dir, metadata_csv, region_bed, verbose):
     from .main import main
 
-    main(expt_name, fastq_dir, metadata_csv, region_bed)
+    main(expt_name, fastq_dir, metadata_csv, region_bed, verbose)
 

@@ -18,6 +18,9 @@ from nomadic.util.samtools import (
     samtools_depth,
 )
 
+import logging
+log = logging.getLogger("nomadic")
+
 
 # --------------------------------------------------------------------------------
 # Abstract base class
@@ -93,6 +96,7 @@ class FASTQCountRT(AnalysisStepRT):
 
         """
 
+        log.info("Running FASTQ count analysis...")
         self.n_processed_fastq += len(new_fastqs)
         json.dump(
             {"barcode": self.barcode_name, "n_processed_fastq": self.n_processed_fastq},
@@ -160,6 +164,8 @@ class MappingRT(AnalysisStepRT):
 
         """
 
+        log.info("Running real-time mapping...")
+
         inter_bam = self._get_intermediate_bam_path()
         self.mapper.map_from_fastqs(fastq_path=" ".join(new_fastqs))
         self.mapper.run(output_bam=inter_bam)
@@ -174,6 +180,8 @@ class MappingRT(AnalysisStepRT):
         the final bam
 
         """
+
+        log.debug("Merging intermediate BAM files...")
 
         samtools_merge(bam_files=self.inter_bams, output_bam=self.output_bam)
         samtools_index(self.output_bam)
@@ -219,7 +227,7 @@ class FlagstatsRT(AnalysisStepRT):
         Get path to a new intermediate JSON file
 
         """
-
+    
         base_name = f"{self.inter_dir}/{self.barcode_name}.{self.reference.name}"
         n = len(self.inter_jsons)
         code = f"n{n:05d}"
@@ -245,7 +253,11 @@ class FlagstatsRT(AnalysisStepRT):
 
         """
 
+        log.debug("Merging `samtools flagstat` JSON files...")
+
         dts = [json.load(open(j, "r")) for j in self.inter_jsons]
+
+        log.debug(f"Found {len(dts)} to merge.")
 
         keys = dts[0].keys()
         merged = {key: sum([dt[key] for dt in dts]) for key in keys}
@@ -379,6 +391,8 @@ class RegionDepthRT(AnalysisStepRT):
     def merge(self):
         """
         Not needed here, we are not computing from intermediate BAMS
+
+        TODO: Edge case where there is no coverage for a target?
 
         """
 

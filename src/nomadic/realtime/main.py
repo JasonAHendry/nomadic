@@ -14,14 +14,14 @@ from nomadic.realtime.dashboard.builders import MappingRTDashboard
 WAIT_INTERVAL = 5
 
 
-def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str) -> None:
+def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, verbose: bool) -> None:
     """
     Run nomadic in realtime
 
     """
 
     # PARSE INPUT
-    log = LoggingFascade()
+    log = LoggingFascade(logger_name="nomadic", verbose=verbose)
     log.info("Input parameters:")
     log.info(f"  Experiment Name: {expt_name}")
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
