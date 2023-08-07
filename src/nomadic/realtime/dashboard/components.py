@@ -9,6 +9,7 @@ from dash.dependencies import Input, Output
 import numpy as np
 import seaborn as sns
 import plotly.graph_objects as go
+import plotly.express as px
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.regions import RegionBEDParser
@@ -527,27 +528,33 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             )
 
             # Prepare plotting data
-            plot_data = [
-                go.Scatter(
-                    x=tdf[
-                        "barcode"
-                    ],  # + np.random.uniform(-shift, shift, tdf.shape[0]),
-                    y=tdf[dropdown_stat],
-                    mode="markers",
-                    marker=dict(size=10, color=self.regions.col_map_hex[target]),
-                    name=target,
-                )
-                for target, tdf in df.groupby("name")
-            ]
+            # plot_data = [
+            #     go.Scatter(
+            #         x=tdf[
+            #             "barcode"
+            #         ],  # + np.random.uniform(-shift, shift, tdf.shape[0]),
+            #         y=tdf[dropdown_stat],
+            #         mode="markers",
+            #         marker=dict(size=10, color=self.regions.col_map_hex[target]),
+            #         name=target,
+            #     )
+            #     for target, tdf in df.groupby("name")
+            # ]
 
             # Fix y-axis minimum at zero
             min_y = 0
             max_y = df[dropdown_stat].max() * 1.1
 
             # Create plot
-            fig = go.Figure()
-            for plot_trace in plot_data:
-                fig.add_trace(plot_trace)
+            # fig = go.Figure()
+            # for plot_trace in plot_data:
+            #     fig.add_trace(plot_trace)
+            fig = px.strip(df, 
+               x="barcode",
+               color="name",
+               color_discrete_map=self.regions.col_map_hex,
+               y=df[dropdown_stat]
+              )
 
             fig.update_layout(
                 yaxis_title=dropdown_stat,
