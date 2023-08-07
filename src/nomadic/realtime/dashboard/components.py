@@ -22,7 +22,7 @@ from nomadic.util.regions import RegionBEDParser
 
 TIMER_INTERVAL_ID = "interval"
 
-MAPPING_CATS = ["n_uniq_mapped", "n_chim_mapped", "n_mult_mapped", "n_unmapped"]
+MAPPING_CATS = ["n_primary", "n_chimeria", "n_secondary", "n_unmapped"]
 MAPPING_COLS = dict(
     zip(
         MAPPING_CATS,
@@ -230,7 +230,7 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
                         html.Br(),
                         f"Time elapsed:{tab*n_tabs}{t1 - self.t0}",
                         html.Br(),
-                        f"No. FASTQ Processed:{tab*(n_tabs-2)}{n_fastq}",
+                        f"FASTQs Processed:{tab*(n_tabs-2)}{n_fastq}",
                     ],
                     style=dict(fontFamily="Arial", margin="0px"),
                 ),
@@ -367,7 +367,7 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
 
             # Format
             fig.update_layout(
-                yaxis_title="No. Reads",
+                yaxis_title="Alignment Count",
                 barmode="stack",
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
                 yaxis=dict(

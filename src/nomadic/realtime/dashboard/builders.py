@@ -101,8 +101,9 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
 
     """
 
-    # TODO: this is bad, need better way to handle repeated constants
-    CATEGORIES = ["n_uniq_mapped", "n_chim_mapped", "n_mult_mapped", "n_unmapped"]
+    # TODO: this is bad, need better way to handle repeated constants!!!
+    # TODO: I can probably move these somewhere else; into a file called constants or parameters
+    CATEGORIES = ["n_primary", "n_chimeria", "n_secondary", "n_unmapped"]
     CSS_STYLES = ["assets/mapping-style.css"]
 
     def __init__(

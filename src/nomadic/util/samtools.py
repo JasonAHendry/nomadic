@@ -92,13 +92,15 @@ def samtools_flagstats(input_bam: str, output_json: str) -> None:
 
     # Clean and write to output
     orig_dt = json.load(open(temp_json, "r"))["QC-passed reads"]
+    # NB: These are counting ALIGNMENTS not READS
+    # A single read can have multiple alignments
     clean_dt = {
-        "n_reads": orig_dt["primary"],
+        "n_total": orig_dt["total"],
         "n_mapped": orig_dt["mapped"],
-        "n_uniq_mapped": orig_dt["primary mapped"],
-        "n_chim_mapped": orig_dt["supplementary"],
-        "n_mult_mapped": orig_dt["secondary"],
-        "n_unmapped": orig_dt["primary"] - orig_dt["mapped"],
+        "n_primary": orig_dt["primary mapped"],
+        "n_secondary": orig_dt["secondary"],
+        "n_chimeria": orig_dt["supplementary"],
+        "n_unmapped": orig_dt["total"] - orig_dt["mapped"]
     }
     json.dump(clean_dt, open(output_json, "w"))
 
