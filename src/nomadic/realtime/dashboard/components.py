@@ -9,6 +9,7 @@ from dash.dependencies import Input, Output
 import numpy as np
 import seaborn as sns
 import plotly.graph_objects as go
+import plotly.express as px
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.regions import RegionBEDParser
@@ -22,7 +23,7 @@ from nomadic.util.regions import RegionBEDParser
 
 TIMER_INTERVAL_ID = "interval"
 
-MAPPING_CATS = ["n_uniq_mapped", "n_chim_mapped", "n_mult_mapped", "n_unmapped"]
+MAPPING_CATS = ["n_primary", "n_chimeria", "n_secondary", "n_unmapped"]
 MAPPING_COLS = dict(
     zip(
         MAPPING_CATS,
@@ -230,7 +231,7 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
                         html.Br(),
                         f"Time elapsed:{tab*n_tabs}{t1 - self.t0}",
                         html.Br(),
-                        f"No. FASTQ Processed:{tab*(n_tabs-2)}{n_fastq}",
+                        f"FASTQs Processed:{tab*(n_tabs-2)}{n_fastq}",
                     ],
                     style=dict(fontFamily="Arial", margin="0px"),
                 ),
@@ -288,7 +289,8 @@ class MappingStatsPie(RealtimeDashboardComponent):
             df = pd.read_csv(self.flagstats_csv)
 
             # Compute totals
-            pie_values = df[selected_categories].sum().tolist()
+            pie_cats = [c for c in MAPPING_CATS if c in selected_categories]
+            pie_values = df[pie_cats].sum().tolist()
 
             # Generate figure
             fig = go.Figure(
@@ -297,7 +299,7 @@ class MappingStatsPie(RealtimeDashboardComponent):
                         labels=selected_categories,
                         values=pie_values,
                         marker=dict(
-                            colors=[MAPPING_COLS[cat] for cat in selected_categories]
+                            colors=[MAPPING_COLS[cat] for cat in pie_cats]
                         ),
                     )
                 ]
@@ -361,13 +363,14 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                         marker=dict(color=MAPPING_COLS[cat]),
                         name=cat,
                     )
-                    for cat in selected_categories
+                    for cat in MAPPING_CATS
+                    if cat in selected_categories
                 ]
             )
 
             # Format
             fig.update_layout(
-                yaxis_title="No. Reads",
+                yaxis_title="Alignment Count",
                 barmode="stack",
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
                 yaxis=dict(
@@ -527,27 +530,33 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             )
 
             # Prepare plotting data
-            plot_data = [
-                go.Scatter(
-                    x=tdf[
-                        "barcode"
-                    ],  # + np.random.uniform(-shift, shift, tdf.shape[0]),
-                    y=tdf[dropdown_stat],
-                    mode="markers",
-                    marker=dict(size=10, color=self.regions.col_map_hex[target]),
-                    name=target,
-                )
-                for target, tdf in df.groupby("name")
-            ]
+            # plot_data = [
+            #     go.Scatter(
+            #         x=tdf[
+            #             "barcode"
+            #         ],  # + np.random.uniform(-shift, shift, tdf.shape[0]),
+            #         y=tdf[dropdown_stat],
+            #         mode="markers",
+            #         marker=dict(size=10, color=self.regions.col_map_hex[target]),
+            #         name=target,
+            #     )
+            #     for target, tdf in df.groupby("name")
+            # ]
 
             # Fix y-axis minimum at zero
             min_y = 0
             max_y = df[dropdown_stat].max() * 1.1
 
             # Create plot
-            fig = go.Figure()
-            for plot_trace in plot_data:
-                fig.add_trace(plot_trace)
+            # fig = go.Figure()
+            # for plot_trace in plot_data:
+            #     fig.add_trace(plot_trace)
+            fig = px.strip(df, 
+               x="barcode",
+               color="name",
+               color_discrete_map=self.regions.col_map_hex,
+               y=df[dropdown_stat]
+              )
 
             fig.update_layout(
                 yaxis_title=dropdown_stat,
@@ -568,6 +577,7 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
                     orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
                 ),
             )
+            fig.update_traces(marker=dict(size=10))
 
             return fig
 
