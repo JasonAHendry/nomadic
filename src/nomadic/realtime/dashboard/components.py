@@ -289,7 +289,8 @@ class MappingStatsPie(RealtimeDashboardComponent):
             df = pd.read_csv(self.flagstats_csv)
 
             # Compute totals
-            pie_values = df[selected_categories].sum().tolist()
+            pie_cats = [c for c in MAPPING_CATS if c in selected_categories]
+            pie_values = df[pie_cats].sum().tolist()
 
             # Generate figure
             fig = go.Figure(
@@ -298,7 +299,7 @@ class MappingStatsPie(RealtimeDashboardComponent):
                         labels=selected_categories,
                         values=pie_values,
                         marker=dict(
-                            colors=[MAPPING_COLS[cat] for cat in selected_categories]
+                            colors=[MAPPING_COLS[cat] for cat in pie_cats]
                         ),
                     )
                 ]
@@ -362,7 +363,8 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                         marker=dict(color=MAPPING_COLS[cat]),
                         name=cat,
                     )
-                    for cat in selected_categories
+                    for cat in MAPPING_CATS
+                    if cat in selected_categories
                 ]
             )
 
@@ -575,6 +577,7 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
                     orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
                 ),
             )
+            fig.update_traces(marker=dict(size=10))
 
             return fig
 
