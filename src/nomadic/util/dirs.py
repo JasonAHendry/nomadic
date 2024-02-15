@@ -1,7 +1,9 @@
 import os
+import shutil
 from pathlib import Path
 
 from .metadata import MetadataTableParser
+from .regions import RegionBEDParser
 
 
 def produce_dir(*args):
@@ -54,7 +56,10 @@ class ExperimentDirectories:
     results_dir = produce_dir(ROOT_DIR, "results")
 
     def __init__(
-        self, expt_name: str, metadata: MetadataTableParser, approach_name: str = ""
+        self, expt_name: str, 
+        metadata: MetadataTableParser,
+        regions: RegionBEDParser = None,
+        approach_name: str = ""
     ):
         """
         Initialise all the required directories
@@ -65,7 +70,7 @@ class ExperimentDirectories:
         self.expt_dir = produce_dir(self.results_dir, expt_name)
 
         self.metadata_dir = produce_dir(self.expt_dir, "metadata")
-        # TODO: move the metadata there, if it is not
+        self._setup_metadata_dir(metadata, regions)
 
         # This enables different Guppy versions, barcoding strategies, &c
         self.approach_name = approach_name
@@ -83,3 +88,19 @@ class ExperimentDirectories:
         """
 
         return self._barcode_dirs[barcode_name]
+    
+    def _setup_metadata_dir(self, metadata: MetadataTableParser, regions: RegionBEDParser) -> None:
+        """
+        Setup the metadata folder
+        
+        """
+
+        metadata_csv = f"{self.metadata_dir}/{os.path.basename(metadata.csv)}"
+        if not os.path.exists(metadata_csv):
+            metadata.df.to_csv(metadata_csv, index=False)
+
+        if regions is not None:
+            # TODO: really want to *write* the correctly parsed one
+            regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
+            if not os.path.exists(regions_bed):
+                shutil.copy(regions.path, regions_bed)

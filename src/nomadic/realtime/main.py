@@ -31,8 +31,8 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, ver
 
     # PREPARE TO RUN
     metadata = MetadataTableParser(metadata_csv)
-    expt_dirs = ExperimentDirectories(expt_name, metadata)
     regions = RegionBEDParser(region_bed)
+    expt_dirs = ExperimentDirectories(expt_name, metadata, regions)
     log.info(f"  Found {len(metadata.barcodes) - 1} barcodes to track.")
     log.info(f"  Found {regions.n_regions} regions of interest.")
     log.info(f"  Outputs will be written to: {expt_dirs.expt_dir}.")
