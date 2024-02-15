@@ -1,0 +1,6 @@
+﻿barcode;sample_id,parasite_per_ul,location;platform;number
+barcode01;3D7 (NB01);10000;Oxford;flongle;8,4
+barcode02;Dd2 (NB02);10000;Oxford;flongle;2,0
+barcode03;CamC580Y (NB03);10000;Oxford;flongle;4,3
+barcode04;GB4 (NB04);10000;Oxford;flongle;5,4
+barcode05;HB3 (NB05);10000;Oxford;flongle;6,1
