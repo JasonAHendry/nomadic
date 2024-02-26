@@ -8,6 +8,8 @@ from nomadic.realtime.steps import (
     FlagstatsRT,
     BedCovRT,
     RegionDepthRT,
+    CallVariantsRT,
+    AnnotateVariantsRT
 )
 
 
@@ -31,13 +33,17 @@ class BarcodePipelineRT:
         self.barcode_dir = expt_dirs.get_barcode_dir(barcode_name)
 
         # Initialise analysis steps
-        self.fastq_step = FASTQCountRT(barcode_name, expt_dirs)
-        self.map_step = MappingRT(barcode_name, expt_dirs)
-        self.flagstat_step = FlagstatsRT(barcode_name, expt_dirs)
-        self.bedcov_step = BedCovRT(barcode_name, expt_dirs, bed_path)
-        self.depth_step = RegionDepthRT(
-            barcode_name, expt_dirs, RegionBEDParser(bed_path)
-        )
+        common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
+        self.fastq_step = FASTQCountRT(**common)
+        self.map_step = MappingRT(**common)
+        self.flagstat_step = FlagstatsRT(**common)
+        self.bedcov_step = BedCovRT(**common, bed_path)
+        self.depth_step = RegionDepthRT(**common, RegionBEDParser(bed_path))
+        self.annot_step = AnnotateVariantsRT(**common)
+
+        # HERE
+        self.call_step = CallVariantsRT(**common)
+        #self.annot_step = None #AnnotateVariantsRT()
 
     def run(self, new_fastq):
         """
@@ -55,5 +61,11 @@ class BarcodePipelineRT:
 
         self.depth_step.run(final_bam)
         self.depth_step.merge()
+
+        final_vcf = self.call_step.run(final_bam) # pileup, call, filter, fill tags
+        self.call_step.merge()
+
+        self.annot_step.run(final_vcf)
+        self.annot_step.merge()
 
         self.fastq_step.run(new_fastq)

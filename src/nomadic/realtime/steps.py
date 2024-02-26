@@ -409,3 +409,134 @@ class RegionDepthRT(AnalysisStepRT):
             dfs.append(df)
         merged_df = pd.concat(dfs)
         merged_df.to_csv(self.output_csv, index=False)
+
+
+
+# --------------------------------------------------------------------------------
+# Variant calling and annnotation
+#
+# --------------------------------------------------------------------------------
+
+
+class CallVariantsRT(AnalysisStepRT):
+    """
+    Call variants in real-time using `bcftools call`
+
+    """
+
+    step_name = "vcfs"
+
+    # Settings
+    ANNOTATE = "FORMAT/DP,FORMAT/AD"
+    MAX_DEPTH = 4_000
+    MIN_DEPTH = 50
+    MIN_QUAL = 10
+
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories
+    ):
+        """Initialise output directory and define file names"""
+
+        super().__init__(barcode_name, expt_dirs)
+
+        self.reference = PlasmodiumFalciparum3D7()
+
+        self.output_dir = produce_dir(self.barcode_dir, self.step_name)
+        self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.vcf.gz"
+
+    def run(self, input_bam: str) -> str:
+        """
+        Run variant calling with bcftools
+
+        TODO:
+        - What happens if there are no variants?
+
+        """
+
+        cmd_pileup = "bcftools mpileup -Ou"
+        cmd_pileup += f" --annotate {self.ANNOTATE}"
+        cmd_pileup += f" --max-depth {self.MAX_DEPTH}"
+        cmd_pileup += f" -f {self.reference.fasta_path}"
+        cmd_pileup += f" {input_bam}"
+
+        cmd_call = "bcftools call -mv - "
+
+        cmd_filter = "bcftools view"
+        cmd_filter += " --min-alleles 2"
+        cmd_filter += " --max-alleles 2"
+        cmd_filter += " --types='snps'"
+        cmd_filter += f" -e 'FORMAT/DP<{self.MIN_DEPTH}||QUAL<{self.MIN_QUAL}' -"
+
+        cmd_tags = f"bcftools +fill-tags -Oz -o {self.output_vcf} - -- -t FORMAT/VAF"
+
+        cmd = f"{cmd_pileup} | {cmd_call} | {cmd_filter} | {cmd_tags}"
+
+        subprocess.run(cmd, check=True, shell=True)
+
+        return self.output_vcf
+
+    def merge():
+        """
+        For now, not needed as we are just doing a single round of calling on
+        the final BAM file. We could call for different regions seperately, but I actually
+        think this is inferior.
+
+        """
+        pass
+
+
+class AnnotateVariantsRT(AnalysisStepRT):
+    """
+    Annotate a set of variants in real-time 
+    using `bcftools csq`
+
+    Note: it is important to ensure this step can work
+    on VCFs produced from a variety of different variant calling
+    methods
+
+    """
+
+    step_name = "vcfs"
+
+    def __init__(
+            self,
+            barcode_name: str,
+            expt_dirs: ExperimentDirectories
+        ):
+            """Initialise output directory and define file names"""
+
+            super().__init__(barcode_name, expt_dirs)
+
+            self.reference = PlasmodiumFalciparum3D7()
+
+            self.output_dir = produce_dir(self.barcode_dir, self.step_name)
+            self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.vcf.gz"
+            self.output_csv = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.csv"
+
+    def run(self, input_vcf: str):
+        """
+        Annotate variant calls using `bcftools csq`
+        
+        """
+
+        # Run `bcftools csq`
+        cmd_csq = "bcftools csq"
+        cmd_csq += f" -f {self.reference.fasta_path}"
+        cmd_csq += f" -g {self.reference.gff_standard_path}"
+        cmd_csq += " --phase a"
+        cmd_csq += f" -Oz -o {self.output_vcf} {input_vcf}"
+        subprocess.run(cmd_csq, shell=True, check=True)
+
+        # Format into a small CSV table
+        cmd_header = f"echo chrom,pos,ref,alt,qual,consequence,gt,dp,wsaf > {self.output_csv}"
+        cmd_query = "bcftools query"
+        cmd_query += " -f '%CHROM,%POS,%REF,%ALT,%QUAL,%BCSQ,[%GT,%DP,%VAF]\n'"
+        cmd_query += f" {self.output_vcf} >> {self.output_csv}"
+        cmd = f"{cmd_header} && {cmd_query}"
+        subprocess.run(cmd, shell=True, check=True)
+
+    def merge(self):
+        pass
+
