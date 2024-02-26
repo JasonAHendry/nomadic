@@ -477,7 +477,7 @@ class CallVariantsRT(AnalysisStepRT):
 
         return self.output_vcf
 
-    def merge():
+    def merge(self):
         """
         For now, not needed as we are just doing a single round of calling on
         the final BAM file. We could call for different regions seperately, but I actually
