@@ -20,11 +20,11 @@ def main(reference_name: str, all: bool = False) -> None:
             print(f"Reference: {rname}")
             downloader.set_reference(r)
             downloader.download_fasta()
-            downloader.download_gff()
+            downloader.download_gff(standardise=True) # TODO: Might not want always
     elif reference_name is not None:
         print(f"Reference: {reference_name}")
         downloader.set_reference(REFERENCE_COLLECTION[reference_name])
         downloader.download_fasta()
-        downloader.download_gff()
+        downloader.download_gff(standardise=True)
     else:
         print("Must specify options. Type 'nomadic download --help' for details.")
