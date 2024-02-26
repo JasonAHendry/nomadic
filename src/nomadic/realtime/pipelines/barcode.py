@@ -37,8 +37,8 @@ class BarcodePipelineRT:
         self.fastq_step = FASTQCountRT(**common)
         self.map_step = MappingRT(**common)
         self.flagstat_step = FlagstatsRT(**common)
-        self.bedcov_step = BedCovRT(**common, bed_path)
-        self.depth_step = RegionDepthRT(**common, RegionBEDParser(bed_path))
+        self.bedcov_step = BedCovRT(**common, bed_path=bed_path)
+        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path))
         self.annot_step = AnnotateVariantsRT(**common)
 
         # HERE
