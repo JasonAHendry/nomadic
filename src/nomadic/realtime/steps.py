@@ -17,6 +17,7 @@ from nomadic.util.samtools import (
     samtools_flagstats,
     samtools_depth,
 )
+from nomadic.util.consequence import Consequence
 
 import logging
 log = logging.getLogger("nomadic")
@@ -428,7 +429,7 @@ class CallVariantsRT(AnalysisStepRT):
 
     # Settings
     ANNOTATE = "FORMAT/DP,FORMAT/AD"
-    MAX_DEPTH = 4_000
+    MAX_DEPTH = 500
     MIN_DEPTH = 50
     MIN_QUAL = 10
 
@@ -452,6 +453,8 @@ class CallVariantsRT(AnalysisStepRT):
 
         TODO:
         - What happens if there are no variants?
+        - Can try to use some filtering, e.g.
+        ont:         -B -Q5 --max-BQ 30 -I [also try eg |bcftools call -P0.01]
 
         """
 
@@ -478,12 +481,6 @@ class CallVariantsRT(AnalysisStepRT):
         return self.output_vcf
 
     def merge(self):
-        """
-        For now, not needed as we are just doing a single round of calling on
-        the final BAM file. We could call for different regions seperately, but I actually
-        think this is inferior.
-
-        """
         pass
 
 
@@ -492,18 +489,20 @@ class AnnotateVariantsRT(AnalysisStepRT):
     Annotate a set of variants in real-time 
     using `bcftools csq`
 
-    Note: it is important to ensure this step can work
-    on VCFs produced from a variety of different variant calling
-    methods
+    TODO:
+    - Handle phasing properly for variants
+    with multiple consequences
 
     """
 
     step_name = "vcfs"
+    AMP_HEADER = "##INFO=<ID=AMP_ID,Number=1,Type=String,Description=Amplicon identifier>"
 
     def __init__(
             self,
             barcode_name: str,
-            expt_dirs: ExperimentDirectories
+            expt_dirs: ExperimentDirectories,
+            bed_path: str
         ):
             """Initialise output directory and define file names"""
 
@@ -511,9 +510,47 @@ class AnnotateVariantsRT(AnalysisStepRT):
 
             self.reference = PlasmodiumFalciparum3D7()
 
+            self.bed_path = bed_path
+
             self.output_dir = produce_dir(self.barcode_dir, self.step_name)
             self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.vcf.gz"
-            self.output_csv = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.csv"
+            self.output_tsv = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.tsv"
+
+    
+    def _get_annotate_command(self, input_vcf: str="-", output_vcf: str = "") -> str:
+        """
+        Create a string representing command required to annotate variants with
+        their amplicon position
+        
+        """
+        cmd = "bcftools annotate"
+        cmd += f" -a {self.bed_path}"
+        cmd += " -c CHROM,FROM,TO,AMP_ID"
+        cmd += f" -H '{self.AMP_HEADER}'"
+        cmd += " -Oz"
+        if output_vcf:
+            cmd += f" -o {output_vcf}"
+        cmd += f" {input_vcf}"
+
+        return cmd
+    
+    def _get_csq_command(self, input_vcf: str="-", output_vcf: str = "") -> str:
+        """
+        Create a string representing command required
+        to compute variant consequences
+        
+        """
+        cmd = "bcftools csq"
+        cmd += f" -f {self.reference.fasta_path}"
+        cmd += f" -g {self.reference.gff_standard_path}"
+        cmd += " --phase a"
+        cmd += " -Oz"
+        if output_vcf:
+            cmd += f" -o {output_vcf}"
+        cmd += f" {input_vcf}"
+
+        return cmd
+    
 
     def run(self, input_vcf: str):
         """
@@ -521,22 +558,69 @@ class AnnotateVariantsRT(AnalysisStepRT):
         
         """
 
-        # Run `bcftools csq`
-        cmd_csq = "bcftools csq"
-        cmd_csq += f" -f {self.reference.fasta_path}"
-        cmd_csq += f" -g {self.reference.gff_standard_path}"
-        cmd_csq += " --phase a"
-        cmd_csq += f" -Oz -o {self.output_vcf} {input_vcf}"
-        subprocess.run(cmd_csq, shell=True, check=True)
+        cmd_annot = self._get_annotate_command(input_vcf)
+        cmd_csq = self._get_csq_command("-", output_vcf=self.output_vcf)
+        cmd = f"{cmd_annot} | {cmd_csq}"
+        subprocess.run(cmd, shell=True, check=True)
 
-        # Format into a small CSV table
-        cmd_header = f"echo chrom,pos,ref,alt,qual,consequence,gt,dp,wsaf > {self.output_csv}"
+
+    def _convert_to_tsv(self):
+        """
+        Convert the annotated VCF file to a small TSV file
+        in preparation for plotting
+
+        """
+        
+        fixed = {
+            "chrom": "CHROM",
+            "pos": "POS",
+            "ref": "REF",
+            "alt": "ALT",
+            "qual": "QUAL",
+            "consequence": "BCSQ",
+            "amplicon": "AMP_ID"
+        }
+        called = {
+            "gt": "GT",
+            "dp": "DP",
+            "wsaf": "VAF"
+        }
+
+        sep = "\\t"
+        cmd_header = f" echo '{sep.join(list(fixed) + list(called))}\n' > {self.output_tsv}"
+        sep += "%"
         cmd_query = "bcftools query"
-        cmd_query += " -f '%CHROM,%POS,%REF,%ALT,%QUAL,%BCSQ,[%GT,%DP,%VAF]\n'"
-        cmd_query += f" {self.output_vcf} >> {self.output_csv}"
+        cmd_query += f" -f '%{sep.join(fixed.values())}\t[%{sep.join(called.values())}]\n'"
+        cmd_query += f" {self.output_vcf} >> {self.output_tsv}"
+        
         cmd = f"{cmd_header} && {cmd_query}"
         subprocess.run(cmd, shell=True, check=True)
 
-    def merge(self):
-        pass
+    def _parse_consequences(self):
+        """
+        Parse the consequenc string in the TSV
 
+        """
+        
+        df = pd.read_csv(self.output_tsv, sep="\t")
+        csqs = [
+            Consequence.from_string(c)
+            for c in df["consequence"]
+        ]
+        mut_type, aa_change, strand = zip(*[(c.csq, c.get_concise_aa_change(), c.strand) 
+                                            for c in csqs])
+        df.insert(6, "mut_type", mut_type)
+        df.insert(7, "aa_change", aa_change)
+        df.insert(8, "strand", strand)
+        df.drop("consequence", axis=1, inplace=True)
+        df.to_csv(self.output_tsv, sep="\t", index=False)
+
+
+    def merge(self):
+        """
+        This is more preparing to merge across barcodes
+
+        """
+
+        self._convert_to_tsv()
+        self._parse_consequences()

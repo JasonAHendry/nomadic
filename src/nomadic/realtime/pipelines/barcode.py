@@ -39,7 +39,7 @@ class BarcodePipelineRT:
         self.flagstat_step = FlagstatsRT(**common)
         self.bedcov_step = BedCovRT(**common, bed_path=bed_path)
         self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path))
-        self.annot_step = AnnotateVariantsRT(**common)
+        self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path)
 
         # HERE
         self.call_step = CallVariantsRT(**common)
