@@ -4,15 +4,17 @@ from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
 
 from nomadic.util.regions import RegionBEDParser
+from nomadic.util.metadata import MetadataTableParser
 from nomadic.realtime.dashboard.components import (
     ExperimentSummaryFASTQ,
-    OverallGauge,
     MappingStatsPie,
     MappingStatsBarplot,
     RegionCoveragePie,
     RegionCoverageStrip,
     DepthProfileLinePlot,
     DepthProfileHistogram,
+    DepthProfileCumulativeDist,
+    VariantHeatmap
 )
 
 
@@ -110,10 +112,12 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         self,
         expt_name,
         regions: RegionBEDParser,
+        metadata: MetadataTableParser,
         fastq_csv,
         flagstats_csv,
         bedcov_csv,
         depth_csv,
+        variant_csv,
     ):
         """
         Initialise all of the dashboard components
@@ -123,10 +127,12 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         super().__init__(expt_name, self.CSS_STYLES)
 
         self.regions = regions
+        self.metadata = metadata
         self.fastq_csv = fastq_csv
         self.flagstats_csv = flagstats_csv
         self.bedcov_csv = bedcov_csv
         self.depth_csv = depth_csv
+        self.variant_csv = variant_csv
 
         # Initialise all the components
         self.expt_summary = ExperimentSummaryFASTQ(
@@ -166,12 +172,20 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
             depth_csv=self.depth_csv,
             region_dropdown_id="depth-dropdown",
         )
-        self.depth_hist = DepthProfileHistogram(
+        self.depth_hist = DepthProfileCumulativeDist(
             expt_name,
             regions=self.regions,
             component_id="depth-hist",
             depth_csv=self.depth_csv,
             region_dropdown_id="depth-dropdown",
+        )
+        self.variant_heat = VariantHeatmap(
+            expt_name,
+            regions=self.regions,
+            metadata=self.metadata,
+            component_id="variant-heat",
+            variant_csv=self.variant_csv,
+            region_dropdown_id="variant-dropdown",
         )
 
         # Put them into the components
@@ -182,6 +196,7 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         self.components.append(self.region_strip)
         self.components.append(self.depth_line)
         self.components.append(self.depth_hist)
+        self.components.append(self.variant_heat)
 
     def _gen_layout(self):
         """
@@ -206,6 +221,13 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
 
         depth_dropdown = dcc.Dropdown(
             id="depth-dropdown",
+            options=self.regions.names,
+            value="kelch13",
+            style=dict(width="300px"),
+        )
+
+        variant_dropdown = dcc.Dropdown(
+            id="variant-dropdown",
             options=self.regions.names,
             value="kelch13",
             style=dict(width="300px"),
@@ -259,6 +281,20 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
             ],
         )
 
-        layout = [banner, mapping_row, bedcov_row, depth_row]
+        variant_row = html.Div(
+            className="variant-row",
+            children=[
+                html.H3("Preliminary Variant Calling", style=dict(marginTop="0px")),
+                variant_dropdown,
+                html.Div(
+                    className="variant-plots",
+                    children=[
+                        self.variant_heat.get_layout()
+                    ],
+                ),
+            ],
+        )
+
+        layout = [banner, mapping_row, bedcov_row, depth_row, variant_row]
 
         return layout

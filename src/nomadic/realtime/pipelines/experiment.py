@@ -65,6 +65,10 @@ class MappingInRTExptPipeline(ExperimentPipeline):
         """
         Summarise the number of fastqs from all barcodes into a dataframe
 
+        TODO:
+        - This is bad, needs to be split into functions and better
+        linked with the BarcodePipeline / Dashboard
+
         """
 
         # MERGE FASTQ stuff
@@ -123,3 +127,19 @@ class MappingInRTExptPipeline(ExperimentPipeline):
         depth_df = pd.concat(depth_dfs)
         df_path = f"{self.expt_dirs.approach_dir}/summary.depth.csv"
         depth_df.to_csv(df_path, index=False)
+
+
+        # Concat variant calling
+        variant_dfs = []
+        for b in self.metadata.barcodes:
+            barcode_dir = self.expt_dirs.get_barcode_dir(b)
+            try:
+                df = pd.read_csv(f"{barcode_dir}/vcfs/{b}.Pf3D7.annotated.tsv", sep="\t")
+                df.insert(0, "barcode", b)
+                variant_dfs.append(df)
+            except FileNotFoundError:
+                continue
+        variant_df = pd.concat(variant_dfs)
+        variant_path = f"{self.expt_dirs.approach_dir}/summary.variants.csv"
+        variant_df.to_csv(variant_path, index=False)
+
