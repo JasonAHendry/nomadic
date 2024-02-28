@@ -429,9 +429,9 @@ class CallVariantsRT(AnalysisStepRT):
 
     # Settings
     ANNOTATE = "FORMAT/DP,FORMAT/AD"
-    MAX_DEPTH = 500
+    MAX_DEPTH = 1000
     MIN_DEPTH = 50
-    MIN_QUAL = 10
+    MIN_QUAL = 20
 
     def __init__(
         self,
@@ -452,19 +452,32 @@ class CallVariantsRT(AnalysisStepRT):
         Run variant calling with bcftools
 
         TODO:
-        - What happens if there are no variants?
-        - Can try to use some filtering, e.g.
-        ont:         -B -Q5 --max-BQ 30 -I [also try eg |bcftools call -P0.01]
+        Note that here I am following recommendations of
+        `bcftools` in calling with ONT reads, that is, using
+        `-X ont` for `bcftools mpileup`, which sets:
+
+        `-B`  : disable per-base alignment quality
+        `-Q5` : Skip bases with base quality < 5
+        `--max-BQ 30` : Set the maximum base quality to 30
+            - ONT sets homopolymers to 90 for some reason
+        `-I`  : Skip indel calling
+            - I only report SNPs in dashboard
+            - But could be difficult for some variants (K76T)
+
+        Then for `bcftools call`, I use `-P 0.01`,
+
+        `-P` : Prior on mutation rate
 
         """
 
         cmd_pileup = "bcftools mpileup -Ou"
+        cmd_pileup += f" -X ont"  # set to ONT mode.
         cmd_pileup += f" --annotate {self.ANNOTATE}"
         cmd_pileup += f" --max-depth {self.MAX_DEPTH}"
         cmd_pileup += f" -f {self.reference.fasta_path}"
         cmd_pileup += f" {input_bam}"
 
-        cmd_call = "bcftools call -mv - "
+        cmd_call = "bcftools call -mv -P 0.01 - "
 
         cmd_filter = "bcftools view"
         cmd_filter += " --min-alleles 2"
