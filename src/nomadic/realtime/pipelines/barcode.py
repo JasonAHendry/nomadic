@@ -142,6 +142,9 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         self.bedcov_step.run(final_bam)
         self.bedcov_step.merge()
 
+        self.depth_step.run(final_bam)
+        self.depth_step.merge()
+
         final_vcf = self.call_step.run(final_bam) # pileup, call, filter, fill tags
         self.call_step.merge()
 
