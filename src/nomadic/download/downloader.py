@@ -22,7 +22,9 @@ class ReferenceDownloader:
 
     def download_fasta(self):
         if self.ref.fasta_path and not self.exists_locally(self.ref.fasta_path):
-            print("Downloading...")
+            print("Downloading FASTA...")
+            print(f"  From: {self.ref.fasta_url}")
+            print(f"  To: {self.ref.fasta_path}")
             self.produce_dir(self.ref.fasta_path)
             urllib.request.urlretrieve(
                 url=self.ref.fasta_url, filename=self.ref.fasta_path
@@ -34,7 +36,9 @@ class ReferenceDownloader:
 
     def download_gff(self, standardise: bool=False):
         if self.ref.gff_path and not self.exists_locally(self.ref.gff_path):
-            print("Downloading...")
+            print("Downloading GFF...")
+            print(f"  From: {self.ref.gff_url}")
+            print(f"  To: {self.ref.gff_path}")
             self.produce_dir(self.ref.gff_path)
             urllib.request.urlretrieve(url=self.ref.gff_url, filename=self.ref.gff_path)
             print("Done.")

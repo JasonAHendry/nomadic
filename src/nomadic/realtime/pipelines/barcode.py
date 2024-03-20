@@ -31,7 +31,7 @@ class BarcodePipelineRT(ABC):
 
     """
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str):
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
         """
         Store important metadata as instance attributes, and define steps
 
@@ -40,6 +40,7 @@ class BarcodePipelineRT(ABC):
         self.barcode_name = barcode_name
         self.expt_dirs = expt_dirs
         self.barcode_dir = expt_dirs.get_barcode_dir(barcode_name)
+        self.ref_name = ref_name
 
     @abstractmethod
     def run(self, new_fastq: List[str]) -> None:
@@ -63,7 +64,7 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
 
     """
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str):
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
         """
         Initialise the barcode mapping pipeline
 
@@ -74,10 +75,10 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
         # Initialise analysis steps
         common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
         self.fastq_step = FASTQCountRT(**common)
-        self.map_step = MappingRT(**common)
-        self.flagstat_step = FlagstatsRT(**common)
-        self.bedcov_step = BedCovRT(**common, bed_path=bed_path)
-        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path))
+        self.map_step = MappingRT(**common, ref_name=ref_name)
+        self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
+        self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
+        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
 
     def run(self, new_fastq: List[str]) -> None:
         """
@@ -107,7 +108,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
 
     """
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str):
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
         """
         Initialise the barcode mapping pipeline
 
@@ -118,12 +119,12 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         # Initialise analysis steps
         common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
         self.fastq_step = FASTQCountRT(**common)
-        self.map_step = MappingRT(**common)
-        self.flagstat_step = FlagstatsRT(**common)
-        self.bedcov_step = BedCovRT(**common, bed_path=bed_path)
-        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path))
-        self.call_step = CallVariantsRT(**common)
-        self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path)
+        self.map_step = MappingRT(**common, ref_name=ref_name)
+        self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
+        self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
+        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
+        self.call_step = CallVariantsRT(**common, ref_name=ref_name)
+        self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
 
 
     def run(self, new_fastq: List[str]) -> None:

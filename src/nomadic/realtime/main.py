@@ -10,7 +10,7 @@ from nomadic.realtime.factory import PipelineFactory
 WAIT_INTERVAL = 5
 
 
-def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, call: bool, verbose: bool) -> None:
+def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, reference_name: str, call: bool, verbose: bool) -> None:
     """
     Run nomadic in realtime
 
@@ -23,6 +23,7 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, cal
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
     log.info(f"  Metadata (.csv): {metadata_csv}")
     log.info(f"  Regions (.bed): {region_bed}")
+    log.info(f"  Reference genome: {reference_name}")
     log.info(f"  Performing variant calling: {call}")
     log.info("Processing...")
 
@@ -40,7 +41,8 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, cal
                               regions,
                               expt_dirs,
                               fastq_dir,
-                              call)
+                              call,
+                              reference_name)
     
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
