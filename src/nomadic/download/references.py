@@ -39,7 +39,7 @@ class PlasmoDB(Reference):
 
     source = "plasmodb"
     source_url = "https://plasmodb.org/common/downloads"
-    release = 59
+    release = 67
 
     def __init__(self, species, strain):
         self.species = species
@@ -58,6 +58,38 @@ class PlasmoDB(Reference):
         """Set .gff file download URL and local path"""
 
         gff_fn = f"PlasmoDB-{self.release}_{self.species}{self.strain}.gff"
+        self.gff_url = f"{self.data_url}/gff/data/{gff_fn}"
+        self.gff_path = f"resources/{self.source}/{self.release}/{gff_fn}"
+        self.gff_standard_path = f"resources/{self.source}/{self.release}/{gff_fn.replace('gff','standard.gff')}"
+
+
+class VectorBase(Reference):
+    """
+    Encapsulate reference sequence downloads from vectorbase
+
+    """
+
+    source = "vectorbase"
+    source_url = "https://vectorbase.org/common/downloads"
+    release = 67
+
+    def __init__(self, species, strain):
+        self.species = species
+        self.strain = strain
+        self.data_url = f"{self.source_url}/release-{self.release}/{species}{strain}"
+        self.set_fasta()
+        self.set_gff()
+
+    def set_fasta(self):
+        """Set .fasta file download URL and local path"""
+        fasta_fn = f"VectorBase-{self.release}_{self.species}{self.strain}_Genome.fasta"
+        self.fasta_url = f"{self.data_url}/fasta/data/{fasta_fn}"
+        self.fasta_path = f"resources/{self.source}/{self.release}/{fasta_fn}"
+
+    def set_gff(self):
+        """Set .gff file download URL and local path"""
+
+        gff_fn = f"VectorBase-{self.release}_{self.species}{self.strain}.gff"
         self.gff_url = f"{self.data_url}/gff/data/{gff_fn}"
         self.gff_path = f"resources/{self.source}/{self.release}/{gff_fn}"
         self.gff_standard_path = f"resources/{self.source}/{self.release}/{gff_fn.replace('gff','standard.gff')}"
@@ -105,28 +137,28 @@ class PlasmodiumFalciparumDd2(PlasmoDB):
         super().__init__(species="Pfalciparum", strain="Dd2")
 
 
-class PlasmodiumFalciparumHB3(PlasmoDB):
+class PlasmodiumVivax(PlasmoDB):
     def __init__(self):
-        self.name = "PfHB3"
-        super().__init__(species="Pfalciparum", strain="HB3")
+        self.name = "Pv"
+        super().__init__(species="Pvivax", strain="P01")
 
 
-class PlasmodiumFalciparumGB4(PlasmoDB):
+class PlasmodiumOvale(PlasmoDB):
     def __init__(self):
-        self.name = "PfGB4"
-        super().__init__(species="Pfalciparum", strain="GB4")
+        self.name = "Poc"
+        super().__init__(species="Povalecurtisi", strain="GH01")
 
 
-class PlasmodiumOvale(ENA):
-    def __init__(self):
-        self.name = "Po"
-        super().__init__(wgs_id="FLRI01")
-
-
-class PlasmodiumMalariae(ENA):
+class PlasmodiumMalariae(PlasmoDB):
     def __init__(self):
         self.name = "Pm"
-        super().__init__(wgs_id="FLRK01")
+        super().__init__(species="Pmalariae", strain="UG01")
+
+
+class AnophelesGambiaePEST(VectorBase):
+    def __init__(self):
+        self.name = "AgPEST"
+        super().__init__(species="Agambiae", strain="PEST")
 
 
 class HomoSapiens(Reference):
@@ -167,10 +199,10 @@ REFERENCE_COLLECTION = {
     for r in [
         PlasmodiumFalciparum3D7(),
         PlasmodiumFalciparumDd2(),
-        PlasmodiumFalciparumHB3(),
-        PlasmodiumFalciparumGB4(),
+        PlasmodiumVivax(),
         PlasmodiumOvale(),
         PlasmodiumMalariae(),
+        AnophelesGambiaePEST(),
         HomoSapiens(),
     ]
 }

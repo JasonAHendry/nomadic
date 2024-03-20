@@ -23,10 +23,12 @@ class ExperimentPipelineRT(ABC):
 
     We implement some concrete _run_<step>() methods that will be the
     same across all subclasses, to reduce code duplication.
+    
+    TODO: needs to take reference name
 
     """
 
-    def __init__(self, metadata: MetadataTableParser, expt_dirs: ExperimentDirectories):
+    def __init__(self, metadata: MetadataTableParser, expt_dirs: ExperimentDirectories, ref_name: str="Pf3D7"):
         """
         Store important metadata as instance attributes
 
@@ -34,6 +36,7 @@ class ExperimentPipelineRT(ABC):
 
         self.expt_dirs = expt_dirs
         self.metadata = metadata
+        self.ref_name = ref_name
 
     @abstractmethod
     def run(self):
@@ -69,7 +72,7 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(open(f"{barcode_dir}/qcbams/{b}.Pf3D7.flagstats.json"))
+                dt = json.load(open(f"{barcode_dir}/qcbams/{b}.{self.ref_name}.flagstats.json"))
                 dt["barcode"] = b
                 qcbams_dts.append(dt)
             except FileNotFoundError:
@@ -87,7 +90,7 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                df = pd.read_csv(f"{barcode_dir}/{b}.Pf3D7.bedcov.csv")
+                df = pd.read_csv(f"{barcode_dir}/bedcov/{b}.{self.ref_name}.bedcov.csv")
                 bedcov_dfs.append(df)
             except FileNotFoundError:
                 continue
@@ -104,7 +107,7 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                df = pd.read_csv(f"{barcode_dir}/depth/{b}.depth.csv")
+                df = pd.read_csv(f"{barcode_dir}/depth/{b}.{self.ref_name}.depth.csv")
                 depth_dfs.append(df)
             except FileNotFoundError:
                 continue
@@ -121,7 +124,7 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                df = pd.read_csv(f"{barcode_dir}/vcfs/{b}.Pf3D7.annotated.tsv", sep="\t")
+                df = pd.read_csv(f"{barcode_dir}/vcfs/{b}.{self.ref_name}.annotated.tsv", sep="\t")
                 df.insert(0, "barcode", b)
                 variant_dfs.append(df)
             except FileNotFoundError:
