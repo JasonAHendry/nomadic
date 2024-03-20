@@ -20,6 +20,7 @@ class Reference(ABC):
         self.gff_url = None
         self.fasta_path = None
         self.gff_path = None
+        self.gff_standard_path = None
 
     @abstractmethod
     def set_fasta(self):
@@ -59,6 +60,7 @@ class PlasmoDB(Reference):
         gff_fn = f"PlasmoDB-{self.release}_{self.species}{self.strain}.gff"
         self.gff_url = f"{self.data_url}/gff/data/{gff_fn}"
         self.gff_path = f"resources/{self.source}/{self.release}/{gff_fn}"
+        self.gff_standard_path = f"resources/{self.source}/{self.release}/{gff_fn.replace('gff','standard.gff')}"
 
 
 class ENA(Reference):
