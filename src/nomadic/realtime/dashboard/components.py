@@ -1,10 +1,9 @@
 import os
 import datetime
-import colorcet
 import pandas as pd
 
 from abc import ABC, abstractmethod
-from dash import Dash, html, dcc, dash_table
+from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
 
 import numpy as np
