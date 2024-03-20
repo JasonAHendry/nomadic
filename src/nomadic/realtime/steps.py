@@ -8,7 +8,7 @@ from typing import List
 from abc import ABC, abstractmethod
 
 from nomadic.map.mappers import Minimap2
-from nomadic.download.references import PlasmodiumFalciparum3D7
+from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.dirs import produce_dir, ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.samtools import (
@@ -128,7 +128,7 @@ class MappingRT(AnalysisStepRT):
 
     step_name = "bams"
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories):
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, ref_name: str="Pf3D7"):
         """
         Define initial directories and file paths
         TODO: choose mapping algorithm and reference genome
@@ -139,7 +139,7 @@ class MappingRT(AnalysisStepRT):
         self.step_dir = produce_dir(self.barcode_dir, self.step_name)
         self.inter_dir = produce_dir(self.step_dir, "intermediate")
 
-        self.reference = PlasmodiumFalciparum3D7()
+        self.reference = REFERENCE_COLLECTION[ref_name]
         self.mapper = Minimap2(self.reference)
 
         self.inter_bams = []
@@ -204,7 +204,7 @@ class FlagstatsRT(AnalysisStepRT):
 
     step_name = "qcbams"
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories):
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, ref_name: str="Pf3D7"):
         """
         Define initial directories and file paths
         TODO: choose mapping algorithm and reference genome
@@ -215,12 +215,11 @@ class FlagstatsRT(AnalysisStepRT):
 
         self.step_dir = produce_dir(self.barcode_dir, self.step_name)
         self.inter_dir = produce_dir(self.step_dir, "intermediate")
-
-        self.reference = PlasmodiumFalciparum3D7()
+        self.ref_name = ref_name
 
         self.inter_jsons = []
         self.output_json = (
-            f"{self.step_dir}/{self.barcode_name}.{self.reference.name}.flagstats.json"
+            f"{self.step_dir}/{self.barcode_name}.{self.ref_name}.flagstats.json"
         )
 
     def _get_intermediate_json_path(self):
@@ -229,7 +228,7 @@ class FlagstatsRT(AnalysisStepRT):
 
         """
     
-        base_name = f"{self.inter_dir}/{self.barcode_name}.{self.reference.name}"
+        base_name = f"{self.inter_dir}/{self.barcode_name}.{self.ref_name}"
         n = len(self.inter_jsons)
         code = f"n{n:05d}"
 
@@ -285,21 +284,20 @@ class BedCovRT(AnalysisStepRT):
     cov_thresh = 100
 
     def __init__(
-        self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str
-    ):
+        self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
         """
         Define initial directories and file paths
 
         """
 
         super().__init__(barcode_name, expt_dirs)
-        self.reference = (
-            PlasmodiumFalciparum3D7()
-        )  # TODO: always required for naming, it seems
+        self.ref_name = ref_name
+
+        self.step_dir = produce_dir(self.barcode_dir, self.step_name)
 
         self.bed_path = bed_path
         self.output_csv = (
-            f"{self.barcode_dir}/{self.barcode_name}.{self.reference.name}.bedcov.csv"
+            f"{self.step_dir}/{self.barcode_name}.{self.ref_name}.bedcov.csv"
         )
 
         self.cov_col_name = f"cov_gr{self.cov_thresh}"
@@ -359,22 +357,23 @@ class RegionDepthRT(AnalysisStepRT):
 
     """
 
-    step_name = "depth"  # currently unused
+    step_name = "depth"
 
     def __init__(
         self,
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
-    ):
+        ref_name: str="Pf3D7"):
         """Initialise output directory and define file names"""
 
         super().__init__(barcode_name, expt_dirs)
 
         self.regions = regions
+        self.ref_name = ref_name
         self.output_dir = produce_dir(self.barcode_dir, self.step_name)
         self.region_output_dir = produce_dir(self.output_dir, "by_region")
-        self.output_csv = f"{self.output_dir}/{self.barcode_name}.depth.csv"
+        self.output_csv = f"{self.output_dir}/{self.barcode_name}.{self.ref_name}.depth.csv"
 
     def run(self, input_bam):
         """
@@ -436,13 +435,14 @@ class CallVariantsRT(AnalysisStepRT):
     def __init__(
         self,
         barcode_name: str,
-        expt_dirs: ExperimentDirectories
+        expt_dirs: ExperimentDirectories,
+        ref_name: str="Pf3D7"
     ):
         """Initialise output directory and define file names"""
 
         super().__init__(barcode_name, expt_dirs)
 
-        self.reference = PlasmodiumFalciparum3D7()
+        self.reference = REFERENCE_COLLECTION[ref_name]
 
         self.output_dir = produce_dir(self.barcode_dir, self.step_name)
         self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.vcf.gz"
@@ -515,13 +515,14 @@ class AnnotateVariantsRT(AnalysisStepRT):
             self,
             barcode_name: str,
             expt_dirs: ExperimentDirectories,
-            bed_path: str
+            bed_path: str,
+            ref_name: str="Pf3D7"
         ):
             """Initialise output directory and define file names"""
 
             super().__init__(barcode_name, expt_dirs)
 
-            self.reference = PlasmodiumFalciparum3D7()
+            self.reference = REFERENCE_COLLECTION[ref_name]
 
             self.bed_path = bed_path
 
