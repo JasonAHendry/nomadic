@@ -1,5 +1,6 @@
 import os
 import datetime
+import colorcet
 import pandas as pd
 
 from abc import ABC, abstractmethod
@@ -385,7 +386,7 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                     griddash="dot",
                 ),
                 plot_bgcolor="rgba(0,0,0,0)",
-                hovermode="x",
+                hovermode="x unified",
                 legend=dict(
                     orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
                 ),
@@ -679,7 +680,7 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
 
     """
 
-    pal = "inferno"
+    pal = "tab20"
 
     def __init__(
         self,
@@ -765,7 +766,7 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
                     range=[min_y, max_y],
                 ),
                 plot_bgcolor="rgba(0,0,0,0)",
-                hovermode="x",
+                hovermode="x unified",
                 legend=dict(
                     orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0
                 ),
@@ -782,7 +783,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
     
     """
 
-    pal = "inferno"
+    pal = "tab20"
 
     def __init__(
         self,
@@ -838,6 +839,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
                 go.Scatter(
                     x=sorted(barcode_df["depth"]),
                     y=percentiles,
+                    marker=dict(color=col_map[barcode]),
                     mode="lines",
                     name=barcode
                 )
@@ -872,7 +874,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
                     griddash="dot",
                 ),
                 plot_bgcolor="rgba(0,0,0,0)",
-                hovermode="x",
+                hovermode="x unified",
                 legend=dict(
                     orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=0
                 ),
@@ -1049,7 +1051,8 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 values=target_df["barcode"],
                 categories=self.barcodes
             )
-            # variants categorical + sort
+            
+            # TODO:variants categorical + sort
             
             # Pivot
             plot_df = pd.pivot_table(
@@ -1092,7 +1095,8 @@ class VariantHeatmap(RealtimeDashboardComponent):
             fig = go.Figure(plot_data)
             
             # Format
-            MAR=40                
+            MAR=40  
+            SZ=50        
             fig.update_layout(
                 hovermode="y unified",
                 paper_bgcolor='white',  # Sets the background color of the paper
@@ -1115,6 +1119,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 ),
                 xaxis_showgrid=False,
                 yaxis_showgrid=False,
+                #height=100 # TOOD: how to adjust dynamically
             )
             
             return fig

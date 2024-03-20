@@ -7,7 +7,7 @@ import click
     "--expt_name",
     type=str,
     required=True,
-    help="Name of the experiment, used as output directory name. E.g. '2023-05-12_exptA'."
+    help="Name of the experiment, used as output directory name. E.g. '2023-05-12_exptA'.",
 )
 @click.option(
     "-f",
@@ -31,14 +31,20 @@ import click
     help="Path to BED file specifying genomic regions of interest.",
 )
 @click.option(
+    "-c",
+    "--call",
+    is_flag=True,
+    default=False,
+    help="Perform preliminary variant calling of biallelic SNPs in real-time.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
     default=False,
-    help="Increase logging verbosity. Helpful for debugging."
+    help="Increase logging verbosity. Helpful for debugging.",
 )
-def realtime(expt_name, fastq_dir, metadata_csv, region_bed, verbose):
+def realtime(expt_name, fastq_dir, metadata_csv, region_bed, call, verbose):
     from .main import main
 
-    main(expt_name, fastq_dir, metadata_csv, region_bed, verbose)
-
+    main(expt_name, fastq_dir, metadata_csv, region_bed, call, verbose)
