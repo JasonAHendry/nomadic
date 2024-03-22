@@ -1,3 +1,5 @@
+import os
+from nomadic.util.exceptions import ReferenceGenomeMissingError
 from abc import ABC, abstractmethod
 
 
@@ -23,12 +25,44 @@ class Reference(ABC):
         self.gff_standard_path = None
 
     @abstractmethod
-    def set_fasta(self):
+    def set_fasta(self) -> None:
         pass
 
     @abstractmethod
-    def set_gff(self):
+    def set_gff(self) -> None:
         pass
+
+    @staticmethod
+    def exists_locally(file_path):
+        return os.path.isfile(file_path)
+
+    def confirm_downloaded(self) -> None:
+        """
+        Confirm that a reference genome has been downloaded,
+        raising a ReferenceGenomeMissingError if not.
+
+        Useful to invoke before running analysis steps that depend
+        on the reference being present (e.g. mapping).
+
+        """
+
+        if not self.exists_locally(self.fasta_path):
+            raise ReferenceGenomeMissingError(
+                f"For the reference genome '{self.name}'"
+                + f" the FASTA file is missing. Please run `nomadic download -r {self.name}`."
+            )
+
+        if not self.exists_locally(self.gff_path):
+            raise ReferenceGenomeMissingError(
+                f"For the reference genome '{self.name}'"
+                + f" the GFF file is missing. Please run `nomadic download -r {self.name}`."
+            )
+
+        if not self.exists_locally(self.gff_standard_path):
+            raise ReferenceGenomeMissingError(
+                f"For the reference genome '{self.name}'"
+                + f" the GFF file is missing. Please run `nomadic download -r {self.name}`."
+            )
 
 
 class PlasmoDB(Reference):

@@ -1,10 +1,16 @@
 class MetadataFormatError(Exception):
-    """Error in format or contents of the  meatdata"""
+    """Error in format / contents of a metadata file"""
 
     pass
 
 
 class BEDFormatError(Exception):
-    """Raise when BED Format is Invalid"""
+    """Error in the format or contents of a BED file"""
+
+    pass
+
+
+class ReferenceGenomeMissingError(Exception):
+    """Reference genome has not been downloaded"""
 
     pass
