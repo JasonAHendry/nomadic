@@ -1,16 +1,24 @@
 import time
 
+from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.dirs import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
-
 from nomadic.realtime.factory import PipelineFactory
 
 WAIT_INTERVAL = 5
 
 
-def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, reference_name: str, call: bool, verbose: bool) -> None:
+def main(
+    expt_name: str,
+    fastq_dir: str,
+    metadata_csv: str,
+    region_bed: str,
+    reference_name: str,
+    call: bool,
+    verbose: bool,
+) -> None:
     """
     Run nomadic in realtime
 
@@ -24,6 +32,7 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, ref
     log.info(f"  Metadata (.csv): {metadata_csv}")
     log.info(f"  Regions (.bed): {region_bed}")
     log.info(f"  Reference genome: {reference_name}")
+    REFERENCE_COLLECTION[reference_name].confirm_downloaded()
     log.info(f"  Performing variant calling: {call}")
     log.info("Processing...")
 
@@ -37,13 +46,10 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, ref
     log.info("Done.\n")
 
     # INITIALISE WATCHERS
-    factory = PipelineFactory(metadata, 
-                              regions,
-                              expt_dirs,
-                              fastq_dir,
-                              call,
-                              reference_name)
-    
+    factory = PipelineFactory(
+        metadata, regions, expt_dirs, fastq_dir, call, reference_name
+    )
+
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
     dashboard = factory.get_dashboard()
@@ -66,4 +72,3 @@ def main(expt_name: str, fastq_dir: str, metadata_csv: str, region_bed: str, ref
         log.info("")
         log.info("Program has been interrupted by user. Exiting.")
         # TODO: can run final status checks here
-
