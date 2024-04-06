@@ -614,6 +614,10 @@ class AnnotateVariantsRT(AnalysisStepRT):
         """
         Parse the consequenc string in the TSV
 
+        TODO:
+        - What happens if there are NO mutations?
+        - Then CSQ is an empty list
+
         """
         
         df = pd.read_csv(self.output_tsv, sep="\t")
