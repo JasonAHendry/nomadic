@@ -614,6 +614,10 @@ class AnnotateVariantsRT(AnalysisStepRT):
         """
         Parse the consequenc string in the TSV
 
+        TODO:
+        - What happens if there are NO mutations?
+        - Then CSQ is an empty list
+
         """
         
         df = pd.read_csv(self.output_tsv, sep="\t")
@@ -621,8 +625,13 @@ class AnnotateVariantsRT(AnalysisStepRT):
             Consequence.from_string(c)
             for c in df["consequence"]
         ]
-        mut_type, aa_change, strand = zip(*[(c.csq, c.get_concise_aa_change(), c.strand) 
-                                            for c in csqs])
+        if csqs:
+            mut_type, aa_change, strand = zip(*[(c.csq, c.get_concise_aa_change(), c.strand)
+                                                for c in csqs])
+        else:
+            print(f"No mutations passed quality control for {self.barcode_name}.")
+            mut_type, aa_change, strand = None, None, None
+
         df.insert(6, "mut_type", mut_type)
         df.insert(7, "aa_change", aa_change)
         df.insert(8, "strand", strand)

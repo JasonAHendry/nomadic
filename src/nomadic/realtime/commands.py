@@ -32,13 +32,6 @@ from nomadic.download.references import REFERENCE_COLLECTION
     help="Path to BED file specifying genomic regions of interest.",
 )
 @click.option(
-    "-b",
-    "--region_bed",
-    type=str,
-    required=True,
-    help="Path to BED file specifying genomic regions of interest.",
-)
-@click.option(
     "-r",
     "--reference_name",
     type=click.Choice(REFERENCE_COLLECTION),
