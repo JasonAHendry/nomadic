@@ -1,5 +1,6 @@
 import os
 import urllib.request
+from nomadic.util.gff import load_gff
 
 
 class ReferenceDownloader:
@@ -21,7 +22,9 @@ class ReferenceDownloader:
 
     def download_fasta(self):
         if self.ref.fasta_path and not self.exists_locally(self.ref.fasta_path):
-            print("Downloading...")
+            print("Downloading FASTA...")
+            print(f"  From: {self.ref.fasta_url}")
+            print(f"  To: {self.ref.fasta_path}")
             self.produce_dir(self.ref.fasta_path)
             urllib.request.urlretrieve(
                 url=self.ref.fasta_url, filename=self.ref.fasta_path
@@ -31,11 +34,41 @@ class ReferenceDownloader:
         else:
             print("Already downloaded.")
 
-    def download_gff(self):
+    def download_gff(self, standardise: bool=False):
         if self.ref.gff_path and not self.exists_locally(self.ref.gff_path):
-            print("Downloading...")
+            print("Downloading GFF...")
+            print(f"  From: {self.ref.gff_url}")
+            print(f"  To: {self.ref.gff_path}")
             self.produce_dir(self.ref.gff_path)
             urllib.request.urlretrieve(url=self.ref.gff_url, filename=self.ref.gff_path)
             print("Done.")
         else:
             print("Already downloaded.")
+
+        if standardise:
+            self._standardise_gff(self.ref.gff_path)
+
+    def _standardise_gff(self, gff_path: str):
+        """
+        Try to standardise the GFF file into GFF3 format
+
+        """
+        
+        # Settings
+        KEEP_FIELDS = ["protein_coding_gene", "mRNA", "exon", "CDS"]
+        to_gff3 = {
+            "protein_coding_gene": "gene",
+            "mRNA": "transcript"
+        }
+
+        # Standardise
+        gff_df = load_gff(gff_path)
+        gff_df.query("feature in @KEEP_FIELDS", inplace=True)
+        gff_df["feature"] = [
+            to_gff3[f] if f in to_gff3 else f
+            for f in gff_df["feature"]
+        ]
+
+        # Write to 'standardised' path
+        gff_df.to_csv(self.ref.gff_standard_path, sep="\t", index=False, header=False)
+

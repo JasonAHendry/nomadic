@@ -1,5 +1,5 @@
 from typing import List
-
+from abc import ABC, abstractmethod
 from nomadic.util.dirs import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.realtime.steps import (
@@ -8,40 +8,82 @@ from nomadic.realtime.steps import (
     FlagstatsRT,
     BedCovRT,
     RegionDepthRT,
+    CallVariantsRT,
+    AnnotateVariantsRT
 )
 
 
-class BarcodePipelineRT:
+# --------------------------------------------------------------------------------
+# Interface for barcode pipelines
+#
+# TODO:
+# - Could implement this as a formal DAG to allow for more complex pipeline
+#   step relationships
+# - Could have a concrete def _run() that performs steps necessarily shared
+#   by all concret pipelines
+#
+# --------------------------------------------------------------------------------
+
+
+class BarcodePipelineRT(ABC):
     """
-    Run an analysis pipeline for a barcode in real-time
+    Interface for per-barcode real-time analysis pipelines
 
     """
 
-    def __init__(
-        self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str
-    ):
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
         """
-        Initialise the barcode pipeline
+        Store important metadata as instance attributes, and define steps
 
         """
 
-        # Parse user inputs
         self.barcode_name = barcode_name
         self.expt_dirs = expt_dirs
         self.barcode_dir = expt_dirs.get_barcode_dir(barcode_name)
+        self.ref_name = ref_name
 
-        # Initialise analysis steps
-        self.fastq_step = FASTQCountRT(barcode_name, expt_dirs)
-        self.map_step = MappingRT(barcode_name, expt_dirs)
-        self.flagstat_step = FlagstatsRT(barcode_name, expt_dirs)
-        self.bedcov_step = BedCovRT(barcode_name, expt_dirs, bed_path)
-        self.depth_step = RegionDepthRT(
-            barcode_name, expt_dirs, RegionBEDParser(bed_path)
-        )
-
-    def run(self, new_fastq):
+    @abstractmethod
+    def run(self, new_fastq: List[str]) -> None:
         """
-        Run pipeline
+        Run analysis steps for the pipeline on new FASTQ files
+
+        """
+        pass
+
+
+# --------------------------------------------------------------------------------
+# Concrete pipelines
+#
+# --------------------------------------------------------------------------------
+
+
+class BarcodeMappingPipelineRT(BarcodePipelineRT):
+    """
+    Concrete barcode pipeline for mapping reads in real-time, and performing
+    basic quality control
+
+    """
+
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
+        """
+        Initialise the barcode mapping pipeline
+
+        """
+        
+        super().__init__(barcode_name, expt_dirs, bed_path)
+        
+        # Initialise analysis steps
+        common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
+        self.fastq_step = FASTQCountRT(**common)
+        self.map_step = MappingRT(**common, ref_name=ref_name)
+        self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
+        self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
+        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
+
+    def run(self, new_fastq: List[str]) -> None:
+        """
+        Run mapping and QC from a set of newly generated FASTQ files
+        
         """
 
         inter_bam = self.map_step.run(new_fastq)
@@ -55,5 +97,58 @@ class BarcodePipelineRT:
 
         self.depth_step.run(final_bam)
         self.depth_step.merge()
+
+        self.fastq_step.run(new_fastq)
+
+
+class BarcodeCallingPipelineRT(BarcodePipelineRT):
+    """
+    Concrete barcode pipeline for mapping reads in real-time, and performing
+    basic quality control
+
+    """
+
+    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
+        """
+        Initialise the barcode mapping pipeline
+
+        """
+        
+        super().__init__(barcode_name, expt_dirs, bed_path)
+        
+        # Initialise analysis steps
+        common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
+        self.fastq_step = FASTQCountRT(**common)
+        self.map_step = MappingRT(**common, ref_name=ref_name)
+        self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
+        self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
+        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
+        self.call_step = CallVariantsRT(**common, ref_name=ref_name)
+        self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
+
+
+    def run(self, new_fastq: List[str]) -> None:
+        """
+        Run mapping and QC from a set of newly generated FASTQ files
+        
+        """
+
+        inter_bam = self.map_step.run(new_fastq)
+        final_bam = self.map_step.merge()
+
+        self.flagstat_step.run(inter_bam)
+        self.flagstat_step.merge()
+
+        self.bedcov_step.run(final_bam)
+        self.bedcov_step.merge()
+
+        self.depth_step.run(final_bam)
+        self.depth_step.merge()
+
+        final_vcf = self.call_step.run(final_bam) # pileup, call, filter, fill tags
+        self.call_step.merge()
+
+        self.annot_step.run(final_vcf)
+        self.annot_step.merge()
 
         self.fastq_step.run(new_fastq)

@@ -117,3 +117,25 @@ body {
     flex: 0.6;
 }
 
+
+/* Variant Section ------------------------------------------------------------------ */
+
+.variant-row {
+    padding: 20px;
+    margin: 20px;
+    border-color: var(--grey);
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.variant-plots {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+#variant-heat {
+    flex: 1.0;
+}
