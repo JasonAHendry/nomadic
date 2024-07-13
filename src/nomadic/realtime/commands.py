@@ -1,4 +1,5 @@
 import click
+from nomadic.download.references import REFERENCE_COLLECTION
 
 
 @click.command(short_help="Run nomadic in real-time.")
@@ -31,6 +32,14 @@ import click
     help="Path to BED file specifying genomic regions of interest.",
 )
 @click.option(
+    "-r",
+    "--reference_name",
+    type=click.Choice(REFERENCE_COLLECTION),
+    default="Pf3D7",
+    show_default=True,
+    help="Choose a reference genome to be used in real-time analysis.",
+)
+@click.option(
     "-c",
     "--call",
     is_flag=True,
@@ -44,7 +53,7 @@ import click
     default=False,
     help="Increase logging verbosity. Helpful for debugging.",
 )
-def realtime(expt_name, fastq_dir, metadata_csv, region_bed, call, verbose):
+def realtime(expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose):
     from .main import main
 
-    main(expt_name, fastq_dir, metadata_csv, region_bed, call, verbose)
+    main(expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose)

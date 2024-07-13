@@ -37,7 +37,7 @@ class PipelineFactory:
         expt_dirs: ExperimentDirectories,
         fastq_dir: str,
         call: bool = False,
-        # reference: str="Pf3D7"
+        ref_name: str="Pf3D7"
     ):
         """
         Store metadata as instance attributes
@@ -48,6 +48,10 @@ class PipelineFactory:
         self.regions = regions
         self.expt_dirs = expt_dirs
         self.fastq_dir = fastq_dir
+        
+        if not ref_name in REFERENCE_COLLECTION:
+            raise ValueError(f"Reference {ref_name} must be in: {','.join(REFERENCE_COLLECTION)}.")
+        self.ref_name = ref_name
 
         if not isinstance(call, bool):
             raise ValueError("`call` must be a boolean.")
@@ -63,6 +67,7 @@ class PipelineFactory:
             "barcode_name": barcode_name,
             "expt_dirs": self.expt_dirs,
             "bed_path": self.regions.path,
+            "ref_name": self.ref_name
         }
 
         if self.call:
@@ -89,9 +94,9 @@ class PipelineFactory:
 
         """
         if self.call:
-            return ExptCallingPipelineRT(self.metadata, self.expt_dirs)
+            return ExptCallingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
 
-        return ExptMappingPipelineRT(self.metadata, self.expt_dirs)
+        return ExptMappingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
 
     def get_dashboard(self) -> RealtimeDashboardBuilder:
         """
