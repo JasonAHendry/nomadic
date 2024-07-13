@@ -1,4 +1,4 @@
-name: nomadic3
+name: nomadic
 channels:
   - conda-forge
   - bioconda

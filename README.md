@@ -1,22 +1,33 @@
-# nomadic3
+<p align="center"><img src="misc/nomadic_logo-01.png" width="500"></p>
+
 ## Overview
-`nomadic3` supports real-time mapping and analysis of amplicon-based nanopore sequencing, rendering the data to a browser-based dashboard.
+*Nomadic* supports real-time mapping and analysis of amplicon-based nanopore sequencing, rendering the data to a browser-based dashboard.
+
+## Features
+- [x] Real-time read mapping with [*Minimap2*](https://github.com/lh3/minimap2)
+- [x] Real-time sample quality control and amplicon coverage evaluation
+- [x] Real-time variant calling with [*bcftools*](https://github.com/samtools/bcftools). These calls are preleiminary; treat with caution.
+- [x] Different reference genomes
+- [x] Different amplicon panels 
 
 ## Install
 
 #### Requirements
-
-To install `nomadic3`, you will need:
+<details>
+  
+To install `nomadic`, you will need:
 - The version control software [git](https://github.com/git-guides/install-git)
 - The package manager [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) or [mamba](https://mamba.readthedocs.io/en/latest/installation.html) 
   - Mamba is faster and is recommended
+    
+</details>
 
 #### Steps
 
 **1.  Clone the repository:**
 ```
-git clone https://github.com/JasonAHendry/nomadic3.git
-cd nomadic3
+git clone https://github.com/JasonAHendry/nomadic.git
+cd nomadic
 ```
 \
 **2.  Install the depedendencies with conda:**
@@ -28,8 +39,9 @@ or equivalently, with mamba:
 mamba env create -f environments/run.yml
 ```
 \
-**3. Install `nomadic3` and remaining dependencies:**
+**3. Install `nomadic` and remaining dependencies:**
 ```
+conda activate nomadic
 pip install -e .
 ```
 \
@@ -44,7 +56,7 @@ nomadic --help
 
 **A. Download your reference genome** 
 
-`nomadic3` performs real-time mapping to a reference genome. Start by downloading the reference genome for your target organism, e.g.:
+*Nomadic* performs real-time mapping to a reference genome. Start by downloading the reference genome for your target organism, e.g.:
 ```
 nomadic download -r Pf3D7
 ```
@@ -60,7 +72,8 @@ nomadic realtime \
  -e <your_experiment_name> \
  -f <path/to/fastq_pass> \
  -m <path/to/metadata.csv> \
- -b <path/to/your_regions.bed>
+ -b <path/to/your_regions.bed> \
+--call
 ```
 
 Once you run this command, you should get a dashboard link in your terminal, something like:
@@ -73,16 +86,13 @@ Copy and paste the link `http://127.0.0.1:8050/` into your web browser to view t
 
 \
 Flag information:
-- `-e`: Your experiment name. For example, '2023-06-12_seq-nomads8'. This is used to create the output directory.
-- `-f`: Path to the `fastq_pass` directory that will be created by `MinKNOW` or `Guppy`. If your experiment has multiple samples, this folder will typically contain folders for each sample, inside of which there are `.fastq` or `.fastq.gz` files.
-- `-m`: Path to a metadata CSV file. 
-  - This file *must* have a `barcode` and `sample_id` column.
-  - Both `barcode` and `sample_id` columns must have only unique entries.
-  - See `example_data/metadata/sample_info.csv` for an example.
-- `-b`: Path to a BED file defining your regions of interest.
-  - Note the BED file specification [here](https://en.wikipedia.org/wiki/BED_(file_format)).
-  - This BED file *must* contain a forth column for region name information, and the names must be unique. They are used to generate plots and compute summary statistics.
-  - See `example_data/beds/nomads8.amplicons.bed` for an example.
+| Flag | Description | Required / Optional |
+| ---    | --- | --- |
+| ` -e ` | Your experiment name. For example, `2023-06-12_nomads8`. This is used to create the output directory. | Required |
+| ` -f ` | Path to the `fastq_pass` directory that will be created by `MinKNOW` or `Guppy`. If your experiment has multiple samples, this folder will typically contain folders for each sample, inside of which there are `.fastq` or `.fastq.gz` files. | Required |
+| ` -m ` | Path to a metadata CSV file. This file *must* have a `barcode` and `sample_id` column; and both must contain only unique entries. See [here](example_data/metadata/sample_info.csv) for an example. | Required |
+| ` -b ` | Path to a BED file defining your amplicons of interest. This BED file *must* contain a forth column for region name information, and the names must be unique. They are used to generate plots and compute summary statistics. See [here](example_data/beds/nomads8.amplicons.bed) for an example. | Required |
+| ` -c ` | Or `--call`. If provided, variant calling will be performed. | Optional |
 
 For a full running example look at `scripts/run_realtime.sh`
 
@@ -97,6 +107,9 @@ Then, in a second terminal window, and run:
 ```
 python scripts/simulate_sequencing.py
 ```
+
+## Acknowledgements
+This work was funded by the Bill and Melinda Gates Foundation (INV-003660, INV-048316).
 
 
 

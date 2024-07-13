@@ -1,4 +1,4 @@
-name: nomadic3-dev
+name: nomadic-dev
 channels:
   - conda-forge
   - bioconda
