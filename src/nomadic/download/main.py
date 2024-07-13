@@ -1,6 +1,8 @@
 from nomadic.util.logging_config import LoggingFascade
 from .downloader import ReferenceDownloader
 from .references import REFERENCE_COLLECTION
+from .corrections import DHPS, update_reference_genome
+
 
 
 def main(reference_name: str, all: bool = False) -> None:
@@ -20,11 +22,19 @@ def main(reference_name: str, all: bool = False) -> None:
             print(f"Reference: {rname}")
             downloader.set_reference(r)
             downloader.download_fasta()
-            downloader.download_gff(standardise=True) # TODO: Might not want always
+            downloader.download_gff(standardise=True)  # TODO: Might not want always
+
+            if r.name == "Pf3D7":  # convert DHPS to WT
+                update_reference_genome(r.fasta_path, [DHPS])
+
     elif reference_name is not None:
         print(f"Reference: {reference_name}")
-        downloader.set_reference(REFERENCE_COLLECTION[reference_name])
+        r = REFERENCE_COLLECTION[reference_name]
+        downloader.set_reference(r)
         downloader.download_fasta()
         downloader.download_gff(standardise=True)
+
+        if r.name == "Pf3D7":  # convert DHPS to WT
+            update_reference_genome(r.fasta_path, [DHPS])
     else:
         print("Must specify options. Type 'nomadic download --help' for details.")
