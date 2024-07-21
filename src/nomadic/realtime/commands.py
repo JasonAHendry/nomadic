@@ -2,7 +2,7 @@ import click
 from nomadic.download.references import REFERENCE_COLLECTION
 
 
-@click.command(short_help="Run nomadic in real-time.")
+@click.command(short_help="Run analysis in real-time.")
 @click.option(
     "-e",
     "--expt_name",
@@ -54,6 +54,9 @@ from nomadic.download.references import REFERENCE_COLLECTION
     help="Increase logging verbosity. Helpful for debugging.",
 )
 def realtime(expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose):
+    """
+    Analyse data being produced by MinKNOW while sequencing is ongoing
+    """
     from .main import main
 
     main(expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose)
