@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List
 from abc import ABC, abstractmethod
 from nomadic.util.dirs import ExperimentDirectories
@@ -12,7 +13,7 @@ from nomadic.realtime.steps import (
     AnnotateVariantsRT
 )
 
-
+    
 # --------------------------------------------------------------------------------
 # Interface for barcode pipelines
 #
@@ -43,12 +44,34 @@ class BarcodePipelineRT(ABC):
         self.ref_name = ref_name
 
     @abstractmethod
-    def run(self, new_fastq: List[str]) -> None:
+    def _run(self, new_fastq: List[str]) -> None:
         """
         Run analysis steps for the pipeline on new FASTQ files
 
         """
         pass
+
+    def run(self, new_fastq: List[str]) -> None:
+        """
+        Wrapper to try and make the stdout easier to read
+
+        TODO: Could log this
+
+        """
+        
+        t0 = datetime.now().replace(microsecond=0)
+        print("")
+        print("="*80)
+        print(f"Updating: {self.barcode_name}")
+        print("-"*80)
+
+        self._run(new_fastq=new_fastq)
+        
+        t1 = datetime.now().replace(microsecond=0)
+        print("-"*80)
+        print(f"Done with: {self.barcode_name}")
+        print(f"Time elapsed: {t1 - t0}")
+        print("="*80)
 
 
 # --------------------------------------------------------------------------------
@@ -80,7 +103,7 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
         self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
         self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
 
-    def run(self, new_fastq: List[str]) -> None:
+    def _run(self, new_fastq: List[str]) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
         
@@ -127,7 +150,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
 
 
-    def run(self, new_fastq: List[str]) -> None:
+    def _run(self, new_fastq: List[str]) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
         
