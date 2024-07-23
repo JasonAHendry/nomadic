@@ -17,7 +17,8 @@ from nomadic.util.samtools import (
     samtools_flagstats,
     samtools_depth,
 )
-from nomadic.util.consequence import Consequence
+from nomadic.util.wrappers import bcftools
+from nomadic.util.vcf import Consequence
 
 import logging
 log = logging.getLogger("nomadic")
@@ -422,42 +423,76 @@ class CallVariantsRT(AnalysisStepRT):
     """
     Call variants in real-time using `bcftools call`
 
+    For now, this class also includes filtering.
+
     """
 
     step_name = "vcfs"
 
     # Settings
-    ANNOTATE = "FORMAT/DP,FORMAT/AD"
+    ANNOTATE_MPILEUP = "FORMAT/DP,FORMAT/AD"
+    ANNOTATE_CALL = "FORMAT/GQ"
     MAX_DEPTH = 1000
     MIN_DEPTH = 50
-    MIN_QUAL = 20
+    MIN_QUAL = 15
+
+    # Annotation
+    AMP_HEADER = (
+        "##INFO=<ID=AMP_ID,Number=1,Type=String,Description=Amplicon identifier>"
+    )
 
     def __init__(
         self,
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
+        bed_path: str,
         ref_name: str="Pf3D7"
     ):
         """Initialise output directory and define file names"""
 
         super().__init__(barcode_name, expt_dirs)
 
+        self.bed_path = bed_path
         self.reference = REFERENCE_COLLECTION[ref_name]
 
         self.output_dir = produce_dir(self.barcode_dir, self.step_name)
+        self.unfiltered_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.unfiltered.vcf.gz" 
         self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.vcf.gz"
+
+    def _get_reheader_command(self, input_vcf: str = "-", output_vcf: str = None) -> str:
+        """
+        Reassign the sample name inside of the VCF to the
+        `self.barcode_name`
+
+        Unfortunately, need to load the name from a file
+        """
+        
+        # Write the file if it doesn't exist
+        sample_name_file = f"{self.output_dir}/.sample_name.txt"
+        if not os.path.exists(sample_name_file):
+            with open(sample_name_file, "w") as file:
+                file.write(f"{self.barcode_name}\n")
+        
+        cmd = f"bcftools reheader {input_vcf} -s {sample_name_file}"
+        if output_vcf is None:
+            return cmd
+        return f"{cmd} -o {output_vcf}"
+
 
     def run(self, input_bam: str) -> str:
         """
         Run variant calling with bcftools
 
         TODO:
-        Note that here I am following recommendations of
+        - I probably want to WRITE also to BCF
+
+        NOTES:
+        Here I am following recommendations of
         `bcftools` in calling with ONT reads, that is, using
         `-X ont` for `bcftools mpileup`, which sets:
 
         `-B`  : disable per-base alignment quality
-        `-Q5` : Skip bases with base quality < 5
+        `-Q5` : Skip bases with base quality < 5  # I probably want this higher
         `--max-BQ 30` : Set the maximum base quality to 30
             - ONT sets homopolymers to 90 for some reason
         `-I`  : Skip indel calling
@@ -470,26 +505,58 @@ class CallVariantsRT(AnalysisStepRT):
 
         """
 
-        cmd_pileup = "bcftools mpileup -Ou"
-        cmd_pileup += f" -X ont"  # set to ONT mode.
-        cmd_pileup += f" --annotate {self.ANNOTATE}"
-        cmd_pileup += f" --max-depth {self.MAX_DEPTH}"
-        cmd_pileup += f" -f {self.reference.fasta_path}"
-        cmd_pileup += f" {input_bam}"
+        cmd_pileup = (
+            "bcftools mpileup -X ont"
+            f" --annotate {self.ANNOTATE_MPILEUP}"
+            f" --max-depth {self.MAX_DEPTH}"
+            f" -f {self.reference.fasta_path}"
+            f" -Ov {input_bam}"
+        )
 
-        cmd_call = "bcftools call -mv -P 0.01 - "
+        cmd_call = (
+            "bcftools call -m -P 0.01"
+            f" -a {self.ANNOTATE_CALL}"
+            " -Oz - "
+        )
 
-        cmd_filter = "bcftools view"
-        cmd_filter += " --min-alleles 2"
-        cmd_filter += " --max-alleles 2"
-        cmd_filter += " --types='snps'"
-        cmd_filter += f" -e 'FORMAT/DP<{self.MIN_DEPTH}||QUAL<{self.MIN_QUAL}' -"
+        cmd_reheader = self._get_reheader_command(output_vcf=self.unfiltered_vcf)
 
-        cmd_tags = f"bcftools +fill-tags -Oz -o {self.output_vcf} - -- -t FORMAT/VAF"
-
-        cmd = f"{cmd_pileup} | {cmd_call} | {cmd_filter} | {cmd_tags}"
+        cmd = f"{cmd_pileup} | {cmd_call} | {cmd_reheader}"
 
         subprocess.run(cmd, check=True, shell=True)
+        bcftools.index(self.unfiltered_vcf)
+
+        cmd_view = (
+            "bcftools view"
+            " --max-alleles 2"
+            f" -R {self.bed_path}"
+            f" -Ou {self.unfiltered_vcf} "
+        )
+
+        cmd_depth_filter = (
+            "bcftools filter"
+            " --mode +"
+            " --soft-filter LowDepth"
+            " --set-GTs ."
+            f" --exclude 'FORMAT/DP < {self.MIN_DEPTH}'"
+            " -Ou - "
+        )
+
+        cmd_qual_filter = (
+            "bcftools filter"
+            " --mode +"
+            " --soft-filter LowQual"
+            " --set-GTs ."
+            f" --exclude 'QUAL < {self.MIN_QUAL}'"
+            f" -Oz -o {self.output_vcf} - "
+        )
+
+        cmd = f"{cmd_view} | {cmd_depth_filter} | {cmd_qual_filter}"
+
+        subprocess.run(cmd, check=True, shell=True)
+        bcftools.index(self.output_vcf)
+        os.remove(self.unfiltered_vcf) # don't need unfiltered VCF
+        os.remove(self.unfiltered_vcf + ".csi") # default index type
 
         return self.output_vcf
 

@@ -1,11 +1,16 @@
+import os
 import json
 import pandas as pd
-
+import warnings
+import subprocess
 from abc import ABC, abstractmethod
 
+from nomadic.download.references import Reference, PlasmodiumFalciparum3D7
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import ExperimentDirectories
-
+from nomadic.util.dirs import ExperimentDirectories, produce_dir
+from nomadic.util.regions import RegionBEDParser
+from nomadic.util.wrappers import bcftools
+from nomadic.util.vcf import VariantAnnotator
 
 
 # --------------------------------------------------------------------------------
@@ -23,12 +28,16 @@ class ExperimentPipelineRT(ABC):
 
     We implement some concrete _run_<step>() methods that will be the
     same across all subclasses, to reduce code duplication.
-    
-    TODO: needs to take reference name
 
     """
 
-    def __init__(self, metadata: MetadataTableParser, expt_dirs: ExperimentDirectories, ref_name: str="Pf3D7"):
+    def __init__(
+        self,
+        metadata: MetadataTableParser,
+        expt_dirs: ExperimentDirectories,
+        regions: RegionBEDParser,
+        reference: Reference = PlasmodiumFalciparum3D7(),
+    ):
         """
         Store important metadata as instance attributes
 
@@ -36,7 +45,8 @@ class ExperimentPipelineRT(ABC):
 
         self.expt_dirs = expt_dirs
         self.metadata = metadata
-        self.ref_name = ref_name
+        self.regions = regions
+        self.reference = reference
 
     @abstractmethod
     def run(self):
@@ -49,7 +59,7 @@ class ExperimentPipelineRT(ABC):
     def _run_fastq(self):
         """
         Summarise FASTQ step results across all barcodes
-        
+
         """
         fastq_dts = []
         for b in self.metadata.barcodes:
@@ -72,7 +82,11 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(open(f"{barcode_dir}/qcbams/{b}.{self.ref_name}.flagstats.json"))
+                dt = json.load(
+                    open(
+                        f"{barcode_dir}/qcbams/{b}.{self.reference.name}.flagstats.json"
+                    )
+                )
                 dt["barcode"] = b
                 qcbams_dts.append(dt)
             except FileNotFoundError:
@@ -90,7 +104,9 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                df = pd.read_csv(f"{barcode_dir}/bedcov/{b}.{self.ref_name}.bedcov.csv")
+                df = pd.read_csv(
+                    f"{barcode_dir}/bedcov/{b}.{self.reference.name}.bedcov.csv"
+                )
                 bedcov_dfs.append(df)
             except FileNotFoundError:
                 continue
@@ -107,7 +123,9 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                df = pd.read_csv(f"{barcode_dir}/depth/{b}.{self.ref_name}.depth.csv")
+                df = pd.read_csv(
+                    f"{barcode_dir}/depth/{b}.{self.reference.name}.depth.csv"
+                )
                 depth_dfs.append(df)
             except FileNotFoundError:
                 continue
@@ -120,19 +138,49 @@ class ExperimentPipelineRT(ABC):
         Summarise variant calling results across all barcodes
 
         """
-        variant_dfs = []
-        for b in self.metadata.barcodes:
-            barcode_dir = self.expt_dirs.get_barcode_dir(b)
-            try:
-                df = pd.read_csv(f"{barcode_dir}/vcfs/{b}.{self.ref_name}.annotated.tsv", sep="\t")
-                df.insert(0, "barcode", b)
-                variant_dfs.append(df)
-            except FileNotFoundError:
-                continue
-        variant_df = pd.concat(variant_dfs)
-        variant_path = f"{self.expt_dirs.approach_dir}/summary.variants.csv"
-        variant_df.to_csv(variant_path, index=False)
 
+        # Merge VCF
+        vcf_dir = produce_dir(self.expt_dirs.approach_dir, "vcfs")
+        vcfs = []
+        for b in self.metadata.barcodes:
+            if b == "unclassified":
+                continue
+            barcode_dir = self.expt_dirs.get_barcode_dir(b)
+            vcf = f"{barcode_dir}/vcfs/{b}.{self.reference.name}.vcf.gz"
+            if not os.path.exists(vcf):
+                warnings.warn(f"No VCF file found at: {vcf}")
+                continue
+            vcfs.append(vcf)
+
+        unfiltered_vcf = f"{vcf_dir}/summary.variants.vcf.gz"
+        bcftools.merge(vcfs, output_vcf=unfiltered_vcf)
+
+        # Filter biallelic sites
+        filtered_vcf = unfiltered_vcf.replace(".vcf.gz", ".filtered.vcf.gz")
+        cmd = (
+            "bcftools view"
+            " --apply-filters PASS"
+            " --types='snps'"
+            " --min-alleles 2"
+            " --max-alleles 2"
+            f" -Oz -o {filtered_vcf} {unfiltered_vcf}"
+        )
+        subprocess.run(cmd, check=True, shell=True)
+
+        # Annotate
+        annotator = VariantAnnotator(
+            input_vcf=filtered_vcf,
+            bed_path=self.regions.path,
+            reference=self.reference,
+            output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz")
+        )
+        annotator.run()
+        annotator.convert_to_csv(f"{self.expt_dirs.approach_dir}/summary.variants.csv")
+
+        # Clean-up
+        os.remove(filtered_vcf)
+        os.remove(unfiltered_vcf)
+        
 
 
 # --------------------------------------------------------------------------------
@@ -147,6 +195,7 @@ class BasicExptPipeline(ExperimentPipelineRT):
     of FASTQ files processed for each barcode
 
     """
+
     def run(self):
         self._run_fastq()
 
@@ -155,8 +204,9 @@ class ExptMappingPipelineRT(ExperimentPipelineRT):
     """
     Experiment pipeline summarise mapping results, coverage
     over amplicons and quality control
-    
+
     """
+
     def run(self):
         self._run_fastq()
         self._run_qcbams()
@@ -168,12 +218,12 @@ class ExptCallingPipelineRT(ExperimentPipelineRT):
     """
     Experiment pipeline summarise mapping results, coverage
     over amplicons and quality control as well as variant calling
-    
+
     """
+
     def run(self):
         self._run_fastq()
         self._run_qcbams()
         self._run_bedcov()
         self._run_depth()
         self._run_variant()
-

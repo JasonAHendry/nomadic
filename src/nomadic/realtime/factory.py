@@ -52,6 +52,7 @@ class PipelineFactory:
         if not ref_name in REFERENCE_COLLECTION:
             raise ValueError(f"Reference {ref_name} must be in: {','.join(REFERENCE_COLLECTION)}.")
         self.ref_name = ref_name
+        self.reference = REFERENCE_COLLECTION[ref_name]
 
         if not isinstance(call, bool):
             raise ValueError("`call` must be a boolean.")
@@ -94,7 +95,7 @@ class PipelineFactory:
 
         """
         if self.call:
-            return ExptCallingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
+            return ExptCallingPipelineRT(self.metadata, self.expt_dirs, self.regions, self.reference)
 
         return ExptMappingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
 

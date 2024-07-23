@@ -1,6 +1,7 @@
 import os
 import datetime
 import pandas as pd
+pd.options.mode.chained_assignment = None
 
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
@@ -1040,19 +1041,21 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 return go.Figure()
             df = pd.read_csv(self.variant_csv)
             
-            # Filter to target
-            qry = "amplicon == @target_region and mut_type in @self.MUT_SET"
+            # Filter on target, variant types, and passing QC
+            qry = (
+                "amplicon == @target_region"
+                " and mut_type in @self.MUT_SET"
+                " and gt != './.'"
+            )
             target_df = df.query(qry)
             
             # Munge for plot
-            # barcode categorical (required? Kind of, if no variants)
             target_df["barcode"] = pd.Categorical(
                 values=target_df["barcode"],
-                categories=self.barcodes
+                categories=self.barcodes,
+                ordered=True
             )
-            
-            # TODO:variants categorical + sort
-            
+
             # Pivot
             plot_df = pd.pivot_table(
                 index="aa_change",
@@ -1060,8 +1063,18 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 values=["wsaf", "dp", "gt"],
                 aggfunc=lambda x: x,
                 data=target_df,
-                dropna=False
+                dropna=False,
             )
+
+            # Reorder mutations based on position
+            mutations = target_df[["pos", "aa_change"]].drop_duplicates("aa_change")
+            mutations.sort_values(["pos", "aa_change"], inplace=True)
+            plot_df.index = pd.Categorical(
+                values=plot_df.index,
+                categories=mutations.aa_change,
+                ordered=True
+            )
+            plot_df.sort_index(inplace=True)
             
             # Hover statment
             customdata = np.stack([plot_df["dp"], plot_df["gt"]], axis=-1)
@@ -1095,7 +1108,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
             
             # Format
             MAR=40  
-            SZ=50        
+            SZ=50       
             fig.update_layout(
                 hovermode="y unified",
                 paper_bgcolor='white',  # Sets the background color of the paper
@@ -1118,7 +1131,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 ),
                 xaxis_showgrid=False,
                 yaxis_showgrid=False,
-                #height=100 # TOOD: how to adjust dynamically
+                #height=n_mutations*SZ # TOOD: how to adjust dynamically
             )
             
             return fig

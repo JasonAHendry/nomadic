@@ -146,8 +146,8 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
         self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
         self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
-        self.call_step = CallVariantsRT(**common, ref_name=ref_name)
-        self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
+        self.call_step = CallVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
+        #self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
 
 
     def _run(self, new_fastq: List[str]) -> None:
@@ -168,10 +168,10 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         self.depth_step.run(final_bam)
         self.depth_step.merge()
 
-        final_vcf = self.call_step.run(final_bam) # pileup, call, filter, fill tags
+        final_vcf = self.call_step.run(final_bam)
         self.call_step.merge()
 
-        self.annot_step.run(final_vcf)
-        self.annot_step.merge()
+        # self.annot_step.run(final_vcf)
+        # self.annot_step.merge()
 
         self.fastq_step.run(new_fastq)
