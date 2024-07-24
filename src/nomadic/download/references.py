@@ -195,6 +195,30 @@ class AnophelesGambiaePEST(VectorBase):
         super().__init__(species="Agambiae", strain="PEST")
 
 
+class AnophelesArabiensis(VectorBase):
+    def __init__(self):
+        self.name = "AaDONGOLA2021"
+        super().__init__(species="Aarabiensis", strain="DONGOLA2021")
+
+
+class AnophelesColuzzi(VectorBase):
+    def __init__(self):
+        self.name = "AcolN3"
+        super().__init__(species="Acoluzzii", strain="AcolN3")
+
+
+class AnophelesFunestus(VectorBase):
+    def __init__(self):
+        self.name = "AfunGA1"
+        super().__init__(species="Afunestus", strain="AfunGA1")
+
+
+class AnophelesStephensi(VectorBase):
+    def __init__(self):
+        self.name = "AsUCISS2018"
+        super().__init__(species="Astephensi", strain="UCISS2018")
+
+
 class HomoSapiens(Reference):
     """
     Download the Homo Sapiens reference genome from
@@ -237,6 +261,10 @@ REFERENCE_COLLECTION = {
         PlasmodiumOvale(),
         PlasmodiumMalariae(),
         AnophelesGambiaePEST(),
+        AnophelesArabiensis(),
+        AnophelesColuzzi(),
+        AnophelesFunestus(),
+        AnophelesStephensi(),
         HomoSapiens(),
     ]
 }

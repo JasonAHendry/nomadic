@@ -52,7 +52,6 @@ def find_metadata(expt_name: str) -> MetadataTableParser:
         if file.endswith(".csv")
     ]  # TODO: what about no-suffix files?
 
-    print(csvs)
     if len(csvs) != 1:  # Could alternatively load and LOOK
         raise FileNotFoundError(
             f"Expected one metadata CSV file (*.csv) at {metadata_dir}, but found {len(csvs)}."
