@@ -432,8 +432,8 @@ class CallVariantsRT(AnalysisStepRT):
     # Settings
     ANNOTATE_MPILEUP = "FORMAT/DP,FORMAT/AD"
     ANNOTATE_CALL = "FORMAT/GQ"
-    MAX_DEPTH = 1000
-    MIN_DEPTH = 50
+    MAX_DEPTH = 5000
+    MIN_DEPTH = 40
     MIN_QUAL = 15
 
     # Annotation
@@ -477,8 +477,40 @@ class CallVariantsRT(AnalysisStepRT):
         if output_vcf is None:
             return cmd
         return f"{cmd} -o {output_vcf}"
+    
+    def _get_lowcomplexity_filter_command(self) -> str:
+        """
+        TODO: 
+         - Make this optional
+         - add input_vcf, output_vcf arguments
 
+        """
 
+        bed_mask_path = self.bed_path.replace(".bed", ".lowcomplexity_mask.bed")
+        if not os.path.exists(bed_mask_path):
+            print("Creating low-complexity mask for amplicons...")
+            cmd = (
+                "bedtools intersect"
+                f" -a {self.reference.fasta_mask_path}"
+                f" -b {self.bed_path}"
+                f" -wa > {bed_mask_path}"
+            )
+            subprocess.run(cmd, shell=True, check=True)
+            print("Done.")
+
+        # Masking command
+        cmd = (
+            "bcftools filter"
+            " --mode +"
+            " --soft-filter LowComplexity"
+            " --set-GTs ."
+            f" --mask-file {bed_mask_path}"
+            " -Ou -"
+        )
+
+        return cmd
+        
+        
     def run(self, input_bam: str) -> str:
         """
         Run variant calling with bcftools
@@ -506,7 +538,7 @@ class CallVariantsRT(AnalysisStepRT):
         """
 
         cmd_pileup = (
-            "bcftools mpileup -X ont"
+            "bcftools mpileup -B -I -Q12 --max-BQ 30 -h 100"
             f" --annotate {self.ANNOTATE_MPILEUP}"
             f" --max-depth {self.MAX_DEPTH}"
             f" -f {self.reference.fasta_path}"
@@ -542,6 +574,8 @@ class CallVariantsRT(AnalysisStepRT):
             " -Ou - "
         )
 
+        cmd_lowcomplexity_filter = self._get_lowcomplexity_filter_command()
+
         cmd_qual_filter = (
             "bcftools filter"
             " --mode +"
@@ -551,7 +585,7 @@ class CallVariantsRT(AnalysisStepRT):
             f" -Oz -o {self.output_vcf} - "
         )
 
-        cmd = f"{cmd_view} | {cmd_depth_filter} | {cmd_qual_filter}"
+        cmd = f"{cmd_view} | {cmd_depth_filter} | {cmd_lowcomplexity_filter} |{cmd_qual_filter}"
 
         subprocess.run(cmd, check=True, shell=True)
         bcftools.index(self.output_vcf)
