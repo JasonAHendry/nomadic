@@ -20,8 +20,8 @@ def main(reference_name: str, all: bool = False) -> None:
         for rname, r in REFERENCE_COLLECTION.items():
             print(f"Reference: {rname}")
             downloader.set_reference(r)
-            downloader.download_fasta()
-            downloader.download_gff(standardise=True)  # TODO: Might not want always
+            downloader.download_fasta(create_mask=True)
+            downloader.download_gff(standardise=True)
 
             if r.name == "Pf3D7":  # convert DHPS to WT
                 update_reference_genome(r.fasta_path, [DHPS])
@@ -30,7 +30,7 @@ def main(reference_name: str, all: bool = False) -> None:
         print(f"Reference: {reference_name}")
         r = REFERENCE_COLLECTION[reference_name]
         downloader.set_reference(r)
-        downloader.download_fasta()
+        downloader.download_fasta(create_mask=True)
         downloader.download_gff(standardise=True)
 
         if r.name == "Pf3D7":  # convert DHPS to WT

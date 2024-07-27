@@ -22,7 +22,18 @@ class Reference(ABC):
         self.gff_url = None
         self.fasta_path = None
         self.gff_path = None
-        self.gff_standard_path = None
+
+    @property
+    def gff_standard_path(self):
+        if self.gff_path is None:
+            return None
+        return self.gff_path.replace(".gff", ".standard.gff")
+    
+    @property
+    def fasta_mask_path(self):
+        if self.fasta_path is None:
+            return None
+        return self.fasta_path.replace(".fasta", ".lowcomplexity_mask.bed")
 
     @abstractmethod
     def set_fasta(self) -> None:
@@ -61,7 +72,13 @@ class Reference(ABC):
         if not self.exists_locally(self.gff_standard_path):
             raise ReferenceGenomeMissingError(
                 f"For the reference genome '{self.name}'"
-                + f" the GFF file is missing. Please run `nomadic download -r {self.name}`."
+                + f" the standardised GFF file is missing. Please run `nomadic download -r {self.name}`."
+            )
+        
+        if not self.exists_locally(self.fasta_mask_path):
+            raise ReferenceGenomeMissingError(
+                f"For the reference genome '{self.name}'"
+                + f" the masked FASTA file is missing. Please run `nomadic download -r {self.name}`."
             )
 
 
@@ -94,7 +111,6 @@ class PlasmoDB(Reference):
         gff_fn = f"PlasmoDB-{self.release}_{self.species}{self.strain}.gff"
         self.gff_url = f"{self.data_url}/gff/data/{gff_fn}"
         self.gff_path = f"resources/{self.source}/{self.release}/{gff_fn}"
-        self.gff_standard_path = f"resources/{self.source}/{self.release}/{gff_fn.replace('gff','standard.gff')}"
 
 
 class VectorBase(Reference):
@@ -126,31 +142,6 @@ class VectorBase(Reference):
         gff_fn = f"VectorBase-{self.release}_{self.species}{self.strain}.gff"
         self.gff_url = f"{self.data_url}/gff/data/{gff_fn}"
         self.gff_path = f"resources/{self.source}/{self.release}/{gff_fn}"
-        self.gff_standard_path = f"resources/{self.source}/{self.release}/{gff_fn.replace('gff','standard.gff')}"
-
-
-class ENA(Reference):
-    """
-    Encapsulate reference sequence downloads from the European Nucleotide Archive
-
-    """
-
-    source = "ena"
-    source_url = "ftp://ftp.ebi.ac.uk/pub/databases/ena/wgs/public/flr"
-
-    def __init__(self, wgs_id):
-        self.wgs_id = wgs_id
-        self.set_fasta()
-        self.set_gff()
-
-    def set_fasta(self):
-        fasta_fn = f"{self.wgs_id}.fasta.gz"
-        self.fasta_url = f"{self.source_url}/{fasta_fn}"
-        self.fasta_path = f"resources/{self.source}/{fasta_fn}"
-
-    def set_gff(self):
-        self.gff_url = None
-        self.gff_path = None
 
 
 # ===============================================================
