@@ -91,16 +91,16 @@ class ExperimentDirectories:
     
     def _setup_metadata_dir(self, metadata: MetadataTableParser, regions: RegionBEDParser) -> None:
         """
-        Setup the metadata folder
-        
+        Move metadata CSV and regions BED into the metadata directory,
+        and store their paths as attributes
         """
-
-        metadata_csv = f"{self.metadata_dir}/{os.path.basename(metadata.csv)}"
-        if not os.path.exists(metadata_csv):
-            metadata.df.to_csv(metadata_csv, index=False)
+        if metadata is not None:
+            self.metadata_csv = f"{self.metadata_dir}/{os.path.basename(metadata.csv)}"
+            if not os.path.exists(self.metadata_csv):
+                metadata.df.to_csv(self.metadata_csv, index=False)
 
         if regions is not None:
-            # TODO: really want to *write* the correctly parsed one
-            regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
-            if not os.path.exists(regions_bed):
-                shutil.copy(regions.path, regions_bed)
+            self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
+            if not os.path.exists(self.regions_bed):
+                shutil.copy(regions.path, self.regions_bed)
+

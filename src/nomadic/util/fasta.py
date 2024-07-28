@@ -1,3 +1,5 @@
+import os
+import subprocess
 from typing import Dict
 
 def load_fasta_as_dict(fasta_path: str) -> Dict[str, str]:
@@ -47,3 +49,23 @@ def write_fasta_from_dict(input_dt: Dict[str, str], output_fasta: str) -> None:
                 header = f">{header}"
             fasta.write(f"{header}\n")
             fasta.write(f"{seq}\n")
+
+
+def find_lowcomplexity_intervals(fasta_path: str, bed_path: str) -> None:
+    """
+    Find low-complexity intervals in a FASTA file `fasta_path` using
+    the sdust algorithm
+    
+    """
+
+    if not os.path.exists(fasta_path):
+        raise FileNotFoundError(f"No FASTA file present at {fasta_path}!")
+    
+    SUFFIXES = [".fasta", ".fa", ".fna"]
+    fasta_suffix = [suffix for suffix in SUFFIXES if fasta_path.endswith(suffix)]
+    if not fasta_suffix:
+        raise ValueError(f"Input file must be FASTA, with one of these suffixes: {', '.join(SUFFIXES)}.")
+
+    cmd = f"sdust {fasta_path} > {bed_path}"
+    subprocess.run(cmd, check=True, shell=True)
+
