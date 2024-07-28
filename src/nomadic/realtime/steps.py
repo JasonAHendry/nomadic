@@ -486,13 +486,13 @@ class CallVariantsRT(AnalysisStepRT):
 
         """
 
-        bed_mask_path = self.bed_path.replace(".bed", ".lowcomplexity_mask.bed")
+        bed_mask_path = self.expt_dirs.regions_bed.replace(".bed", ".lowcomplexity_mask.bed")
         if not os.path.exists(bed_mask_path):
             print("Creating low-complexity mask for amplicons...")
             cmd = (
                 "bedtools intersect"
                 f" -a {self.reference.fasta_mask_path}"
-                f" -b {self.bed_path}"
+                f" -b {self.expt_dirs.regions_bed}"
                 f" -wa > {bed_mask_path}"
             )
             subprocess.run(cmd, shell=True, check=True)

@@ -72,7 +72,7 @@ def find_regions(expt_name: str) -> RegionBEDParser:
     beds = [
         f"{metadata_dir}/{file}"
         for file in os.listdir(metadata_dir)
-        if file.endswith(".bed")
+        if file.endswith(".bed") and not file.endswith(".lowcomplexity_mask.bed")
     ]  # TODO: what about no-suffix files?
 
     if len(beds) != 1:  # Could alternatively load and LOOK
