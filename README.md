@@ -97,7 +97,7 @@ Flag information:
 For a full running example look at `scripts/run_realtime.sh`
 
 ## Testing
-I have created a script to simulate a small nanopore sequencing run, that allows you to test `nomadic3 realtime` without having an actual sequencing experiment running. To try this, first run: 
+I have created a script to simulate a small nanopore sequencing run, that allows you to test `nomadic realtime` without having an actual sequencing experiment running. To try this, first run: 
 
 ```
 ./scripts/run_realtime.sh
