@@ -1,0 +1,62 @@
+{% set name = "nomadic" %}
+{% set version = "0.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ../../
+
+build:
+  entry_points:
+    - nomadic = nomadic.cli:cli
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python >=3.6
+    - setuptools >=42.0
+    - wheel
+    - pip
+  run:
+    # python
+    - python >=3.6
+    - numpy
+    - scipy
+    - pandas
+    - seaborn
+    - click
+    - dash
+    - pysam
+    # tools
+    - minimap2
+    - samtools
+    - bcftools
+    - htslib
+    - bedtools
+
+test:
+  imports:
+    - nomadic
+  commands:
+    - pip check
+    - nomadic --help
+  requires:
+    - pip
+
+about:
+  license: MIT
+  license_file: LICENSE
+  home: https://github.com/JasonAHendry/nomadic
+  summary: 'mobile sequencing and analysis'
+  description: |
+    Nomadic supports real-time mapping and analysis of amplicon-based nanopore sequencing,
+    rendering the data to a browser-based dashboard.
+
+extra:
+  recipe-maintainers:
+    - berndbohmeier
+    - jasonahendry
