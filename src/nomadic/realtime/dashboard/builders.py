@@ -12,7 +12,6 @@ from nomadic.realtime.dashboard.components import (
     RegionCoveragePie,
     RegionCoverageStrip,
     DepthProfileLinePlot,
-    DepthProfileHistogram,
     DepthProfileCumulativeDist,
     VariantHeatmap,
 )

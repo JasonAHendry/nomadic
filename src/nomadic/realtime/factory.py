@@ -49,7 +49,7 @@ class PipelineFactory:
         self.expt_dirs = expt_dirs
         self.fastq_dir = fastq_dir
 
-        if not ref_name in REFERENCE_COLLECTION:
+        if ref_name not in REFERENCE_COLLECTION:
             raise ValueError(
                 f"Reference {ref_name} must be in: {','.join(REFERENCE_COLLECTION)}."
             )

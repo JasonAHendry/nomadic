@@ -1,4 +1,3 @@
-import pandas as pd
 import seaborn as sns
 
 from matplotlib.colors import rgb2hex

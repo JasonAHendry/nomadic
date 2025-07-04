@@ -111,7 +111,7 @@ class MetadataTableParser:
         """
 
         for c in self.REQUIRED_COLUMNS:
-            if not c in self.df.columns:
+            if c not in self.df.columns:
                 raise MetadataFormatError(f"Metadata must contain column called {c}!")
 
     def _check_entries_unique(self):

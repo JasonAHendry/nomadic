@@ -1,11 +1,9 @@
 import os
 import re
-import logging
 import warnings
 import subprocess
 import pandas as pd
 from dataclasses import dataclass
-from nomadic.util.dirs import produce_dir
 from nomadic.download.references import Reference
 
 
@@ -124,7 +122,7 @@ class VariantAnnotator:
         """
         Compute the WSAF for each variant based on allelic depths
         """
-        cmd = f"bcftools +fill-tags"
+        cmd = "bcftools +fill-tags"
         if output_vcf:
             cmd += f" -Oz -o {output_vcf}"
         cmd += f" {input_vcf}"

@@ -10,7 +10,6 @@ from nomadic.realtime.steps import (
     BedCovRT,
     RegionDepthRT,
     CallVariantsRT,
-    AnnotateVariantsRT,
 )
 
 
