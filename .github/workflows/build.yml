@@ -23,6 +23,17 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v4
 
+      - name: Cache conda
+        uses: actions/cache@v3
+        env:
+          # Increase this value to reset cache if environments/dev.yml has not changed
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
+            hashFiles('environments/dev.yml') }}
+
       - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: "3.11"
@@ -31,6 +42,7 @@ jobs:
           activate-environment: nomadic-dev
           environment-file: environments/dev.yml
           conda-remove-defaults: "true"
+          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
       - name: Conda info
         run: |
