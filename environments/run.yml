@@ -3,17 +3,17 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python=3.7
+  - python
   - minimap2
-  - samtools=1.17
-  - bcftools=1.17
+  - samtools
+  - bcftools
   - htslib
   - bedtools
   - dash
   - pandas
   - numpy
   - pysam
-  - scipy=1.4
+  - scipy
   - seaborn
   - click
   - pip
