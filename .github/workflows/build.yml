@@ -23,25 +23,35 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v4
 
-      - name: Cache conda
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: nomadic-dev
+
+      - name: Get Date
+        id: get-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache Conda env
         uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA }}/envs
+          key:
+            conda-${{ runner.os }}--${{ runner.arch }}--${{
+            steps.get-date.outputs.today }}-${{
+            hashFiles('environments/dev.yml') }}-${{ env.CACHE_NUMBER
+            }}
         env:
           # Increase this value to reset cache if environments/dev.yml has not changed
           CACHE_NUMBER: 0
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-            hashFiles('environments/dev.yml') }}
+        id: cache
 
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          python-version: "3.11"
-          channels: bioconda,conda-forge
-          channel-priority: true
-          activate-environment: nomadic-dev
-          environment-file: environments/dev.yml
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+      - name: Update environment
+        run:
+          conda env update -n nomadic-dev -f environments/dev.yml
+        if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Conda info
         run: |
