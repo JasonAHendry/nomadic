@@ -58,7 +58,7 @@ jobs:
           conda info
           conda list
 
-      - name: Install nomadic package with Pip
+      - name: Install nomadic  with pip
         run: |
           pip install . --no-deps
 
@@ -66,7 +66,7 @@ jobs:
         run: |
           pytest
       
-      - name: Smoke test package
+      - name: Smoke test nomadic
         run: |
           nomadic --help
 
