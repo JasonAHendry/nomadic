@@ -21,6 +21,7 @@ from nomadic.util.wrappers import bcftools
 from nomadic.util.vcf import Consequence
 
 import logging
+
 log = logging.getLogger("nomadic")
 
 
@@ -129,7 +130,12 @@ class MappingRT(AnalysisStepRT):
 
     step_name = "bams"
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, ref_name: str="Pf3D7"):
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        ref_name: str = "Pf3D7",
+    ):
         """
         Define initial directories and file paths
         TODO: choose mapping algorithm and reference genome
@@ -205,7 +211,12 @@ class FlagstatsRT(AnalysisStepRT):
 
     step_name = "qcbams"
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, ref_name: str="Pf3D7"):
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        ref_name: str = "Pf3D7",
+    ):
         """
         Define initial directories and file paths
         TODO: choose mapping algorithm and reference genome
@@ -228,7 +239,7 @@ class FlagstatsRT(AnalysisStepRT):
         Get path to a new intermediate JSON file
 
         """
-    
+
         base_name = f"{self.inter_dir}/{self.barcode_name}.{self.ref_name}"
         n = len(self.inter_jsons)
         code = f"n{n:05d}"
@@ -285,7 +296,12 @@ class BedCovRT(AnalysisStepRT):
     cov_thresh = 100
 
     def __init__(
-        self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        bed_path: str,
+        ref_name: str = "Pf3D7",
+    ):
         """
         Define initial directories and file paths
 
@@ -365,7 +381,8 @@ class RegionDepthRT(AnalysisStepRT):
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
-        ref_name: str="Pf3D7"):
+        ref_name: str = "Pf3D7",
+    ):
         """Initialise output directory and define file names"""
 
         super().__init__(barcode_name, expt_dirs)
@@ -374,7 +391,9 @@ class RegionDepthRT(AnalysisStepRT):
         self.ref_name = ref_name
         self.output_dir = produce_dir(self.barcode_dir, self.step_name)
         self.region_output_dir = produce_dir(self.output_dir, "by_region")
-        self.output_csv = f"{self.output_dir}/{self.barcode_name}.{self.ref_name}.depth.csv"
+        self.output_csv = (
+            f"{self.output_dir}/{self.barcode_name}.{self.ref_name}.depth.csv"
+        )
 
     def run(self, input_bam):
         """
@@ -412,7 +431,6 @@ class RegionDepthRT(AnalysisStepRT):
         merged_df.to_csv(self.output_csv, index=False)
 
 
-
 # --------------------------------------------------------------------------------
 # Variant calling and annnotation
 #
@@ -446,7 +464,7 @@ class CallVariantsRT(AnalysisStepRT):
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
         bed_path: str,
-        ref_name: str="Pf3D7"
+        ref_name: str = "Pf3D7",
     ):
         """Initialise output directory and define file names"""
 
@@ -456,37 +474,43 @@ class CallVariantsRT(AnalysisStepRT):
         self.reference = REFERENCE_COLLECTION[ref_name]
 
         self.output_dir = produce_dir(self.barcode_dir, self.step_name)
-        self.unfiltered_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.unfiltered.vcf.gz" 
-        self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.vcf.gz"
+        self.unfiltered_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.unfiltered.vcf.gz"
+        self.output_vcf = (
+            f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.vcf.gz"
+        )
 
-    def _get_reheader_command(self, input_vcf: str = "-", output_vcf: str = None) -> str:
+    def _get_reheader_command(
+        self, input_vcf: str = "-", output_vcf: str = None
+    ) -> str:
         """
         Reassign the sample name inside of the VCF to the
         `self.barcode_name`
 
         Unfortunately, need to load the name from a file
         """
-        
+
         # Write the file if it doesn't exist
         sample_name_file = f"{self.output_dir}/.sample_name.txt"
         if not os.path.exists(sample_name_file):
             with open(sample_name_file, "w") as file:
                 file.write(f"{self.barcode_name}\n")
-        
+
         cmd = f"bcftools reheader {input_vcf} -s {sample_name_file}"
         if output_vcf is None:
             return cmd
         return f"{cmd} -o {output_vcf}"
-    
+
     def _get_lowcomplexity_filter_command(self) -> str:
         """
-        TODO: 
+        TODO:
          - Make this optional
          - add input_vcf, output_vcf arguments
 
         """
 
-        bed_mask_path = self.expt_dirs.regions_bed.replace(".bed", ".lowcomplexity_mask.bed")
+        bed_mask_path = self.expt_dirs.regions_bed.replace(
+            ".bed", ".lowcomplexity_mask.bed"
+        )
         if not os.path.exists(bed_mask_path):
             print("Creating low-complexity mask for amplicons...")
             cmd = (
@@ -509,8 +533,7 @@ class CallVariantsRT(AnalysisStepRT):
         )
 
         return cmd
-        
-        
+
     def run(self, input_bam: str) -> str:
         """
         Run variant calling with bcftools
@@ -545,11 +568,7 @@ class CallVariantsRT(AnalysisStepRT):
             f" -Ov {input_bam}"
         )
 
-        cmd_call = (
-            "bcftools call -m -P 0.01"
-            f" -a {self.ANNOTATE_CALL}"
-            " -Oz - "
-        )
+        cmd_call = f"bcftools call -m -P 0.01 -a {self.ANNOTATE_CALL} -Oz - "
 
         cmd_reheader = self._get_reheader_command(output_vcf=self.unfiltered_vcf)
 
@@ -589,8 +608,8 @@ class CallVariantsRT(AnalysisStepRT):
 
         subprocess.run(cmd, check=True, shell=True)
         bcftools.index(self.output_vcf)
-        os.remove(self.unfiltered_vcf) # don't need unfiltered VCF
-        os.remove(self.unfiltered_vcf + ".csi") # default index type
+        os.remove(self.unfiltered_vcf)  # don't need unfiltered VCF
+        os.remove(self.unfiltered_vcf + ".csi")  # default index type
 
         return self.output_vcf
 
@@ -600,7 +619,7 @@ class CallVariantsRT(AnalysisStepRT):
 
 class AnnotateVariantsRT(AnalysisStepRT):
     """
-    Annotate a set of variants in real-time 
+    Annotate a set of variants in real-time
     using `bcftools csq`
 
     TODO:
@@ -610,33 +629,36 @@ class AnnotateVariantsRT(AnalysisStepRT):
     """
 
     step_name = "vcfs"
-    AMP_HEADER = "##INFO=<ID=AMP_ID,Number=1,Type=String,Description=Amplicon identifier>"
+    AMP_HEADER = (
+        "##INFO=<ID=AMP_ID,Number=1,Type=String,Description=Amplicon identifier>"
+    )
 
     def __init__(
-            self,
-            barcode_name: str,
-            expt_dirs: ExperimentDirectories,
-            bed_path: str,
-            ref_name: str="Pf3D7"
-        ):
-            """Initialise output directory and define file names"""
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        bed_path: str,
+        ref_name: str = "Pf3D7",
+    ):
+        """Initialise output directory and define file names"""
 
-            super().__init__(barcode_name, expt_dirs)
+        super().__init__(barcode_name, expt_dirs)
 
-            self.reference = REFERENCE_COLLECTION[ref_name]
+        self.reference = REFERENCE_COLLECTION[ref_name]
 
-            self.bed_path = bed_path
+        self.bed_path = bed_path
 
-            self.output_dir = produce_dir(self.barcode_dir, self.step_name)
-            self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.vcf.gz"
-            self.output_tsv = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.tsv"
+        self.output_dir = produce_dir(self.barcode_dir, self.step_name)
+        self.output_vcf = f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.vcf.gz"
+        self.output_tsv = (
+            f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.annotated.tsv"
+        )
 
-    
-    def _get_annotate_command(self, input_vcf: str="-", output_vcf: str = "") -> str:
+    def _get_annotate_command(self, input_vcf: str = "-", output_vcf: str = "") -> str:
         """
         Create a string representing command required to annotate variants with
         their amplicon position
-        
+
         """
         cmd = "bcftools annotate"
         cmd += f" -a {self.bed_path}"
@@ -648,12 +670,12 @@ class AnnotateVariantsRT(AnalysisStepRT):
         cmd += f" {input_vcf}"
 
         return cmd
-    
-    def _get_csq_command(self, input_vcf: str="-", output_vcf: str = "") -> str:
+
+    def _get_csq_command(self, input_vcf: str = "-", output_vcf: str = "") -> str:
         """
         Create a string representing command required
         to compute variant consequences
-        
+
         """
         cmd = "bcftools csq"
         cmd += f" -f {self.reference.fasta_path}"
@@ -665,12 +687,11 @@ class AnnotateVariantsRT(AnalysisStepRT):
         cmd += f" {input_vcf}"
 
         return cmd
-    
 
     def run(self, input_vcf: str):
         """
         Annotate variant calls using `bcftools csq`
-        
+
         """
 
         cmd_annot = self._get_annotate_command(input_vcf)
@@ -678,14 +699,13 @@ class AnnotateVariantsRT(AnalysisStepRT):
         cmd = f"{cmd_annot} | {cmd_csq}"
         subprocess.run(cmd, shell=True, check=True)
 
-
     def _convert_to_tsv(self):
         """
         Convert the annotated VCF file to a small TSV file
         in preparation for plotting
 
         """
-        
+
         fixed = {
             "chrom": "CHROM",
             "pos": "POS",
@@ -693,21 +713,21 @@ class AnnotateVariantsRT(AnalysisStepRT):
             "alt": "ALT",
             "qual": "QUAL",
             "consequence": "BCSQ",
-            "amplicon": "AMP_ID"
+            "amplicon": "AMP_ID",
         }
-        called = {
-            "gt": "GT",
-            "dp": "DP",
-            "wsaf": "VAF"
-        }
+        called = {"gt": "GT", "dp": "DP", "wsaf": "VAF"}
 
         sep = "\\t"
-        cmd_header = f" echo '{sep.join(list(fixed) + list(called))}\n' > {self.output_tsv}"
+        cmd_header = (
+            f" echo '{sep.join(list(fixed) + list(called))}\n' > {self.output_tsv}"
+        )
         sep += "%"
         cmd_query = "bcftools query"
-        cmd_query += f" -f '%{sep.join(fixed.values())}\t[%{sep.join(called.values())}]\n'"
+        cmd_query += (
+            f" -f '%{sep.join(fixed.values())}\t[%{sep.join(called.values())}]\n'"
+        )
         cmd_query += f" {self.output_vcf} >> {self.output_tsv}"
-        
+
         cmd = f"{cmd_header} && {cmd_query}"
         subprocess.run(cmd, shell=True, check=True)
 
@@ -720,15 +740,13 @@ class AnnotateVariantsRT(AnalysisStepRT):
         - Then CSQ is an empty list
 
         """
-        
+
         df = pd.read_csv(self.output_tsv, sep="\t")
-        csqs = [
-            Consequence.from_string(c)
-            for c in df["consequence"]
-        ]
+        csqs = [Consequence.from_string(c) for c in df["consequence"]]
         if csqs:
-            mut_type, aa_change, strand = zip(*[(c.csq, c.get_concise_aa_change(), c.strand)
-                                                for c in csqs])
+            mut_type, aa_change, strand = zip(
+                *[(c.csq, c.get_concise_aa_change(), c.strand) for c in csqs]
+            )
         else:
             print(f"No mutations passed quality control for {self.barcode_name}.")
             mut_type, aa_change, strand = None, None, None
@@ -738,7 +756,6 @@ class AnnotateVariantsRT(AnalysisStepRT):
         df.insert(8, "strand", strand)
         df.drop("consequence", axis=1, inplace=True)
         df.to_csv(self.output_tsv, sep="\t", index=False)
-
 
     def merge(self):
         """

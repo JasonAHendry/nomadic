@@ -74,7 +74,7 @@ def load_bed_as_dataframe(bed_path: str) -> pd.DataFrame:
             if not line.strip():  # handle blank lines, sometimes at end
                 continue
             records.append(BEDRecord.from_line(line))
-    
+
     if not records:
         raise BEDFormatError(f"No BED records were found in file {bed_path}.")
 

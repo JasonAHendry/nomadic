@@ -2,6 +2,7 @@ import os
 import subprocess
 from typing import Dict
 
+
 def load_fasta_as_dict(fasta_path: str) -> Dict[str, str]:
     """
     Load a `.fasta` file as a dictionary.
@@ -17,7 +18,7 @@ def load_fasta_as_dict(fasta_path: str) -> Dict[str, str]:
         header = None
         seq = ""
         line = fasta.readline().rstrip()
-        
+
         while line:
             if line.startswith(">"):
                 if header is not None:
@@ -27,7 +28,7 @@ def load_fasta_as_dict(fasta_path: str) -> Dict[str, str]:
             else:
                 seq += line
             line = fasta.readline().rstrip()
-        
+
         if header is not None:  # Ensure the last sequence is added to the dictionary
             dt[header] = seq
 
@@ -55,17 +56,18 @@ def find_lowcomplexity_intervals(fasta_path: str, bed_path: str) -> None:
     """
     Find low-complexity intervals in a FASTA file `fasta_path` using
     the sdust algorithm
-    
+
     """
 
     if not os.path.exists(fasta_path):
         raise FileNotFoundError(f"No FASTA file present at {fasta_path}!")
-    
+
     SUFFIXES = [".fasta", ".fa", ".fna"]
     fasta_suffix = [suffix for suffix in SUFFIXES if fasta_path.endswith(suffix)]
     if not fasta_suffix:
-        raise ValueError(f"Input file must be FASTA, with one of these suffixes: {', '.join(SUFFIXES)}.")
+        raise ValueError(
+            f"Input file must be FASTA, with one of these suffixes: {', '.join(SUFFIXES)}."
+        )
 
     cmd = f"sdust {fasta_path} > {bed_path}"
     subprocess.run(cmd, check=True, shell=True)
-

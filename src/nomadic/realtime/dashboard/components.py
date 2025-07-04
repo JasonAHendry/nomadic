@@ -1,6 +1,7 @@
 import os
 import datetime
 import pandas as pd
+
 pd.options.mode.chained_assignment = None
 
 from abc import ABC, abstractmethod
@@ -227,13 +228,13 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
                 html.Pre(
                     # pre_contents,
                     [
-                        f"Experiment Name:{tab*(n_tabs-1)}{self.expt_name}",
+                        f"Experiment Name:{tab * (n_tabs - 1)}{self.expt_name}",
                         html.Br(),
-                        f"Started at:{tab*n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                        f"Started at:{tab * n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
                         html.Br(),
-                        f"Time elapsed:{tab*n_tabs}{t1 - self.t0}",
+                        f"Time elapsed:{tab * n_tabs}{t1 - self.t0}",
                         html.Br(),
-                        f"FASTQs Processed:{tab*(n_tabs-2)}{n_fastq}",
+                        f"FASTQs Processed:{tab * (n_tabs - 2)}{n_fastq}",
                     ],
                     style=dict(fontFamily="Arial", margin="0px"),
                 ),
@@ -256,7 +257,6 @@ class MappingStatsPie(RealtimeDashboardComponent):
     def __init__(
         self, expt_name: str, component_id: str, flagstats_csv: str, checklist_id: str
     ):
-
         # Store inputs
         super().__init__(expt_name, component_id)
         self.flagstats_csv = flagstats_csv
@@ -300,9 +300,7 @@ class MappingStatsPie(RealtimeDashboardComponent):
                     go.Pie(
                         labels=selected_categories,
                         values=pie_values,
-                        marker=dict(
-                            colors=[MAPPING_COLS[cat] for cat in pie_cats]
-                        ),
+                        marker=dict(colors=[MAPPING_COLS[cat] for cat in pie_cats]),
                     )
                 ]
             )
@@ -322,7 +320,6 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
     def __init__(
         self, expt_name: str, component_id: str, flagstats_csv: str, checklist_id: str
     ):
-
         # Store inputs
         super().__init__(expt_name, component_id)
         self.flagstats_csv = flagstats_csv
@@ -415,7 +412,6 @@ class RegionCoveragePie(RealtimeDashboardComponent):
         bedcov_csv: str,
         dropdown_id: str,
     ):
-
         # Store inputs
         super().__init__(expt_name, component_id)
         self.bedcov_csv = bedcov_csv
@@ -493,7 +489,6 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
         bedcov_csv: str,
         dropdown_id: str,
     ):
-
         # Store inputs
         super().__init__(expt_name, component_id)
         self.bedcov_csv = bedcov_csv
@@ -553,12 +548,13 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             # fig = go.Figure()
             # for plot_trace in plot_data:
             #     fig.add_trace(plot_trace)
-            fig = px.strip(df, 
-               x="barcode",
-               color="name",
-               color_discrete_map=self.regions.col_map_hex,
-               y=df[dropdown_stat]
-              )
+            fig = px.strip(
+                df,
+                x="barcode",
+                color="name",
+                color_discrete_map=self.regions.col_map_hex,
+                y=df[dropdown_stat],
+            )
 
             fig.update_layout(
                 yaxis_title=dropdown_stat,
@@ -780,7 +776,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
     """
     Make a cumulative distribution plot of depth across
     a given region
-    
+
     """
 
     pal = "tab20"
@@ -832,7 +828,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
 
             target_info = self.regions.df.query("name == @target_region").squeeze()
             target_bp = target_info["end"] - target_info["start"]
-            
+
             # Plot data
             percentiles = 100 * (1 - np.arange(target_bp + 1) / target_bp)
             plot_data = [
@@ -841,7 +837,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
                     y=percentiles,
                     marker=dict(color=col_map[barcode]),
                     mode="lines",
-                    name=barcode
+                    name=barcode,
                 )
                 for barcode, barcode_df in grps
             ]
@@ -861,7 +857,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
                     linewidth=1,
                     linecolor="black",
                     mirror=True,
-                    #range=[min_x, max_x],
+                    # range=[min_x, max_x],
                 ),
                 yaxis=dict(
                     showline=True,
@@ -882,6 +878,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
             )
 
             return fig
+
 
 class DepthProfileHistogram(RealtimeDashboardComponent):
     """
@@ -942,7 +939,11 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
 
             # Plot data
             plot_data = [
-                go.Histogram(x=bdf["depth"], marker=dict(color=col_map[barcode_name]), name=barcode_name)
+                go.Histogram(
+                    x=bdf["depth"],
+                    marker=dict(color=col_map[barcode_name]),
+                    name=barcode_name,
+                )
                 for barcode_name, bdf in region_df.groupby("barcode")
             ]
 
@@ -982,7 +983,7 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
             )
 
             return fig
-        
+
 
 # --------------------------------------------------------------------------------
 # VARIANT CALLING SUMMARIES
@@ -992,55 +993,56 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
 class VariantHeatmap(RealtimeDashboardComponent):
     """
     Make a heatmap of variant calls
-    
+
     """
-    
+
     MUT_SET = ["synonymous", "missense"]
-    
-    def __init__(self,
-                 expt_name: str,
-                 metadata: MetadataTableParser,
-                 regions: RegionBEDParser,
-                 component_id: str,
-                 variant_csv: str,
-                 region_dropdown_id: str,
-                 known_variant_csv: str=""  # should be optional 
-                ):
-        
+
+    def __init__(
+        self,
+        expt_name: str,
+        metadata: MetadataTableParser,
+        regions: RegionBEDParser,
+        component_id: str,
+        variant_csv: str,
+        region_dropdown_id: str,
+        known_variant_csv: str = "",  # should be optional
+    ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.regions = regions
         self.metadata = metadata
         self.component_id = component_id
-        self.barcodes = metadata.barcodes.copy() # TODO: would this be by reference or value?
+        self.barcodes = (
+            metadata.barcodes.copy()
+        )  # TODO: would this be by reference or value?
         if "unclassified" in self.barcodes:
             self.barcodes.remove("unclassified")
         self.variant_csv = variant_csv
         self.region_dropdown_id = region_dropdown_id
-        
+
         if known_variant_csv:
             self.known = True
             self.known_df = pd.read_csv(known_variant_csv)
-        
+
     def _define_layout(self):
         """Layout is graph"""
         return dcc.Graph(id=self.component_id)
-    
+
     def callback(self, app: Dash) -> None:
-        
         @app.callback(
             Output(self.component_id, "figure"),
             Input(self.interval_id, "n_intervals"),
             Input(self.region_dropdown_id, "value"),
         )
         def _update(_, target_region):
-            """ Called every time an input changes """
-            
+            """Called every time an input changes"""
+
             # Load data
             if not os.path.exists(self.variant_csv):
                 return go.Figure()
             df = pd.read_csv(self.variant_csv)
-            
+
             # Filter on target, variant types, and passing QC
             qry = (
                 "amplicon == @target_region"
@@ -1048,12 +1050,10 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 " and gt != './.'"
             )
             target_df = df.query(qry)
-            
+
             # Munge for plot
             target_df["barcode"] = pd.Categorical(
-                values=target_df["barcode"],
-                categories=self.barcodes,
-                ordered=True
+                values=target_df["barcode"], categories=self.barcodes, ordered=True
             )
 
             # Pivot
@@ -1070,19 +1070,17 @@ class VariantHeatmap(RealtimeDashboardComponent):
             mutations = target_df[["pos", "aa_change"]].drop_duplicates("aa_change")
             mutations.sort_values(["pos", "aa_change"], inplace=True)
             plot_df.index = pd.Categorical(
-                values=plot_df.index,
-                categories=mutations.aa_change,
-                ordered=True
+                values=plot_df.index, categories=mutations.aa_change, ordered=True
             )
             plot_df.sort_index(inplace=True)
-            
+
             # Hover statment
             customdata = np.stack([plot_df["dp"], plot_df["gt"]], axis=-1)
             htemp = "<b>%{x}</b><br>"
             htemp += "<b>WSAF:</b> %{z:0.3f}<br>"
             htemp += "<b>Depth:</b> %{customdata[0]}<br>"
             htemp += "<b>Genotype:</b> %{customdata[1]}<br>"
-            
+
             # Plot
             plot_data = [
                 go.Heatmap(
@@ -1090,48 +1088,38 @@ class VariantHeatmap(RealtimeDashboardComponent):
                     y=plot_df["wsaf"].index,
                     z=plot_df["wsaf"],
                     customdata=customdata,
-                    zmin=0, zmax=1,
-                    xgap=1, ygap=1,
+                    zmin=0,
+                    zmax=1,
+                    xgap=1,
+                    ygap=1,
                     colorscale="Spectral_r",
-                    colorbar=dict(
-                        title="WSAF",
-                        outlinecolor="black",
-                        outlinewidth=1
-                    ),
+                    colorbar=dict(title="WSAF", outlinecolor="black", outlinewidth=1),
                     hovertemplate=htemp,
                     hoverongaps=False,
-                    name=""
+                    name="",
                 )
             ]
-            
+
             fig = go.Figure(plot_data)
-            
+
             # Format
-            MAR=40  
-            SZ=50       
+            MAR = 40
+            SZ = 50
             fig.update_layout(
                 hovermode="y unified",
-                paper_bgcolor='white',  # Sets the background color of the paper
-                plot_bgcolor='white',
+                paper_bgcolor="white",  # Sets the background color of the paper
+                plot_bgcolor="white",
                 title=dict(text=target_region),
                 margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
                 xaxis=dict(
-                    showline=True,
-                    linecolor='black',
-                    linewidth=2,
-                    dtick=1,
-                    mirror=True
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
                 ),
                 yaxis=dict(
-                    showline=True,
-                    linecolor='black',
-                    linewidth=2,
-                    dtick=1,
-                    mirror=True
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
                 ),
                 xaxis_showgrid=False,
                 yaxis_showgrid=False,
-                #height=n_mutations*SZ # TOOD: how to adjust dynamically
+                # height=n_mutations*SZ # TOOD: how to adjust dynamically
             )
-            
+
             return fig

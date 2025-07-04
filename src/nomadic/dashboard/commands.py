@@ -13,7 +13,7 @@ def dashboard(expt_name):
     """
     Launch the dashboard without performing real-time analysis,
     used to view results of a previous experiment.
-    
+
     """
 
     from .main import main

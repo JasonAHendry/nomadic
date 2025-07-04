@@ -14,7 +14,7 @@ from nomadic.realtime.dashboard.components import (
     DepthProfileLinePlot,
     DepthProfileHistogram,
     DepthProfileCumulativeDist,
-    VariantHeatmap
+    VariantHeatmap,
 )
 
 
@@ -27,7 +27,6 @@ from nomadic.realtime.dashboard.components import (
 #   in the superclass (e.g. def _add_banner(), def _add_depth_row()) to reduce this.
 # - Let's do this while I am here...
 # --------------------------------------------------------------------------------
-
 
 
 class RealtimeDashboardBuilder(ABC):
@@ -116,28 +115,25 @@ class RealtimeDashboardBuilder(ABC):
         processed
 
         """
-        
+
         # Create the component
         self.expt_summary = ExperimentSummaryFASTQ(
-            expt_name=self.expt_name, 
-            component_id="expt-summary", 
-            fastq_csv=fastq_csv
+            expt_name=self.expt_name, component_id="expt-summary", fastq_csv=fastq_csv
         )
 
         # Define banner layout
         banner = html.Div(className="banner", children=self.expt_summary.get_layout())
-        
+
         # Add to components and layout
         self.components.append(self.expt_summary)
         self.layout.append(banner)
-
 
     def _add_mapping_row(self, flagstats_csv: str) -> None:
         """
         Add a row summarising mapping statistics for all barcodes
 
         """
-        
+
         # Here you can set what mapping statistics to make viewable
         CATEGORIES = ["n_primary", "n_chimeria", "n_secondary", "n_unmapped"]
 
@@ -189,7 +185,7 @@ class RealtimeDashboardBuilder(ABC):
     def _add_bedcov_row(self, bedcov_csv: str, regions: RegionBEDParser) -> None:
         """
         Add a row summarising coverage across amplicons
-        
+
         """
 
         # Dropdown of different statistics
@@ -240,14 +236,14 @@ class RealtimeDashboardBuilder(ABC):
     def _add_depth_row(self, depth_csv: str, regions: RegionBEDParser) -> None:
         """
         Add a row summarising coverage across amplicons
-        
+
         """
 
         depth_dropdown = dcc.Dropdown(
             id="depth-dropdown",
             options=regions.names,
             value=regions.names[0],
-            #value="kelch13",
+            # value="kelch13",
             style=dict(width="300px"),
         )
 
@@ -309,7 +305,7 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         fastq_csv,
         flagstats_csv,
         bedcov_csv,
-        depth_csv
+        depth_csv,
     ):
         """
         Initialise all of the dashboard components
@@ -354,7 +350,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         flagstats_csv,
         bedcov_csv,
         depth_csv,
-        variant_csv
+        variant_csv,
     ):
         """
         Initialise all of the dashboard components
@@ -374,7 +370,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
     def _add_calling_row(self, variant_csv: str, regions: RegionBEDParser) -> None:
         """
         Add a row summarising variant calling results across amplicons
-        
+
         """
 
         # Dropdown of different target regions
@@ -395,7 +391,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
             region_dropdown_id="variant-dropdown",
         )
 
-        # Define layout
+        # Define layout
         variant_row = html.Div(
             className="variant-row",
             children=[
@@ -403,9 +399,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
                 variant_dropdown,
                 html.Div(
                     className="variant-plots",
-                    children=[
-                        self.variant_heat.get_layout()
-                    ],
+                    children=[self.variant_heat.get_layout()],
                 ),
             ],
         )
@@ -424,4 +418,3 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         self._add_bedcov_row(self.bedcov_csv, self.regions)
         self._add_depth_row(self.depth_csv, self.regions)
         self._add_calling_row(self.variant_csv, self.regions)
-

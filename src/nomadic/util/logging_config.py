@@ -12,7 +12,9 @@ class LoggingFascade:
     STREAM_FORMAT = "%(message)s"
     FILE_FORMAT = "[%(asctime)s][%(levelname)s] %(message)s"
 
-    def __init__(self, logger_name: str = "Default", verbose: bool = False, log_path: str = None):
+    def __init__(
+        self, logger_name: str = "Default", verbose: bool = False, log_path: str = None
+    ):
         """
         Instantiate the the default logger, create the console and optionally
         the file handler

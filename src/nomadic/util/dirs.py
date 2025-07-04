@@ -56,10 +56,11 @@ class ExperimentDirectories:
     results_dir = produce_dir(ROOT_DIR, "results")
 
     def __init__(
-        self, expt_name: str, 
+        self,
+        expt_name: str,
         metadata: MetadataTableParser,
         regions: RegionBEDParser = None,
-        approach_name: str = ""
+        approach_name: str = "",
     ):
         """
         Initialise all the required directories
@@ -88,8 +89,10 @@ class ExperimentDirectories:
         """
 
         return self._barcode_dirs[barcode_name]
-    
-    def _setup_metadata_dir(self, metadata: MetadataTableParser, regions: RegionBEDParser) -> None:
+
+    def _setup_metadata_dir(
+        self, metadata: MetadataTableParser, regions: RegionBEDParser
+    ) -> None:
         """
         Move metadata CSV and regions BED into the metadata directory,
         and store their paths as attributes
@@ -103,4 +106,3 @@ class ExperimentDirectories:
             self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
             if not os.path.exists(self.regions_bed):
                 shutil.copy(regions.path, self.regions_bed)
-

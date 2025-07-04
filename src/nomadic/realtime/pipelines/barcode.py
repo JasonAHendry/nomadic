@@ -10,10 +10,10 @@ from nomadic.realtime.steps import (
     BedCovRT,
     RegionDepthRT,
     CallVariantsRT,
-    AnnotateVariantsRT
+    AnnotateVariantsRT,
 )
 
-    
+
 # --------------------------------------------------------------------------------
 # Interface for barcode pipelines
 #
@@ -32,7 +32,13 @@ class BarcodePipelineRT(ABC):
 
     """
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        bed_path: str,
+        ref_name: str = "Pf3D7",
+    ):
         """
         Store important metadata as instance attributes, and define steps
 
@@ -58,20 +64,20 @@ class BarcodePipelineRT(ABC):
         TODO: Could log this
 
         """
-        
+
         t0 = datetime.now().replace(microsecond=0)
         print("")
-        print("="*80)
+        print("=" * 80)
         print(f"Updating: {self.barcode_name}")
-        print("-"*80)
+        print("-" * 80)
 
         self._run(new_fastq=new_fastq)
-        
+
         t1 = datetime.now().replace(microsecond=0)
-        print("-"*80)
+        print("-" * 80)
         print(f"Done with: {self.barcode_name}")
         print(f"Time elapsed: {t1 - t0}")
-        print("="*80)
+        print("=" * 80)
 
 
 # --------------------------------------------------------------------------------
@@ -87,26 +93,34 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
 
     """
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        bed_path: str,
+        ref_name: str = "Pf3D7",
+    ):
         """
         Initialise the barcode mapping pipeline
 
         """
-        
+
         super().__init__(barcode_name, expt_dirs, bed_path)
-        
+
         # Initialise analysis steps
         common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
         self.fastq_step = FASTQCountRT(**common)
         self.map_step = MappingRT(**common, ref_name=ref_name)
         self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
         self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
-        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
+        self.depth_step = RegionDepthRT(
+            **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
+        )
 
     def _run(self, new_fastq: List[str]) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
-        
+
         """
 
         inter_bam = self.map_step.run(new_fastq)
@@ -131,29 +145,36 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
 
     """
 
-    def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories, bed_path: str, ref_name: str="Pf3D7"):
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        bed_path: str,
+        ref_name: str = "Pf3D7",
+    ):
         """
         Initialise the barcode mapping pipeline
 
         """
-        
+
         super().__init__(barcode_name, expt_dirs, bed_path)
-        
+
         # Initialise analysis steps
         common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
         self.fastq_step = FASTQCountRT(**common)
         self.map_step = MappingRT(**common, ref_name=ref_name)
         self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
         self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
-        self.depth_step = RegionDepthRT(**common, regions=RegionBEDParser(bed_path), ref_name=ref_name)
+        self.depth_step = RegionDepthRT(
+            **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
+        )
         self.call_step = CallVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
-        #self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
-
+        # self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
 
     def _run(self, new_fastq: List[str]) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
-        
+
         """
 
         inter_bam = self.map_step.run(new_fastq)

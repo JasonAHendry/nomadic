@@ -3,7 +3,6 @@ from .references import REFERENCE_COLLECTION
 from .corrections import DHPS, update_reference_genome
 
 
-
 def main(reference_name: str, all: bool = False) -> None:
     """
     Main script for downloading various reference genomes defined within

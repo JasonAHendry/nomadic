@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 def load_gff(gff_path: str) -> pd.DataFrame:
     """Load a gene feature format (.gff) file into a pandas DataFrame"""
-    
+
     if gff_path is None:
         raise FileNotFoundError("No GFF file exists to load.")
 
@@ -33,7 +33,6 @@ def load_gff(gff_path: str) -> pd.DataFrame:
     # Open gff
     entries = []
     with open_gff(gff_path) as gff:
-
         # Iterate over rows
         for line in gff:
             # Decode as necessary
@@ -50,7 +49,7 @@ def load_gff(gff_path: str) -> pd.DataFrame:
 
             # Store
             entries.append(entry)
-    
+
     # Coerce data types
     gff_df = pd.DataFrame(entries)
     gff_df["start"] = gff_df["start"].astype("int")
