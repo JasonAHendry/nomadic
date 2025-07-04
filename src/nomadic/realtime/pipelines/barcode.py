@@ -188,7 +188,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         self.depth_step.run(final_bam)
         self.depth_step.merge()
 
-        final_vcf = self.call_step.run(final_bam)
+        _ = self.call_step.run(final_bam)
         self.call_step.merge()
 
         # self.annot_step.run(final_vcf)

@@ -2,8 +2,6 @@ import os
 import datetime
 import pandas as pd
 
-pd.options.mode.chained_assignment = None
-
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
@@ -16,6 +14,8 @@ from matplotlib.colors import rgb2hex
 
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.metadata import MetadataTableParser
+
+pd.options.mode.chained_assignment = None
 
 
 # --------------------------------------------------------------------------------
@@ -1104,7 +1104,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
 
             # Format
             MAR = 40
-            SZ = 50
+            # SZ = 50
             fig.update_layout(
                 hovermode="y unified",
                 paper_bgcolor="white",  # Sets the background color of the paper

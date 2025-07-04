@@ -102,5 +102,5 @@ def test_metadata_warns(csv_path, csv_shape):
 )
 def test_metadata_errors(csv_path, error_msg):
     with pytest.raises(MetadataFormatError) as excinfo:
-        metadata = MetadataTableParser(csv_path)
+        _ = MetadataTableParser(csv_path)
     assert str(excinfo.value) == error_msg
