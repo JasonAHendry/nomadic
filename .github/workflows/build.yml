@@ -15,33 +15,43 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
 
+    defaults:
+      run:
+        shell: bash -el {0} # is needed for activation of conda environment via .profile
+
     steps:
       - name: Checkout repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Prepare Python
-        uses: actions/setup-python@v4
+      - uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.x
+          python-version: "3.11"
+          channels: bioconda,conda-forge
+          channel-priority: true
+          activate-environment: nomadic-dev
+          environment-file: environments/dev.yml
+          conda-remove-defaults: "true"
 
-      - name: Prepare Conda
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          mamba-version: "*"
-          use-mamba: true
-          activate-environment: nomadic3
-          environment-file: environments/run.yml
-
-      - name: Install dependencies with Pip
+      - name: Conda info
         run: |
-          pip install --upgrade wheel
-          pip install --upgrade setuptools
-          pip install -e .
+          conda info
+          conda list
+
+      - name: Install nomadic package with Pip
+        run: |
+          pip install . --no-deps
+
+      - name: Run tests
+        run: |
+          pytest
       
-      - name: Test build
+      - name: Smoke test package
         run: |
           nomadic --help
 
-      # - name: Run tests
-      #   run: |
-      #     pytest
+
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
