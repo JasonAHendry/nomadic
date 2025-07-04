@@ -1,4 +1,5 @@
 import time
+from typing import Optional
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.logging_config import LoggingFascade
@@ -12,6 +13,7 @@ WAIT_INTERVAL = 5
 
 def main(
     expt_name: str,
+    workspace: Optional[str],
     fastq_dir: str,
     metadata_csv: str,
     region_bed: str,
@@ -24,10 +26,15 @@ def main(
 
     """
 
+    if workspace is None:
+        # TODO
+        return
+
     # PARSE INPUT
     log = LoggingFascade(logger_name="nomadic", verbose=verbose)
     log.info("Input parameters:")
     log.info(f"  Experiment Name: {expt_name}")
+    log.info(f"  Workspace: {workspace}")
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
     log.info(f"  Metadata (.csv): {metadata_csv}")
     log.info(f"  Regions (.bed): {region_bed}")
@@ -39,7 +46,7 @@ def main(
     # PREPARE TO RUN
     metadata = MetadataTableParser(metadata_csv)
     regions = RegionBEDParser(region_bed)
-    expt_dirs = ExperimentDirectories(expt_name, metadata, regions)
+    expt_dirs = ExperimentDirectories(expt_name, workspace, metadata, regions)
     log.info(f"  Found {len(metadata.barcodes) - 1} barcodes to track.")
     log.info(f"  Found {regions.n_regions} regions of interest.")
     log.info(f"  Outputs will be written to: {expt_dirs.expt_dir}.")

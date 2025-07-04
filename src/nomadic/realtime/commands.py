@@ -11,6 +11,13 @@ from nomadic.download.references import REFERENCE_COLLECTION
     help="Name of the experiment, used as output directory name. E.g. '2023-05-12_exptA'.",
 )
 @click.option(
+    "-w",
+    "--workspace",
+    type=str,
+    required=False,
+    help="Path of the the workspace where all the files will be stored. If not given, users default workspace will be used, set by init",
+)
+@click.option(
     "-f",
     "--fastq_dir",
     type=str,
@@ -54,11 +61,27 @@ from nomadic.download.references import REFERENCE_COLLECTION
     help="Increase logging verbosity. Helpful for debugging.",
 )
 def realtime(
-    expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose
+    expt_name,
+    workspace,
+    fastq_dir,
+    metadata_csv,
+    region_bed,
+    reference_name,
+    call,
+    verbose,
 ):
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
     """
     from .main import main
 
-    main(expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose)
+    main(
+        expt_name,
+        workspace,
+        fastq_dir,
+        metadata_csv,
+        region_bed,
+        reference_name,
+        call,
+        verbose,
+    )
