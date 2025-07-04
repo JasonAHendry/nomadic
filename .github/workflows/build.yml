@@ -41,7 +41,6 @@ jobs:
           channel-priority: true
           activate-environment: nomadic-dev
           environment-file: environments/dev.yml
-          conda-remove-defaults: "true"
           use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
       - name: Conda info
