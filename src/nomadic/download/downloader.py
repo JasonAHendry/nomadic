@@ -1,6 +1,11 @@
 import os
 import urllib.request
-from nomadic.util.gff import load_gff
+from nomadic.util.gff import (
+    load_gff,
+    write_attributes,
+    replace_attribute_keys,
+    parse_attributes,
+)
 from nomadic.util.fasta import find_lowcomplexity_intervals
 
 
@@ -65,7 +70,12 @@ class ReferenceDownloader:
         """
 
         # Settings
-        KEEP_FIELDS = ["protein_coding_gene", "mRNA", "exon", "CDS"]  # noqa: F841 field is later used inside of pandas query
+        KEEP_FIELDS = [
+            "protein_coding_gene",
+            "mRNA",
+            "exon",
+            "CDS",
+        ]  # noqa: F841 field is later used inside of pandas query
         to_gff3 = {"protein_coding_gene": "gene", "mRNA": "transcript"}
 
         # Standardise
@@ -73,6 +83,21 @@ class ReferenceDownloader:
         gff_df.query("feature in @KEEP_FIELDS", inplace=True)
         gff_df["feature"] = [
             to_gff3[f] if f in to_gff3 else f for f in gff_df["feature"]
+        ]
+
+        # Rename attributes to what bcftools expects
+        # see https://samtools.github.io/bcftools/bcftools-man.html#csq
+        gff_df["attribute"] = [
+            write_attributes(
+                replace_attribute_keys(
+                    parse_attributes(a),
+                    {
+                        "ebi_biotype": "biotype",
+                        "gene_ebi_biotype": "biotype",
+                    },
+                )
+            )
+            for a in gff_df["attribute"]
         ]
 
         # Write to 'standardised' path

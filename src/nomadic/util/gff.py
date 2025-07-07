@@ -56,3 +56,40 @@ def load_gff(gff_path: str) -> pd.DataFrame:
     gff_df["end"] = gff_df["end"].astype("int")
 
     return gff_df
+
+
+def parse_attributes(attribute_str: str) -> dict:
+    """
+    Parse the attributes field of a GFF entry into a dictionary.
+
+    The attributes are expected to be in the format 'key1=value;key2=value2;...'.
+    """
+    attributes = {}
+    if attribute_str:
+        for attr in attribute_str.split(";"):
+            if "=" in attr:
+                key, value = attr.split("=", 1)
+                attributes[key.strip()] = value.strip()
+            else:
+                attributes[attr.strip()] = None  # Handle keys without values
+    return attributes
+
+
+def write_attributes(attributes: dict) -> str:
+    """
+    Convert a dictionary of attributes back into the GFF attribute string format.
+
+    The output will be in the format 'key1=value;key2=value2;...'.
+    """
+    return ";".join(f"{k}={v}" for k, v in attributes.items() if v is not None)
+
+
+def replace_attribute_keys(attributes: dict, replacements: dict) -> dict:
+    """
+    Replace keys in the attributes dictionary based on a mapping.
+
+    :param attributes: The original attributes dictionary.
+    :param replacements: A dictionary mapping old keys to new keys.
+    :return: A new dictionary with keys replaced according to the mapping.
+    """
+    return {replacements.get(k, k): v for k, v in attributes.items()}
