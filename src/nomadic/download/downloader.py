@@ -70,12 +70,12 @@ class ReferenceDownloader:
         """
 
         # Settings
-        KEEP_FIELDS = [
+        KEEP_FIELDS = [  # noqa: F841 field is later used inside of pandas query
             "protein_coding_gene",
             "mRNA",
             "exon",
             "CDS",
-        ]  # noqa: F841 field is later used inside of pandas query
+        ]
         to_gff3 = {"protein_coding_gene": "gene", "mRNA": "transcript"}
 
         # Standardise
