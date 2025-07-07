@@ -13,7 +13,7 @@ WAIT_INTERVAL = 5
 
 def main(
     expt_name: str,
-    workspace: Optional[str],
+    workspace: str,
     fastq_dir: str,
     metadata_csv: str,
     region_bed: str,
@@ -25,10 +25,6 @@ def main(
     Run nomadic in realtime
 
     """
-
-    if workspace is None:
-        # TODO
-        return
 
     # PARSE INPUT
     log = LoggingFascade(logger_name="nomadic", verbose=verbose)

@@ -1,5 +1,6 @@
 import click
 from nomadic.download.references import REFERENCE_COLLECTION
+from nomadic.util.workspace import check_if_workspace
 
 
 @click.command(short_help="Run analysis in real-time.")
@@ -13,7 +14,7 @@ from nomadic.download.references import REFERENCE_COLLECTION
 @click.option(
     "-w",
     "--workspace",
-    default="",
+    default="./",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     help="Path of the the workspace where all the files will be stored. If not given, users default workspace will be used, set by init",
 )
@@ -74,6 +75,12 @@ def realtime(
     Analyse data being produced by MinKNOW while sequencing is ongoing
     """
     from .main import main
+
+    if not check_if_workspace(workspace):
+        raise click.BadParameter(
+            param_hint="-w/--workspace",
+            message=f"Workspace '{workspace}' does not exist or is not a workspace. Please use nomadic start to create a new workspace, or navigate to your workspace",
+        )
 
     main(
         expt_name,
