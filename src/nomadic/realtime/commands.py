@@ -13,28 +13,28 @@ from nomadic.download.references import REFERENCE_COLLECTION
 @click.option(
     "-w",
     "--workspace",
-    type=str,
-    required=False,
+    default="",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
     help="Path of the the workspace where all the files will be stored. If not given, users default workspace will be used, set by init",
 )
 @click.option(
     "-f",
     "--fastq_dir",
-    type=str,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
     required=True,
     help="Path to `fastq_pass` directory produced by MinKNOW or Guppy.",
 )
 @click.option(
     "-m",
     "--metadata_csv",
-    type=str,
+    type=click.Path(exists=True, dir_okay=False, file_okay=True),
     required=True,
     help="Path to metadata CSV file containing barcode and sample information.",
 )
 @click.option(
     "-b",
     "--region_bed",
-    type=str,
+    type=click.Path(exists=True, dir_okay=False, file_okay=True),
     required=True,
     help="Path to BED file specifying genomic regions of interest.",
 )
