@@ -2,6 +2,8 @@ import os
 import shutil
 from pathlib import Path
 
+import platformdirs
+
 from .metadata import MetadataTableParser
 from .regions import RegionBEDParser
 
@@ -51,7 +53,6 @@ class ExperimentDirectories:
       - But can be added to or reduced depending on pipeline
 
     """
-
 
     def __init__(
         self,
@@ -106,3 +107,10 @@ class ExperimentDirectories:
             self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
             if not os.path.exists(self.regions_bed):
                 shutil.copy(regions.path, self.regions_bed)
+
+
+def user_data_dir() -> str:
+    """
+    Get the user data directory for the application.
+    """
+    return platformdirs.user_data_dir(appname="nomadic", appauthor="nomads")
