@@ -1,4 +1,3 @@
-import pandas as pd
 import seaborn as sns
 
 from matplotlib.colors import rgb2hex
@@ -49,10 +48,10 @@ class RegionBEDParser:
 
     def _set_str_formats(self):
         """
-        Prepare a dictionary with strings in the format 
+        Prepare a dictionary with strings in the format
         `chrom:start-end` for each region
         """
-        
+
         self.str_format = {
             row["name"]: f"{row['chrom']}:{row['start']}-{row['end']}"
             for _, row in self.df.iterrows()

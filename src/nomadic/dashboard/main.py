@@ -28,7 +28,7 @@ def verify_experiment_exists(expt_name: str) -> None:
     if not expts_found:
         raise ExperimentNotFound("No experiments found in 'results' directory.")
 
-    if not expt_name in expts_found:
+    if expt_name not in expts_found:
         exception_str = (
             f"Found {len(expts_found)} experiments, but none matched '{expt_name}'."
         )

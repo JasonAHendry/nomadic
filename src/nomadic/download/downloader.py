@@ -1,6 +1,11 @@
 import os
 import urllib.request
-from nomadic.util.gff import load_gff
+from nomadic.util.gff import (
+    load_gff,
+    write_attributes,
+    replace_attribute_keys,
+    parse_attributes,
+)
 from nomadic.util.fasta import find_lowcomplexity_intervals
 
 
@@ -21,7 +26,7 @@ class ReferenceDownloader:
         if not os.path.isdir(file_dir):
             os.makedirs(file_dir)
 
-    def download_fasta(self, create_mask: bool=False):
+    def download_fasta(self, create_mask: bool = False):
         if self.ref.fasta_path and not self.exists_locally(self.ref.fasta_path):
             print("Downloading FASTA...")
             print(f"  From: {self.ref.fasta_url}")
@@ -41,7 +46,7 @@ class ReferenceDownloader:
             else:
                 self._create_lowcomplexity_fasta_mask()
 
-    def download_gff(self, standardise: bool=False):
+    def download_gff(self, standardise: bool = False):
         if self.ref.gff_path and not self.exists_locally(self.ref.gff_path):
             print("Downloading GFF...")
             print(f"  From: {self.ref.gff_url}")
@@ -63,20 +68,36 @@ class ReferenceDownloader:
         Try to standardise the GFF file into GFF3 format
 
         """
-        
+
         # Settings
-        KEEP_FIELDS = ["protein_coding_gene", "mRNA", "exon", "CDS"]
-        to_gff3 = {
-            "protein_coding_gene": "gene",
-            "mRNA": "transcript"
-        }
+        KEEP_FIELDS = [  # noqa: F841 field is later used inside of pandas query
+            "protein_coding_gene",
+            "mRNA",
+            "exon",
+            "CDS",
+        ]
+        to_gff3 = {"protein_coding_gene": "gene", "mRNA": "transcript"}
 
         # Standardise
         gff_df = load_gff(self.ref.gff_path)
         gff_df.query("feature in @KEEP_FIELDS", inplace=True)
         gff_df["feature"] = [
-            to_gff3[f] if f in to_gff3 else f
-            for f in gff_df["feature"]
+            to_gff3[f] if f in to_gff3 else f for f in gff_df["feature"]
+        ]
+
+        # Rename attributes to what bcftools expects
+        # see https://samtools.github.io/bcftools/bcftools-man.html#csq
+        gff_df["attribute"] = [
+            write_attributes(
+                replace_attribute_keys(
+                    parse_attributes(a),
+                    {
+                        "ebi_biotype": "biotype",
+                        "gene_ebi_biotype": "biotype",
+                    },
+                )
+            )
+            for a in gff_df["attribute"]
         ]
 
         # Write to 'standardised' path
@@ -86,11 +107,12 @@ class ReferenceDownloader:
         """
         Create a BED file indicating regions that should be masked due to
         low complexity sequence
-        
+
         """
-        print("Creating a low-complexity mask for this reference genome (please be patient, this may take a few minutes)...")
+        print(
+            "Creating a low-complexity mask for this reference genome (please be patient, this may take a few minutes)..."
+        )
         find_lowcomplexity_intervals(
-            fasta_path=self.ref.fasta_path,
-            bed_path=self.ref.fasta_mask_path
+            fasta_path=self.ref.fasta_path, bed_path=self.ref.fasta_mask_path
         )
         print("Done.\n")

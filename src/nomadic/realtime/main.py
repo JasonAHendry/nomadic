@@ -63,7 +63,7 @@ def main(
             n_updated = sum(updated)
             if n_updated > 0:
                 log.info(f"Have updated {n_updated} barcodes.")
-                log.info(f"Running experiment pipeline...")
+                log.info("Running experiment pipeline...")
                 expt_pipeline.run()
             else:
                 log.info("No barcodes updated. Waiting before scannning again.")

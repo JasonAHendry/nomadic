@@ -48,12 +48,11 @@ def update_reference_genome(fasta_path: str, mutations: List[NucleotideChange]) 
         dt[key] = (
             seq[: (mutation.position - 1)] + mutation.after + seq[mutation.position :]
         )
-        assert (
-            len(dt[key]) == L
-        ), f"Something wrong with replacement, sequence length changed {L} != {len(dt[key])}."
+        assert len(dt[key]) == L, (
+            f"Something wrong with replacement, sequence length changed {L} != {len(dt[key])}."
+        )
         print("Done.")
 
     print("Overwriting FASTA file...")
     write_fasta_from_dict(dt, fasta_path)
     print("Done.")
-    

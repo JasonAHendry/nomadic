@@ -15,33 +15,67 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
 
+    defaults:
+      run:
+        shell: bash -el {0} # is needed for activation of conda environment via .profile
+
     steps:
       - name: Checkout repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Prepare Python
-        uses: actions/setup-python@v4
+      - name: Setup Miniforge
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          python-version: 3.x
+          miniforge-version: latest
+          activate-environment: nomadic-dev
 
-      - name: Prepare Conda
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Get Date
+        id: get-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache Conda env
+        uses: actions/cache@v3
         with:
-          mamba-version: "*"
-          use-mamba: true
-          activate-environment: nomadic3
-          environment-file: environments/run.yml
+          path: ${{ env.CONDA }}/envs
+          key:
+            conda-${{ runner.os }}--${{ runner.arch }}--${{
+            steps.get-date.outputs.today }}-${{
+            hashFiles('environments/dev.yml') }}-${{ env.CACHE_NUMBER
+            }}
+        env:
+          # Increase this value to reset cache if environments/dev.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
 
-      - name: Install dependencies with Pip
+      - name: Update environment
+        run:
+          conda env update -n nomadic-dev -f environments/dev.yml
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Conda info
         run: |
-          pip install --upgrade wheel
-          pip install --upgrade setuptools
-          pip install -e .
+          conda info
+          conda list
+
+      - name: Install nomadic  with pip
+        run: |
+          pip install . --no-deps
+
+      - name: Run tests
+        run: |
+          pytest
       
-      - name: Test build
+      - name: Smoke test nomadic
         run: |
           nomadic --help
 
-      # - name: Run tests
-      #   run: |
-      #     pytest
+
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
+      - uses: astral-sh/ruff-action@v3
+        with:
+          args: "format --check --diff"

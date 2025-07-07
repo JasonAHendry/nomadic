@@ -1,17 +1,15 @@
 import os
 import re
-import logging
 import warnings
 import subprocess
 import pandas as pd
 from dataclasses import dataclass
-from nomadic.util.dirs import produce_dir
 from nomadic.download.references import Reference
 
 
 # TODO:
 # - Setup logging in nomadic
-#log = logging.getLogger()
+# log = logging.getLogger()
 
 
 # ================================================================
@@ -104,11 +102,11 @@ class VariantAnnotator:
     )
 
     def __init__(
-        self, 
-        input_vcf: str, 
-        bed_path: str, 
-        reference: Reference, 
-        output_vcf: str = None
+        self,
+        input_vcf: str,
+        bed_path: str,
+        reference: Reference,
+        output_vcf: str = None,
     ) -> None:
         # Inputs
         self.input_vcf = input_vcf
@@ -118,13 +116,13 @@ class VariantAnnotator:
         # Output
         self.output_vcf = output_vcf
         if self.output_vcf is None:
-            self.output_vcf = self.input_vcf.replace('.vcf.gz', '.annotated.vcf.gz')
+            self.output_vcf = self.input_vcf.replace(".vcf.gz", ".annotated.vcf.gz")
 
     def _get_wsaf_command(self, input_vcf: str = "-", output_vcf: str = "") -> str:
         """
         Compute the WSAF for each variant based on allelic depths
         """
-        cmd = f"bcftools +fill-tags"
+        cmd = "bcftools +fill-tags"
         if output_vcf:
             cmd += f" -Oz -o {output_vcf}"
         cmd += f" {input_vcf}"
@@ -200,7 +198,7 @@ class VariantAnnotator:
         # Write header
         sep = "\t"
         cmd_header = f"printf 'barcode{sep}{sep.join(list(fixed) + list(called))}\n' > {output_tsv}"
-        sepb = f"{sep}%" # for bcftools, % accesses variable
+        sepb = f"{sep}%"  # for bcftools, % accesses variable
 
         # Iterate and query for each sample
         cmd_query = f"for sample in `bcftools query {self.output_vcf} -l`; do"
@@ -212,8 +210,9 @@ class VariantAnnotator:
         cmd = f"{cmd_header} && {cmd_query}"
         subprocess.run(cmd, shell=True, check=True)
 
-
-    def _parse_consequences(self, input_tsv: str, output_file: str, output_sep: str = "\t"):
+    def _parse_consequences(
+        self, input_tsv: str, output_file: str, output_sep: str = "\t"
+    ):
         """
         Parse the consequenc string in the TSV
         """
@@ -244,28 +243,28 @@ class VariantAnnotator:
         if output_tsv is None:
             output_tsv = self.output_vcf.replace(".vcf.gz", ".tsv")
         self._convert_to_tsv(output_tsv)
-        self._parse_consequences(input_tsv=output_tsv, 
-                                 output_file=output_tsv)
+        self._parse_consequences(input_tsv=output_tsv, output_file=output_tsv)
 
     def convert_to_csv(self, output_csv: str = None):
         """
         Convert from VCF to a CSV
 
-        NB: We need to go via TSV because `bcftools csq` uses 
-        a comma as the delimiter when multiple consequences are 
+        NB: We need to go via TSV because `bcftools csq` uses
+        a comma as the delimiter when multiple consequences are
         identified for a single variant.
-        
+
         """
-        
-        warnings.warn("Converting VCF to CSV can lead to errors if multiallelic SNPs are called!")
-        
+
+        warnings.warn(
+            "Converting VCF to CSV can lead to errors if multiallelic SNPs are called!"
+        )
+
         if output_csv is None:
             output_csv = self.output_vcf.replace(".vcf.gz", ".csv")
-        
+
         temp_tsv = output_csv.replace(".csv", ".temp.tsv")
         self._convert_to_tsv(temp_tsv)
-        self._parse_consequences(input_tsv=temp_tsv, 
-                                 output_file=output_csv,
-                                 output_sep=",")
+        self._parse_consequences(
+            input_tsv=temp_tsv, output_file=output_csv, output_sep=","
+        )
         os.remove(temp_tsv)
-        

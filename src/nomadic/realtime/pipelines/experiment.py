@@ -172,7 +172,7 @@ class ExperimentPipelineRT(ABC):
             input_vcf=filtered_vcf,
             bed_path=self.regions.path,
             reference=self.reference,
-            output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz")
+            output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
         )
         annotator.run()
         annotator.convert_to_csv(f"{self.expt_dirs.approach_dir}/summary.variants.csv")
@@ -180,7 +180,6 @@ class ExperimentPipelineRT(ABC):
         # Clean-up
         os.remove(filtered_vcf)
         os.remove(unfiltered_vcf)
-        
 
 
 # --------------------------------------------------------------------------------

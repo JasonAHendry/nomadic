@@ -53,7 +53,9 @@ from nomadic.download.references import REFERENCE_COLLECTION
     default=False,
     help="Increase logging verbosity. Helpful for debugging.",
 )
-def realtime(expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose):
+def realtime(
+    expt_name, fastq_dir, metadata_csv, region_bed, reference_name, call, verbose
+):
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
     """

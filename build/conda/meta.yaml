@@ -17,15 +17,14 @@ build:
 
 requirements:
   host:
-    - python >=3.6
+    - python >=3.10
     - setuptools >=42.0
     - wheel
     - pip
   run:
     # python
-    - python >=3.6
+    - python >=3.10
     - numpy
-    - scipy
     - pandas
     - seaborn
     - click
@@ -33,8 +32,8 @@ requirements:
     - pysam
     # tools
     - minimap2
-    - samtools
-    - bcftools
+    - samtools>=1.20
+    - bcftools>=1.20
     - htslib
     - bedtools
 
