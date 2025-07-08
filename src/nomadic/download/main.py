@@ -1,5 +1,3 @@
-import os
-
 from .downloader import ReferenceDownloader
 from .references import REFERENCE_COLLECTION
 from .corrections import DHPS, update_reference_genome

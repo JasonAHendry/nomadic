@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.logging_config import LoggingFascade
