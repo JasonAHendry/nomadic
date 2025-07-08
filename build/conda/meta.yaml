@@ -28,8 +28,10 @@ requirements:
     - pandas
     - seaborn
     - click
+    - platformdirs
     - dash
     - pysam
+    - pyyaml
     # tools
     - minimap2
     - samtools>=1.20

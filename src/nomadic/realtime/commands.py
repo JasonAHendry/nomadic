@@ -8,9 +8,30 @@ from nomadic.util.workspace import (
     looks_like_a_bed_filepath,
 )
 from nomadic.util.minknow import default_fastq_dir
+from nomadic.util.config import load_config, default_config_path
 
 
-@click.command(short_help="Run analysis in real-time.")
+def set_workspace(ctx, param, workspace_path):
+    """Set the workspace path in the context object so we can use it later."""
+    ctx.ensure_object(dict)
+    ctx.obj["workspace_path"] = workspace_path
+    return workspace_path
+
+
+def load_defaults_from_config(ctx, param, value):
+    """Load configuration from the default config file if it exists."""
+    config_path = os.path.join(ctx.obj.get("workspace_path", "./"), default_config_path)
+    if os.path.isfile(config_path):
+        defaults = load_config(config_path).get("defaults", None)
+        if defaults is not None:
+            click.echo(f"Loaded defaults from {config_path}")
+            ctx.default_map = defaults
+            ctx.show_default = True
+
+
+@click.command(
+    short_help="Run analysis in real-time.",
+)
 @click.argument(
     "experiment_name",
     type=str,
@@ -23,6 +44,11 @@ from nomadic.util.minknow import default_fastq_dir
     show_default=True,
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     help="Path of the the workspace where all the files will be stored",
+    callback=set_workspace,
+)
+@click.option(
+    callback=load_defaults_from_config,
+    expose_value=False,
 )
 @click.option(
     "-f",
@@ -49,8 +75,6 @@ from nomadic.util.minknow import default_fastq_dir
     "-r",
     "--reference_name",
     type=click.Choice(REFERENCE_COLLECTION),
-    default="Pf3D7",
-    show_default=True,
     help="Choose a reference genome to be used in real-time analysis.",
 )
 @click.option(
@@ -114,6 +138,17 @@ def realtime(
             raise click.BadParameter(
                 message=f"FASTQ directory not found at {fastq_dir}. Does {experiment_name} match the minknow experiment name and is minknow already running long enough?",
             )
+
+    if reference_name is None:
+        raise click.BadParameter(
+            param_hint="-r/--reference_name",
+            message="Reference genome must be specified. Use -r/--reference_name to select a reference genome.",
+        )
+    elif reference_name not in REFERENCE_COLLECTION:
+        raise click.BadParameter(
+            param_hint="-r/--reference_name",
+            message=f"Reference genome '{reference_name}' is not available. Available references: {', '.join(REFERENCE_COLLECTION.keys())}.",
+        )
     from .main import main
 
     main(
