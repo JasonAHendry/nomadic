@@ -69,7 +69,7 @@ def setup_pfalciparum(workspace, *, reference_name):
 
     copy_example_metadata(workspace)
 
-    default_bed = "nomadsMVP.amplicons"
+    default_bed = "nomadsMVP"
     call = True
 
     click.echo(f"Setting reference genome: {reference_name}")

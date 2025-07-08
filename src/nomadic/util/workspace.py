@@ -72,14 +72,14 @@ class Workspace:
         """
         Get the path to the BED file for a given panel name.
         """
-        return os.path.join(self.get_beds_dir(), f"{panel_name}.bed")
+        return os.path.join(self.get_beds_dir(), f"{panel_name}.amplicons.bed")
 
     def get_panel_names(self):
         """
         Get a list of available panel names in the workspace.
         """
         return [
-            file.removesuffix(".bed")
+            file.removesuffix(".amplicons.bed")
             for file in os.listdir(self.get_beds_dir())
             if file.endswith(".bed")
         ]
