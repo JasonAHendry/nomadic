@@ -2,7 +2,12 @@ import os
 
 import click
 from nomadic.download.references import REFERENCE_COLLECTION
-from nomadic.util.workspace import check_if_workspace, Workspace, looks_like_a_bed_filepath
+from nomadic.util.workspace import (
+    check_if_workspace,
+    Workspace,
+    looks_like_a_bed_filepath,
+)
+from nomadic.util.minknow import default_fastq_dir
 
 
 @click.command(short_help="Run analysis in real-time.")
@@ -15,21 +20,23 @@ from nomadic.util.workspace import check_if_workspace, Workspace, looks_like_a_b
     "--workspace",
     "workspace_path",
     default="./",
+    show_default=True,
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the the workspace where all the files will be stored. Defaults to current directory.",
+    help="Path of the the workspace where all the files will be stored",
 )
 @click.option(
     "-f",
     "--fastq_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    required=True,
+    show_default="/var/lib/minknow/data/<experiment_name>/fastq_pass",
     help="Path to `fastq_pass` directory produced by MinKNOW or Guppy.",
 )
 @click.option(
     "-m",
     "--metadata_csv",
     type=click.Path(exists=True, dir_okay=False, file_okay=True),
-    help="Path to metadata CSV file containing barcode and sample information. Defaults to 'metadata/[EXPERIMENT_NAME].csv'.",
+    help="Path to metadata CSV file containing barcode and sample information.",
+    show_default="<workspace>/metadata/<experiment_name>.csv",
 )
 @click.option(
     "-b",
@@ -73,8 +80,6 @@ def realtime(
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
     """
-    from .main import main
-
     if not check_if_workspace(workspace_path):
         raise click.BadParameter(
             param_hint="-w/--workspace",
@@ -102,6 +107,14 @@ def realtime(
             raise click.BadParameter(
                 message=f"Region BED file not found at {region_bed}.",
             )
+
+    if fastq_dir is None:
+        fastq_dir = default_fastq_dir(experiment_name)
+        if not os.path.isdir(fastq_dir):
+            raise click.BadParameter(
+                message=f"FASTQ directory not found at {fastq_dir}. Does {experiment_name} match the minknow experiment name and is minknow already running long enough?",
+            )
+    from .main import main
 
     main(
         experiment_name,
