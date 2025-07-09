@@ -92,6 +92,12 @@ def load_defaults_from_config(ctx, param, value):
     help="Perform preliminary variant calling of biallelic SNPs in real-time.",
 )
 @click.option(
+    "--resume",
+    is_flag=True,
+    default=False,
+    help="Resume a previous experiment run if the output directory already exists. Only use if resuming an already started experiment.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -107,6 +113,7 @@ def realtime(
     region_bed,
     reference_name,
     call,
+    resume,
     verbose,
 ):
     """
@@ -160,6 +167,13 @@ def realtime(
             param_hint="-r/--reference_name",
             message=f"Reference genome '{reference_name}' is not available. Available references: {', '.join(REFERENCE_COLLECTION.keys())}.",
         )
+
+    if os.path.exists(output) and not resume:
+        click.confirm(
+            f"Output directory {output} already exists. Do you want to resume a previous experiment run? If starting a new experiment, please restart with a different experiment name or output directory.",
+            abort=True,
+        )
+
     from .main import main
 
     main(
