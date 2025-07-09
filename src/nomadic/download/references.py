@@ -47,6 +47,16 @@ class Reference(ABC):
     def exists_locally(file_path):
         return os.path.isfile(file_path)
 
+    @staticmethod
+    def root_path():
+        """
+        Return the root path for where data is stored.
+        Fasta files, GFF files, and other resources will be stored in <root_path>/resources/...
+        """
+        # does not work at the moment, because we don't handle spaces correctly in the path
+        # return user_data_dir()
+        return "."
+
     def confirm_downloaded(self) -> None:
         """
         Confirm that a reference genome has been downloaded,
@@ -103,14 +113,18 @@ class PlasmoDB(Reference):
         """Set .fasta file download URL and local path"""
         fasta_fn = f"PlasmoDB-{self.release}_{self.species}{self.strain}_Genome.fasta"
         self.fasta_url = f"{self.data_url}/fasta/data/{fasta_fn}"
-        self.fasta_path = f"resources/{self.source}/{self.release}/{fasta_fn}"
+        self.fasta_path = (
+            f"{Reference.root_path()}/resources/{self.source}/{self.release}/{fasta_fn}"
+        )
 
     def set_gff(self):
         """Set .gff file download URL and local path"""
 
         gff_fn = f"PlasmoDB-{self.release}_{self.species}{self.strain}.gff"
         self.gff_url = f"{self.data_url}/gff/data/{gff_fn}"
-        self.gff_path = f"resources/{self.source}/{self.release}/{gff_fn}"
+        self.gff_path = (
+            f"{Reference.root_path()}/resources/{self.source}/{self.release}/{gff_fn}"
+        )
 
 
 class VectorBase(Reference):
@@ -134,14 +148,18 @@ class VectorBase(Reference):
         """Set .fasta file download URL and local path"""
         fasta_fn = f"VectorBase-{self.release}_{self.species}{self.strain}_Genome.fasta"
         self.fasta_url = f"{self.data_url}/fasta/data/{fasta_fn}"
-        self.fasta_path = f"resources/{self.source}/{self.release}/{fasta_fn}"
+        self.fasta_path = (
+            f"{Reference.root_path()}/resources/{self.source}/{self.release}/{fasta_fn}"
+        )
 
     def set_gff(self):
         """Set .gff file download URL and local path"""
 
         gff_fn = f"VectorBase-{self.release}_{self.species}{self.strain}.gff"
         self.gff_url = f"{self.data_url}/gff/data/{gff_fn}"
-        self.gff_path = f"resources/{self.source}/{self.release}/{gff_fn}"
+        self.gff_path = (
+            f"{Reference.root_path()}/resources/{self.source}/{self.release}/{gff_fn}"
+        )
 
 
 # ===============================================================
@@ -229,12 +247,12 @@ class HomoSapiens(Reference):
     def set_fasta(self):
         fasta_fn = "GCA_000001405.29_GRCh38.p14_genomic.fna.gz"
         self.fasta_url = f"{self.source_url}/{fasta_fn}"
-        self.fasta_path = f"resources/{self.source}/{fasta_fn}"
+        self.fasta_path = f"{Reference.root_path()}/resources/{self.source}/{fasta_fn}"
 
     def set_gff(self):
         gff_fn = "GCA_000001405.29_GRCh38.p14_genomic.gff.gz"
         self.gff_url = f"{self.source_url}/{gff_fn}"
-        self.gff_path = f"resources/{self.source}/{gff_fn}"
+        self.gff_path = f"{Reference.root_path()}/resources/{self.source}/{gff_fn}"
 
 
 # ================================================================

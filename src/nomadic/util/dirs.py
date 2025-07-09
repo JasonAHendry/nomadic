@@ -1,6 +1,7 @@
 import os
 import shutil
-from pathlib import Path
+
+import platformdirs
 
 from .metadata import MetadataTableParser
 from .regions import RegionBEDParser
@@ -52,12 +53,10 @@ class ExperimentDirectories:
 
     """
 
-    ROOT_DIR = Path(__file__).absolute().parent.parent.parent.parent
-    results_dir = produce_dir(ROOT_DIR, "results")
-
     def __init__(
         self,
         expt_name: str,
+        root: str,
         metadata: MetadataTableParser,
         regions: RegionBEDParser = None,
         approach_name: str = "",
@@ -68,7 +67,8 @@ class ExperimentDirectories:
         """
 
         self.expt_name = expt_name
-        self.expt_dir = produce_dir(self.results_dir, expt_name)
+        results_dir = produce_dir(root, "results")
+        self.expt_dir = produce_dir(results_dir, expt_name)
 
         self.metadata_dir = produce_dir(self.expt_dir, "metadata")
         self._setup_metadata_dir(metadata, regions)
@@ -106,3 +106,10 @@ class ExperimentDirectories:
             self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
             if not os.path.exists(self.regions_bed):
                 shutil.copy(regions.path, self.regions_bed)
+
+
+def user_data_dir() -> str:
+    """
+    Get the user data directory for the application.
+    """
+    return platformdirs.user_data_dir(appname="nomadic", appauthor="nomads")

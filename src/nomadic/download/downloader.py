@@ -1,12 +1,13 @@
 import os
 import urllib.request
+
+from nomadic.util.fasta import find_lowcomplexity_intervals
 from nomadic.util.gff import (
     load_gff,
-    write_attributes,
-    replace_attribute_keys,
     parse_attributes,
+    replace_attribute_keys,
+    write_attributes,
 )
-from nomadic.util.fasta import find_lowcomplexity_intervals
 
 
 class ReferenceDownloader:
@@ -110,7 +111,7 @@ class ReferenceDownloader:
 
         """
         print(
-            "Creating a low-complexity mask for this reference genome (please be patient, this may take a few minutes)..."
+            f"Creating a low-complexity mask at {self.ref.fasta_mask_path} for this reference genome (please be patient, this may take a few minutes)..."
         )
         find_lowcomplexity_intervals(
             fasta_path=self.ref.fasta_path, bed_path=self.ref.fasta_mask_path

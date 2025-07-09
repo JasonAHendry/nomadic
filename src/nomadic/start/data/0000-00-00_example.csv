@@ -1,0 +1,7 @@
+﻿barcode,sample_id,sample_type
+barcode01,3D7 (NB01),pos
+barcode02,Dd2 (NB02),pos
+barcode03,CamC580Y (NB03),pos
+barcode04,GB4 (NB04),pos
+barcode05,HB3 (NB05),neg
+barcode06,TODO!,neg

@@ -16,6 +16,8 @@ dependencies:
   - numpy
   - seaborn
   - click
+  - platformdirs
+  - pyyaml
   - black
   - flake8
   - pip

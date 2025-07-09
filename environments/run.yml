@@ -15,4 +15,6 @@ dependencies:
   - pysam
   - seaborn
   - click
+  - platformdirs
+  - pyyaml
   - pip
