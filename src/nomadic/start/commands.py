@@ -48,10 +48,12 @@ def start(organism, workspace_path, reference_name) -> None:
 
     if organism == Organism.pfalciparum:
         setup_pfalciparum(workspace, reference_name=reference_name)
+    else:
+        RuntimeError("unknown organism")
 
-        click.echo(
-            "You can now enter your workspace with `cd nomadic` and run `nomadic realtime <experiment_name>` to start real-time analysis."
-        )
+    click.echo(
+        "You can now enter your workspace with `cd nomadic` and run `nomadic realtime <experiment_name>` to start real-time analysis."
+    )
 
 
 def setup_pfalciparum(workspace, *, reference_name):
