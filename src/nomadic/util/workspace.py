@@ -50,6 +50,12 @@ class Workspace:
         """
         return os.path.join(self.path, "results")
 
+    def get_output_dir(self, experiment_name: str):
+        """
+        Get the output directory for a given experiment name.
+        """
+        return os.path.join(self.get_results_dir(), experiment_name)
+
     def get_beds_dir(self):
         """
         Get the beds directory of the workspace.

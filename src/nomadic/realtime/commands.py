@@ -51,6 +51,13 @@ def load_defaults_from_config(ctx, param, value):
     expose_value=False,
 )
 @click.option(
+    "-o",
+    "--output",
+    type=click.Path(),
+    show_default="<workspace>/results/<experiment_name>",
+    help="Path to the output directory where results will be stored.",
+)
+@click.option(
     "-f",
     "--fastq_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
@@ -85,6 +92,12 @@ def load_defaults_from_config(ctx, param, value):
     help="Perform preliminary variant calling of biallelic SNPs in real-time.",
 )
 @click.option(
+    "--resume",
+    is_flag=True,
+    default=False,
+    help="Resume a previous experiment run if the output directory already exists. Only use if resuming an already started experiment.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -93,12 +106,14 @@ def load_defaults_from_config(ctx, param, value):
 )
 def realtime(
     experiment_name,
+    output,
     workspace_path,
     fastq_dir,
     metadata_csv,
     region_bed,
     reference_name,
     call,
+    resume,
     verbose,
 ):
     """
@@ -111,6 +126,9 @@ def realtime(
         )
 
     workspace = Workspace(workspace_path)
+
+    if output is None:
+        output = workspace.get_output_dir(experiment_name)
 
     if not metadata_csv:
         metadata_csv = workspace.get_metadata_csv(experiment_name)
@@ -149,10 +167,18 @@ def realtime(
             param_hint="-r/--reference_name",
             message=f"Reference genome '{reference_name}' is not available. Available references: {', '.join(REFERENCE_COLLECTION.keys())}.",
         )
+
+    if os.path.exists(output) and not resume:
+        click.confirm(
+            f"Output directory {output} already exists. Do you want to resume a previous experiment run? If starting a new experiment, please restart with a different experiment name or output directory.",
+            abort=True,
+        )
+
     from .main import main
 
     main(
         experiment_name,
+        output,
         workspace_path,
         fastq_dir,
         metadata_csv,

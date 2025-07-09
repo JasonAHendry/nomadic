@@ -12,6 +12,7 @@ WAIT_INTERVAL = 5
 
 def main(
     expt_name: str,
+    output: str,
     workspace: str,
     fastq_dir: str,
     metadata_csv: str,
@@ -30,6 +31,7 @@ def main(
     log.info("Input parameters:")
     log.info(f"  Experiment Name: {expt_name}")
     log.info(f"  Workspace: {workspace}")
+    log.info(f"  Output dir: {output}")
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
     log.info(f"  Metadata (.csv): {metadata_csv}")
     log.info(f"  Regions (.bed): {region_bed}")
@@ -41,7 +43,7 @@ def main(
     # PREPARE TO RUN
     metadata = MetadataTableParser(metadata_csv)
     regions = RegionBEDParser(region_bed)
-    expt_dirs = ExperimentDirectories(expt_name, workspace, metadata, regions)
+    expt_dirs = ExperimentDirectories(output, metadata, regions)
     log.info(f"  Found {len(metadata.barcodes) - 1} barcodes to track.")
     log.info(f"  Found {regions.n_regions} regions of interest.")
     log.info(f"  Outputs will be written to: {expt_dirs.expt_dir}.")
@@ -49,13 +51,27 @@ def main(
 
     # INITIALISE WATCHERS
     factory = PipelineFactory(
-        metadata, regions, expt_dirs, fastq_dir, call, reference_name
+        expt_name, metadata, regions, expt_dirs, fastq_dir, call, reference_name
     )
 
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
     dashboard = factory.get_dashboard()
     dashboard.run(in_thread=True)
+
+    # CATCH UP FROM WORK LOG IF WE RESUME
+    catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
+    processed = sum(info[0] for info in catch_up_info)
+    reprocessed = sum(info[1] for info in catch_up_info)
+    if processed > 0 or reprocessed > 0:
+        log.info("Recovered from work log:")
+        log.info(f"{processed} fastq files already processed")
+        log.info(
+            f"{reprocessed} fastq files reprocessed because they were not finished"
+        )
+        log.info("Running experiment pipeline...")
+        expt_pipeline.run()
+        log.info("Resuming pipeline...")
 
     # BEGIN REALTIME WATCHING
     try:
