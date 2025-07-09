@@ -1,5 +1,4 @@
 import os
-import difflib
 from nomadic.realtime.dashboard.builders import MappingRTDashboard, CallingRTDashboard
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.dirs import ExperimentDirectories

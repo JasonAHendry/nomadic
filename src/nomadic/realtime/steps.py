@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import glob
 import subprocess
 import pandas as pd
 
@@ -81,38 +82,45 @@ class FASTQCountRT(AnalysisStepRT):
     step_name = ""
 
     def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories):
-        """
-        Define initial directories and file paths
-        TODO: choose mapping algorithm and reference genome
-
-        """
         super().__init__(barcode_name, expt_dirs)
 
-        self.n_processed_fastq = 0
+        self.step_dir = produce_dir(self.barcode_dir, self.step_name)
+        self.inter_dir = produce_dir(self.step_dir, "intermediate")
         self.output_json = (
             f"{self.barcode_dir}/{self.barcode_name}.n_processed_fastq.json"
         )
 
-    def run(self, new_fastqs: List[str]):
+    def _get_intermediate_json_path(self, incr_id: str):
+        """
+        Get path to a new intermediate json file
+
+        """
+        base_name = f"{self.inter_dir}/{self.barcode_name}"
+        return f"{base_name}.{incr_id}.n_processed_fastq.json"
+
+    def _get_intermediate_jsons(self):
+        base_name = f"{self.inter_dir}/{self.barcode_name}"
+        return [file for file in glob.glob(f"{base_name}*.n_processed_fastq.json")]
+
+    def run(self, new_fastqs: List[str], incr_id: str):
         """
         Increase count of processed FASTQs, store in JSON
 
         """
-
         log.info("Running FASTQ count analysis...")
-        self.n_processed_fastq += len(new_fastqs)
         json.dump(
-            {"barcode": self.barcode_name, "n_processed_fastq": self.n_processed_fastq},
-            open(self.output_json, "w"),
+            {"barcode": self.barcode_name, "n_processed_fastq": len(new_fastqs)},
+            open(self._get_intermediate_json_path(incr_id), "w"),
         )
 
     def merge(self):
-        """
-        We do not need to merge because we are keeping a running count of the
-        total number of FASTQ seen for this barcdoe
-        """
-
-        pass
+        log.debug("Merging FASTQ count files...")
+        fastq_data = [json.load(open(j, "r")) for j in self._get_intermediate_jsons()]
+        n_processed_fastq = sum([data["n_processed_fastq"] for data in fastq_data])
+        json.dump(
+            {"barcode": self.barcode_name, "n_processed_fastq": n_processed_fastq},
+            open(self.output_json, "w"),
+        )
 
 
 # --------------------------------------------------------------------------------
@@ -149,24 +157,24 @@ class MappingRT(AnalysisStepRT):
         self.reference = REFERENCE_COLLECTION[ref_name]
         self.mapper = Minimap2(self.reference)
 
-        self.inter_bams = []
         self.output_bam = (
             f"{self.step_dir}/{self.barcode_name}.{self.reference.name}.final.bam"
         )
 
-    def _get_intermediate_bam_path(self):
+    def _get_intermediate_bam_path(self, incr_id: str):
         """
         Get path to a new intermediate BAM file
 
         """
 
         base_name = f"{self.inter_dir}/{self.barcode_name}.{self.reference.name}"
-        n = len(self.inter_bams)
-        code = f"n{n:05d}"
+        return f"{base_name}.{incr_id}.bam"
 
-        return f"{base_name}.{code}.bam"
+    def _get_intermediate_bams(self):
+        base_name = f"{self.inter_dir}/{self.barcode_name}.{self.reference.name}"
+        return [file for file in glob.glob(f"{base_name}*.bam")]
 
-    def run(self, new_fastqs: List[str]):
+    def run(self, new_fastqs: List[str], incr_id: str):
         """
         Map all of the newly observed FASTQ files
 
@@ -174,11 +182,10 @@ class MappingRT(AnalysisStepRT):
 
         log.info("Running real-time mapping...")
 
-        inter_bam = self._get_intermediate_bam_path()
+        inter_bam = self._get_intermediate_bam_path(incr_id)
         self.mapper.map_from_fastqs(fastq_path=" ".join(new_fastqs))
         self.mapper.run(output_bam=inter_bam)
         samtools_index(inter_bam)
-        self.inter_bams.append(inter_bam)
 
         return inter_bam
 
@@ -191,7 +198,9 @@ class MappingRT(AnalysisStepRT):
 
         log.debug("Merging intermediate BAM files...")
 
-        samtools_merge(bam_files=self.inter_bams, output_bam=self.output_bam)
+        samtools_merge(
+            bam_files=self._get_intermediate_bams(), output_bam=self.output_bam
+        )
         samtools_index(self.output_bam)
 
         return self.output_bam
@@ -229,33 +238,36 @@ class FlagstatsRT(AnalysisStepRT):
         self.inter_dir = produce_dir(self.step_dir, "intermediate")
         self.ref_name = ref_name
 
-        self.inter_jsons = []
         self.output_json = (
             f"{self.step_dir}/{self.barcode_name}.{self.ref_name}.flagstats.json"
         )
 
-    def _get_intermediate_json_path(self):
+    def _get_intermediate_json_path(self, incr_id: str) -> str:
         """
         Get path to a new intermediate JSON file
 
         """
 
         base_name = f"{self.inter_dir}/{self.barcode_name}.{self.ref_name}"
-        n = len(self.inter_jsons)
-        code = f"n{n:05d}"
+        return f"{base_name}.{incr_id}.json"
 
-        return f"{base_name}.{code}.json"
+    def _get_intermediate_jsons(self) -> list[str]:
+        """
+        Get all intermediate JSON files
 
-    def run(self, inter_bam: str):
+        """
+        base_name = f"{self.inter_dir}/{self.barcode_name}.{self.ref_name}"
+        return [file for file in glob.glob(f"{base_name}*.json")]
+
+    def run(self, inter_bam: str, incr_id: str):
         """
         Run `samtools flagstats` for an intermediate BAM file produced
         as part of the real-time analysis
 
         """
 
-        inter_json = self._get_intermediate_json_path()
+        inter_json = self._get_intermediate_json_path(incr_id)
         samtools_flagstats(input_bam=inter_bam, output_json=inter_json)
-        self.inter_jsons.append(inter_json)
 
         return inter_json
 
@@ -267,7 +279,7 @@ class FlagstatsRT(AnalysisStepRT):
 
         log.debug("Merging `samtools flagstat` JSON files...")
 
-        dts = [json.load(open(j, "r")) for j in self.inter_jsons]
+        dts = [json.load(open(j, "r")) for j in self._get_intermediate_jsons()]
 
         log.debug(f"Found {len(dts)} to merge.")
 

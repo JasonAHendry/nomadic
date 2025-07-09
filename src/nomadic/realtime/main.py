@@ -59,6 +59,20 @@ def main(
     dashboard = factory.get_dashboard()
     dashboard.run(in_thread=True)
 
+    # CATCH UP FROM WORK LOG IF WE RESUME
+    catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
+    processed = sum(info[0] for info in catch_up_info)
+    reprocessed = sum(info[1] for info in catch_up_info)
+    if processed > 0 or reprocessed > 0:
+        log.info("Recovered from work log:")
+        log.info(f"{processed} fastq files already processed")
+        log.info(
+            f"{reprocessed} fastq files reprocessed because they were not finished"
+        )
+        log.info("Running experiment pipeline...")
+        expt_pipeline.run()
+        log.info("Resuming pipeline...")
+
     # BEGIN REALTIME WATCHING
     try:
         while True:
