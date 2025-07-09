@@ -32,6 +32,7 @@ class PipelineFactory:
 
     def __init__(
         self,
+        experiment_name: str,
         metadata: MetadataTableParser,
         regions: RegionBEDParser,
         expt_dirs: ExperimentDirectories,
@@ -44,6 +45,7 @@ class PipelineFactory:
 
         """
 
+        self.experiment_name = experiment_name
         self.metadata = metadata
         self.regions = regions
         self.expt_dirs = expt_dirs
@@ -110,7 +112,7 @@ class PipelineFactory:
         """
         if self.call:
             return CallingRTDashboard(
-                expt_name=self.expt_dirs.expt_name,
+                expt_name=self.experiment_name,
                 regions=self.regions,
                 metadata=self.metadata,
                 fastq_csv=f"{self.expt_dirs.approach_dir}/summary.fastq.csv",
@@ -121,7 +123,7 @@ class PipelineFactory:
             )
 
         return MappingRTDashboard(
-            expt_name=self.expt_dirs.expt_name,
+            expt_name=self.experiment_name,
             regions=self.regions,
             metadata=self.metadata,
             fastq_csv=f"{self.expt_dirs.approach_dir}/summary.fastq.csv",

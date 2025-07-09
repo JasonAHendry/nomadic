@@ -51,6 +51,13 @@ def load_defaults_from_config(ctx, param, value):
     expose_value=False,
 )
 @click.option(
+    "-o",
+    "--output",
+    type=click.Path(),
+    show_default="<workspace>/results/<experiment_name>",
+    help="Path to the output directory where results will be stored.",
+)
+@click.option(
     "-f",
     "--fastq_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
@@ -93,6 +100,7 @@ def load_defaults_from_config(ctx, param, value):
 )
 def realtime(
     experiment_name,
+    output,
     workspace_path,
     fastq_dir,
     metadata_csv,
@@ -111,6 +119,9 @@ def realtime(
         )
 
     workspace = Workspace(workspace_path)
+
+    if output is None:
+        output = workspace.get_output_dir(experiment_name)
 
     if not metadata_csv:
         metadata_csv = workspace.get_metadata_csv(experiment_name)
@@ -153,6 +164,7 @@ def realtime(
 
     main(
         experiment_name,
+        output,
         workspace_path,
         fastq_dir,
         metadata_csv,

@@ -6,46 +6,14 @@ from nomadic.util.dirs import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 
 
-class ExperimentNotFound(Exception):
-    """Could not find experiment"""
-
-
-def verify_experiment_exists(expt_name: str) -> None:
-    """
-    When running just the dashboard, we want to verify the expected experiment exists
-    Otherwise, we raise exceptions
-
-    """
-
-    result_dir = "results"
-    if not os.path.exists(result_dir):
-        raise ExperimentNotFound(
-            "Cannot find 'results' directory. "
-            "Make sure there is the 'results' folder is in your current directory."
-        )
-
-    expts_found = os.listdir(result_dir)
-    if not expts_found:
-        raise ExperimentNotFound("No experiments found in 'results' directory.")
-
-    if expt_name not in expts_found:
-        exception_str = (
-            f"Found {len(expts_found)} experiments, but none matched '{expt_name}'."
-        )
-        close_match = difflib.get_close_matches(expt_name, expts_found, cutoff=0.8, n=1)
-        if close_match:
-            exception_str += f" Did you mean: '{close_match[0]}'?"
-        raise ExperimentNotFound(exception_str)
-
-
-def find_metadata(expt_name: str) -> MetadataTableParser:
+def find_metadata(input_dir: str) -> MetadataTableParser:
     """
     Given an experiment directory, search for the metadata CSV file in thee
     expected location
 
     """
 
-    metadata_dir = f"results/{expt_name}/metadata"
+    metadata_dir = os.path.join(input_dir, "metadata")
     csvs = [
         f"{metadata_dir}/{file}"
         for file in os.listdir(metadata_dir)
@@ -60,7 +28,7 @@ def find_metadata(expt_name: str) -> MetadataTableParser:
     return MetadataTableParser(csvs[0])
 
 
-def find_regions(expt_name: str) -> RegionBEDParser:
+def find_regions(input_dir: str) -> RegionBEDParser:
     """
     Given an experiment directory, search for the metadata CSV file in thee
     expected location
@@ -68,7 +36,7 @@ def find_regions(expt_name: str) -> RegionBEDParser:
     TODO: Bad duplication from above, can write inner function
     """
 
-    metadata_dir = f"results/{expt_name}/metadata"
+    metadata_dir = os.path.join(input_dir, "metadata")
     beds = [
         f"{metadata_dir}/{file}"
         for file in os.listdir(metadata_dir)
@@ -91,7 +59,7 @@ def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:
     return os.path.exists(f"{expt_dirs.approach_dir}/summary.variants.csv")
 
 
-def main(expt_name):
+def main(input_dir: str):
     """
     Main execution code for just running the dashboard
 
@@ -108,12 +76,13 @@ def main(expt_name):
 
     """
 
-    verify_experiment_exists(expt_name)
-    metadata = find_metadata(expt_name)
-    expt_dirs = ExperimentDirectories(expt_name, metadata)
-    regions = find_regions(expt_name)
+    metadata = find_metadata(input_dir)
+    expt_dirs = ExperimentDirectories(input_dir, metadata)
+    regions = find_regions(input_dir)
 
+    expt_name = os.path.basename(input_dir)
     print("Input Parameters:")
+    print(f"  Input dir: {input_dir}")
     print(f"  Experiment Name: {expt_name}")
     print(f"  Metadata (.csv): {metadata.csv}")
     print(f"  Regions (.bed): {regions.path}")
