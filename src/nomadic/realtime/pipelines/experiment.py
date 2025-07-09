@@ -152,6 +152,10 @@ class ExperimentPipelineRT(ABC):
                 continue
             vcfs.append(vcf)
 
+        if len(vcfs) <= 1:
+            ### bcftools will complain if we try to merge less than 2 VCFs
+            return
+
         unfiltered_vcf = f"{vcf_dir}/summary.variants.vcf.gz"
         bcftools.merge(vcfs, output_vcf=unfiltered_vcf)
 
