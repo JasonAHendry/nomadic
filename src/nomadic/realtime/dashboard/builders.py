@@ -97,7 +97,9 @@ class RealtimeDashboardBuilder(ABC):
         app.layout = html.Div(id="overall", children=self.layout)
 
         if in_thread:
-            dashboard_thread = threading.Thread(target=app.run, name="dashboard")
+            dashboard_thread = threading.Thread(
+                target=lambda: app.run(**kwargs), name="dashboard"
+            )
             dashboard_thread.start()
         else:
             app.run(**kwargs)

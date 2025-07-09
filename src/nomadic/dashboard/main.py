@@ -1,3 +1,4 @@
+import webbrowser
 import os
 from nomadic.realtime.dashboard.builders import MappingRTDashboard, CallingRTDashboard
 from nomadic.util.metadata import MetadataTableParser
@@ -112,4 +113,6 @@ def main(input_dir: str):
     print("")
     print("Launching dashboard (press CNTRL+C to exit):")
     print("")
+
+    webbrowser.open("http://127.0.0.1:8050")
     dashboard.run(debug=False)
