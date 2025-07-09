@@ -6,7 +6,6 @@ from importlib.resources import files
 import click
 
 from nomadic.download.main import main as download_reference
-from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.config import default_config_path, write_config
 from nomadic.util.workspace import Workspace, init_workspace
 
@@ -28,14 +27,8 @@ class Organism(enum.Enum):
     type=click.Path(exists=False),
     help="Path of the the workspace where all the files will be stored",
 )
-@click.option(
-    "-r",
-    "--reference_name",
-    type=click.Choice(REFERENCE_COLLECTION),
-    help="Override the reference genome to be used in real-time analysis.",
-)
 @click.command(short_help="Help setting up nomadic.")
-def start(organism, workspace_path, reference_name) -> None:
+def start(organism, workspace_path) -> None:
     """
     Get started with nomadic.
 
@@ -47,7 +40,7 @@ def start(organism, workspace_path, reference_name) -> None:
     workspace = Workspace(workspace_path)
 
     if organism == Organism.pfalciparum:
-        setup_pfalciparum(workspace, reference_name=reference_name)
+        setup_pfalciparum(workspace)
     else:
         RuntimeError("unknown organism")
 
@@ -56,11 +49,10 @@ def start(organism, workspace_path, reference_name) -> None:
     )
 
 
-def setup_pfalciparum(workspace, *, reference_name):
+def setup_pfalciparum(workspace):
     click.echo("Setting up workspace for Plasmodium falciparum.")
 
-    if reference_name is None:
-        reference_name = "Pf3D7"
+    reference_name = "Pf3D7"
 
     # workaround for that we can not set the root in download_reference
     with chdir(workspace.path):
