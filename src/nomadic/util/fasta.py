@@ -68,6 +68,9 @@ def find_lowcomplexity_intervals(fasta_path: str, bed_path: str) -> None:
             f"Input file must be FASTA, with one of these suffixes: {', '.join(SUFFIXES)}."
         )
 
+    # Note, I had to do it this way, instead of using > in a shell command,
+    # because I saw issues on MacOS with writing to Application Support (user_data_dir)
+    # Maybe issues with sandboxing?
     file = open(bed_path, "w")
     cmd = f"sdust {fasta_path}"
     subprocess.run(cmd, check=True, stdout=file, shell=True)
