@@ -62,7 +62,7 @@ class Workspace:
         """
         return os.path.join(self.path, "metadata")
 
-    def get_meta_data_csv(self, experiment_name: str):
+    def get_metadata_csv(self, experiment_name: str):
         """
         Get the path to the metadata CSV file for a given experiment.
         """

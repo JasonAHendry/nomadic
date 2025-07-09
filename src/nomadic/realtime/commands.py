@@ -113,7 +113,7 @@ def realtime(
     workspace = Workspace(workspace_path)
 
     if not metadata_csv:
-        metadata_csv = workspace.get_meta_data_csv(experiment_name)
+        metadata_csv = workspace.get_metadata_csv(experiment_name)
         if not os.path.isfile(metadata_csv):
             raise click.BadParameter(
                 message=f"Metadata CSV file not found at {metadata_csv}. Did you create your metadata file in `{workspace.get_metadata_dir()}` and does the name match `{experiment_name}`?",
