@@ -49,14 +49,14 @@ class BarcodePipelineRT(ABC):
         self.ref_name = ref_name
 
     @abstractmethod
-    def _run(self, new_fastq: List[str]) -> None:
+    def _run(self, new_fastq: List[str], incr_id: str) -> None:
         """
         Run analysis steps for the pipeline on new FASTQ files
 
         """
         pass
 
-    def run(self, new_fastq: List[str]) -> None:
+    def run(self, new_fastq: List[str], incr_id: str) -> None:
         """
         Wrapper to try and make the stdout easier to read
 
@@ -70,7 +70,7 @@ class BarcodePipelineRT(ABC):
         print(f"Updating: {self.barcode_name}")
         print("-" * 80)
 
-        self._run(new_fastq=new_fastq)
+        self._run(new_fastq=new_fastq, incr_id=incr_id)
 
         t1 = datetime.now().replace(microsecond=0)
         print("-" * 80)
@@ -116,16 +116,16 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
             **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
         )
 
-    def _run(self, new_fastq: List[str]) -> None:
+    def _run(self, new_fastq: List[str], incr_id: str) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
 
         """
 
-        inter_bam = self.map_step.run(new_fastq)
+        incr_bam = self.map_step.run(new_fastq, incr_id)
         final_bam = self.map_step.merge()
 
-        self.flagstat_step.run(inter_bam)
+        self.flagstat_step.run(incr_bam, incr_id)
         self.flagstat_step.merge()
 
         self.bedcov_step.run(final_bam)
@@ -134,7 +134,7 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
         self.depth_step.run(final_bam)
         self.depth_step.merge()
 
-        self.fastq_step.run(new_fastq)
+        self.fastq_step.run(new_fastq, incr_id)
 
 
 class BarcodeCallingPipelineRT(BarcodePipelineRT):
@@ -170,16 +170,16 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         self.call_step = CallVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
         # self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
 
-    def _run(self, new_fastq: List[str]) -> None:
+    def _run(self, new_fastq: List[str], incr_id: str) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
 
         """
 
-        inter_bam = self.map_step.run(new_fastq)
+        incr_bam = self.map_step.run(new_fastq, incr_id)
         final_bam = self.map_step.merge()
 
-        self.flagstat_step.run(inter_bam)
+        self.flagstat_step.run(incr_bam, incr_id)
         self.flagstat_step.merge()
 
         self.bedcov_step.run(final_bam)
@@ -194,4 +194,5 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         # self.annot_step.run(final_vcf)
         # self.annot_step.merge()
 
-        self.fastq_step.run(new_fastq)
+        self.fastq_step.run(new_fastq, incr_id)
+        self.fastq_step.merge()

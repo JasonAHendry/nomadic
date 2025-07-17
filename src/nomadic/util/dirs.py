@@ -55,8 +55,7 @@ class ExperimentDirectories:
 
     def __init__(
         self,
-        expt_name: str,
-        root: str,
+        output_dir: str,
         metadata: MetadataTableParser,
         regions: RegionBEDParser = None,
         approach_name: str = "",
@@ -66,9 +65,7 @@ class ExperimentDirectories:
 
         """
 
-        self.expt_name = expt_name
-        results_dir = produce_dir(root, "results")
-        self.expt_dir = produce_dir(results_dir, expt_name)
+        self.expt_dir = produce_dir(output_dir)
 
         self.metadata_dir = produce_dir(self.expt_dir, "metadata")
         self._setup_metadata_dir(metadata, regions)

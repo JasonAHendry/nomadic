@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import glob
 import subprocess
 import pandas as pd
 
@@ -81,38 +82,45 @@ class FASTQCountRT(AnalysisStepRT):
     step_name = ""
 
     def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories):
-        """
-        Define initial directories and file paths
-        TODO: choose mapping algorithm and reference genome
-
-        """
         super().__init__(barcode_name, expt_dirs)
 
-        self.n_processed_fastq = 0
+        self.step_dir = produce_dir(self.barcode_dir, self.step_name)
+        self.incr_dir = produce_dir(self.step_dir, ".incremental")
         self.output_json = (
             f"{self.barcode_dir}/{self.barcode_name}.n_processed_fastq.json"
         )
 
-    def run(self, new_fastqs: List[str]):
+    def _get_incremental_json_path(self, incr_id: str):
+        """
+        Get path to a new incremental json file
+
+        """
+        base_name = f"{self.incr_dir}/{self.barcode_name}"
+        return f"{base_name}.{incr_id}.n_processed_fastq.json"
+
+    def _get_incremental_jsons(self):
+        base_name = f"{self.incr_dir}/{self.barcode_name}"
+        return [file for file in glob.glob(f"{base_name}*.n_processed_fastq.json")]
+
+    def run(self, new_fastqs: List[str], incr_id: str):
         """
         Increase count of processed FASTQs, store in JSON
 
         """
-
         log.info("Running FASTQ count analysis...")
-        self.n_processed_fastq += len(new_fastqs)
         json.dump(
-            {"barcode": self.barcode_name, "n_processed_fastq": self.n_processed_fastq},
-            open(self.output_json, "w"),
+            {"barcode": self.barcode_name, "n_processed_fastq": len(new_fastqs)},
+            open(self._get_incremental_json_path(incr_id), "w"),
         )
 
     def merge(self):
-        """
-        We do not need to merge because we are keeping a running count of the
-        total number of FASTQ seen for this barcdoe
-        """
-
-        pass
+        log.debug("Merging FASTQ count files...")
+        fastq_data = [json.load(open(j, "r")) for j in self._get_incremental_jsons()]
+        n_processed_fastq = sum([data["n_processed_fastq"] for data in fastq_data])
+        json.dump(
+            {"barcode": self.barcode_name, "n_processed_fastq": n_processed_fastq},
+            open(self.output_json, "w"),
+        )
 
 
 # --------------------------------------------------------------------------------
@@ -144,29 +152,29 @@ class MappingRT(AnalysisStepRT):
         super().__init__(barcode_name, expt_dirs)
 
         self.step_dir = produce_dir(self.barcode_dir, self.step_name)
-        self.inter_dir = produce_dir(self.step_dir, "intermediate")
+        self.incr_dir = produce_dir(self.step_dir, ".incremental")
 
         self.reference = REFERENCE_COLLECTION[ref_name]
         self.mapper = Minimap2(self.reference)
 
-        self.inter_bams = []
         self.output_bam = (
             f"{self.step_dir}/{self.barcode_name}.{self.reference.name}.final.bam"
         )
 
-    def _get_intermediate_bam_path(self):
+    def _get_incremental_bam_path(self, incr_id: str):
         """
-        Get path to a new intermediate BAM file
+        Get path to a new incremental BAM file
 
         """
 
-        base_name = f"{self.inter_dir}/{self.barcode_name}.{self.reference.name}"
-        n = len(self.inter_bams)
-        code = f"n{n:05d}"
+        base_name = f"{self.incr_dir}/{self.barcode_name}.{self.reference.name}"
+        return f"{base_name}.{incr_id}.bam"
 
-        return f"{base_name}.{code}.bam"
+    def _get_incremental_bams(self):
+        base_name = f"{self.incr_dir}/{self.barcode_name}.{self.reference.name}"
+        return [file for file in glob.glob(f"{base_name}*.bam")]
 
-    def run(self, new_fastqs: List[str]):
+    def run(self, new_fastqs: List[str], incr_id: str):
         """
         Map all of the newly observed FASTQ files
 
@@ -174,24 +182,25 @@ class MappingRT(AnalysisStepRT):
 
         log.info("Running real-time mapping...")
 
-        inter_bam = self._get_intermediate_bam_path()
+        incr_bam = self._get_incremental_bam_path(incr_id)
         self.mapper.map_from_fastqs(fastq_path=" ".join(new_fastqs))
-        self.mapper.run(output_bam=inter_bam)
-        samtools_index(inter_bam)
-        self.inter_bams.append(inter_bam)
+        self.mapper.run(output_bam=incr_bam)
+        samtools_index(incr_bam)
 
-        return inter_bam
+        return incr_bam
 
     def merge(self):
         """
-        Merge all of the intermediate BAM files, and index
+        Merge all of the incremental BAM files, and index
         the final bam
 
         """
 
-        log.debug("Merging intermediate BAM files...")
+        log.debug("Merging incremental BAM files...")
 
-        samtools_merge(bam_files=self.inter_bams, output_bam=self.output_bam)
+        samtools_merge(
+            bam_files=self._get_incremental_bams(), output_bam=self.output_bam
+        )
         samtools_index(self.output_bam)
 
         return self.output_bam
@@ -226,48 +235,51 @@ class FlagstatsRT(AnalysisStepRT):
         super().__init__(barcode_name, expt_dirs)
 
         self.step_dir = produce_dir(self.barcode_dir, self.step_name)
-        self.inter_dir = produce_dir(self.step_dir, "intermediate")
+        self.incr_dir = produce_dir(self.step_dir, ".incremental")
         self.ref_name = ref_name
 
-        self.inter_jsons = []
         self.output_json = (
             f"{self.step_dir}/{self.barcode_name}.{self.ref_name}.flagstats.json"
         )
 
-    def _get_intermediate_json_path(self):
+    def _get_incremental_json_path(self, incr_id: str) -> str:
         """
-        Get path to a new intermediate JSON file
+        Get path to a new incremental JSON file
 
         """
 
-        base_name = f"{self.inter_dir}/{self.barcode_name}.{self.ref_name}"
-        n = len(self.inter_jsons)
-        code = f"n{n:05d}"
+        base_name = f"{self.incr_dir}/{self.barcode_name}.{self.ref_name}"
+        return f"{base_name}.{incr_id}.json"
 
-        return f"{base_name}.{code}.json"
-
-    def run(self, inter_bam: str):
+    def _get_incremental_jsons(self) -> list[str]:
         """
-        Run `samtools flagstats` for an intermediate BAM file produced
+        Get all incremental JSON files
+
+        """
+        base_name = f"{self.incr_dir}/{self.barcode_name}.{self.ref_name}"
+        return [file for file in glob.glob(f"{base_name}*.json")]
+
+    def run(self, incr_bam: str, incr_id: str):
+        """
+        Run `samtools flagstats` for an incremental BAM file produced
         as part of the real-time analysis
 
         """
 
-        inter_json = self._get_intermediate_json_path()
-        samtools_flagstats(input_bam=inter_bam, output_json=inter_json)
-        self.inter_jsons.append(inter_json)
+        incr_json = self._get_incremental_json_path(incr_id)
+        samtools_flagstats(input_bam=incr_bam, output_json=incr_json)
 
-        return inter_json
+        return incr_json
 
     def merge(self):
         """
-        Merge all the JSON files generated for intermediate BAM files
+        Merge all the JSON files generated for incremental BAM files
 
         """
 
         log.debug("Merging `samtools flagstat` JSON files...")
 
-        dts = [json.load(open(j, "r")) for j in self.inter_jsons]
+        dts = [json.load(open(j, "r")) for j in self._get_incremental_jsons()]
 
         log.debug(f"Found {len(dts)} to merge.")
 
@@ -355,7 +367,7 @@ class BedCovRT(AnalysisStepRT):
 
     def merge(self):
         """
-        Not needed here, we are not computing from intermediate BAMS
+        Not needed here, we are not computing from incremental BAMS
 
         """
         pass
@@ -410,7 +422,7 @@ class RegionDepthRT(AnalysisStepRT):
 
     def merge(self):
         """
-        Not needed here, we are not computing from intermediate BAMS
+        Not needed here, we are not computing from incremental BAMS
 
         TODO: Edge case where there is no coverage for a target?
 
