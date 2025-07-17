@@ -97,10 +97,10 @@ class BarcodeWatcher:
                     raise RuntimeError(f"Unknown action in log: {action}")
 
         number_reprocessed_fastqs = 0
-        for step_info in started_and_not_ended.values():
+        for incr_info in started_and_not_ended.values():
             # If we have START but no END, processing has somewhere failed in the middle, so reprocess them
-            number_reprocessed_fastqs += len(step_info.files)
-            self.update_fastq(step_info.files)
+            number_reprocessed_fastqs += len(incr_info.files)
+            self._process_fastq(incr_info.files)
 
         return number_fully_processed_fastqs, number_reprocessed_fastqs
 
@@ -114,15 +114,15 @@ class BarcodeWatcher:
         if not unprocessed_fastqs:
             return False
 
-        self.update_fastq(list(unprocessed_fastqs))
+        self._process_fastq(list(unprocessed_fastqs))
 
         return True
 
-    def update_fastq(self, fastqs: list[str]):
+    def _process_fastq(self, fastqs: list[str]):
         incr_id = increment_id(fastqs)
         self.write_log_start(fastqs, incr_id)
         self.barcode_pipeline.run(fastqs, incr_id)
-        self.write_log_finish(fastqs, incr_id)
+        self.write_log_end(fastqs, incr_id)
 
         self.processed_fastqs.update(fastqs)
 
@@ -136,7 +136,7 @@ class BarcodeWatcher:
         with open(self.work_log_path, "a") as log_file:
             log_file.write(format_log_line(Action.START, incr_id, fastqs))
 
-    def write_log_finish(self, fastqs: list[str], incr_id: str):
+    def write_log_end(self, fastqs: list[str], incr_id: str):
         """
         Write a log entry when the watcher finished processing FASTQs
         """
