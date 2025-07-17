@@ -29,7 +29,7 @@ def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
 
 @click.command(short_help="Just run the dashboard.")
 @click.argument(
-    "experiment_name",
+    "experiment",
     type=str,
 )
 @click.option(
@@ -41,23 +41,23 @@ def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     help="Path of the the workspace where all the files will be stored",
 )
-def dashboard(workspace_path, experiment_name):
+def dashboard(workspace_path, experiment):
     """
     Launch the dashboard without performing real-time analysis,
     used to view results of a previous experiment.
 
-    EXPERIMENT_NAME can be the name of an previous experiment, located in <workspace>/results/<experiment_name>,
-    or a path to a directory containing the results of an experiment.
+    EXPERIMENT can be the name of an previous experiment, located in <workspace>/results/<experiment_name>,
+    or a path to a directory containing the results of a previous experiment.
 
     """
 
     if check_if_workspace(workspace_path):
         workspace = Workspace(workspace_path)
 
-        input_dir = workspace.get_output_dir(experiment_name)
+        input_dir = workspace.get_output_dir(experiment)
     else:
-        input_dir = experiment_name
-        if "/" not in experiment_name and not os.path.exists(input_dir):
+        input_dir = experiment
+        if "/" not in experiment and not os.path.exists(input_dir):
             # Probably tried to find experiment by name, so warn that workspace does not exist
             raise click.BadParameter(
                 param_hint="-w/--workspace",
@@ -65,9 +65,9 @@ def dashboard(workspace_path, experiment_name):
             )
 
     if not os.path.exists(input_dir):
-        input_dir = experiment_name
+        input_dir = experiment
         if not os.path.exists(input_dir):
-            if "/" in experiment_name:
+            if "/" in experiment:
                 # Probably tried to find experiment by path, so warn that input directory does not exist
                 raise click.BadParameter(
                     param_hint="experiment_name",
@@ -75,7 +75,7 @@ def dashboard(workspace_path, experiment_name):
                 )
             else:
                 # Probably tried to find experiment by name, so warn that experiment does not exist
-                verify_experiment_exists(workspace, experiment_name)
+                verify_experiment_exists(workspace, experiment)
 
     from .main import main
 
