@@ -42,9 +42,10 @@ class RealtimeDashboardBuilder(ABC):
     SLOW_NAME = "interval"
     SLOW_INTERVAL = 60_000
 
-    def __init__(self, expt_name, css_style_sheets):
+    def __init__(self, expt_name, css_style_sheets, metadata: MetadataTableParser):
         self.expt_name = expt_name
         self.css_style_sheets = css_style_sheets
+        self.metadata = metadata
 
         self.components = []
         self.layout = []
@@ -160,6 +161,7 @@ class RealtimeDashboardBuilder(ABC):
             component_id="mapping-barplot",
             flagstats_csv=flagstats_csv,
             checklist_id="mapping-checklist",
+            metadata=self.metadata,
         )
 
         # Define the row layout
@@ -211,6 +213,7 @@ class RealtimeDashboardBuilder(ABC):
             regions=regions,
             bedcov_csv=bedcov_csv,
             dropdown_id="bedcov-dropdown",
+            metadata=self.metadata,
         )
 
         # Define the row layout
@@ -254,6 +257,7 @@ class RealtimeDashboardBuilder(ABC):
             component_id="depth-line",
             depth_csv=depth_csv,
             region_dropdown_id="depth-dropdown",
+            metadata=self.metadata,
         )
         self.depth_hist = DepthProfileCumulativeDist(
             self.expt_name,
@@ -261,6 +265,7 @@ class RealtimeDashboardBuilder(ABC):
             component_id="depth-hist",
             depth_csv=depth_csv,
             region_dropdown_id="depth-dropdown",
+            metadata=self.metadata,
         )
 
         depth_row = html.Div(
@@ -313,10 +318,9 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
 
         """
 
-        super().__init__(expt_name, self.CSS_STYLE)
+        super().__init__(expt_name, self.CSS_STYLE, metadata)
 
         self.regions = regions
-        self.metadata = metadata
         self.fastq_csv = fastq_csv
         self.flagstats_csv = flagstats_csv
         self.bedcov_csv = bedcov_csv
@@ -358,10 +362,9 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
 
         """
 
-        super().__init__(expt_name, self.CSS_STYLE)
+        super().__init__(expt_name, self.CSS_STYLE, metadata)
 
         self.regions = regions
-        self.metadata = metadata
         self.fastq_csv = fastq_csv
         self.flagstats_csv = flagstats_csv
         self.bedcov_csv = bedcov_csv
