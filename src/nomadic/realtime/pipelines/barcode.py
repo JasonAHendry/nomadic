@@ -122,10 +122,10 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
 
         """
 
-        inter_bam = self.map_step.run(new_fastq, incr_id)
+        incr_bam = self.map_step.run(new_fastq, incr_id)
         final_bam = self.map_step.merge()
 
-        self.flagstat_step.run(inter_bam, incr_id)
+        self.flagstat_step.run(incr_bam, incr_id)
         self.flagstat_step.merge()
 
         self.bedcov_step.run(final_bam)
@@ -176,10 +176,10 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
 
         """
 
-        inter_bam = self.map_step.run(new_fastq, incr_id)
+        incr_bam = self.map_step.run(new_fastq, incr_id)
         final_bam = self.map_step.merge()
 
-        self.flagstat_step.run(inter_bam, incr_id)
+        self.flagstat_step.run(incr_bam, incr_id)
         self.flagstat_step.merge()
 
         self.bedcov_step.run(final_bam)
