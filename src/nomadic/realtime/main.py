@@ -1,4 +1,5 @@
 import time
+import webbrowser
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.logging_config import LoggingFascade
@@ -58,6 +59,8 @@ def main(
     expt_pipeline = factory.get_expt_pipeline()
     dashboard = factory.get_dashboard()
     dashboard.run(in_thread=True)
+
+    webbrowser.open("http://127.0.0.1:8050")
 
     # CATCH UP FROM WORK LOG IF WE RESUME
     catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
