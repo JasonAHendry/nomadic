@@ -1,7 +1,23 @@
-﻿barcode,sample_id,sample_type
-barcode01,3D7 (NB01),pos
-barcode02,Dd2 (NB02),pos
-barcode03,CamC580Y (NB03),pos
-barcode04,GB4 (NB04),pos
-barcode05,HB3 (NB05),neg
-barcode06,TODO!,neg
+﻿barcode,sample_id,sample_type,location,parasitemia,postclean_qubit
+barcode01,3D7,pos,berlin,1000,87
+barcode02,Dd2,pos,berlin,1000,76
+barcode03,HB3 (NB05),pos,berlin,100,34
+barcode04,NTC,neg,berlin,0,0
+barcode05,DBS-A01,field,berlin,543,44
+barcode06,DBS-A02,field,berlin,7583,85
+barcode07,DBS-A03,field,berlin,349,32
+barcode08,DBS-B01,field,berlin,239,25
+barcode09,DBS-B02,field,berlin,200,21
+barcode10,DBS-B03,field,berlin,10923,95
+barcode11,DBS-B04,field,berlin,5670,63
+barcode12,DBS-B05,field,berlin,436,44
+barcode13,DBS-B06,field,berlin,3459,70
+barcode14,DBS-B07,field,berlin,489,23
+barcode15,DBS-B08,field,berlin,42,10
+barcode16,DBS-B09,field,berlin,850,49
+Instructions:,,,,,
+The 'barcode' column should indicate the barcodes you used for your study in the format shown above,,,,,
+The 'sample_id' column should indicate the sample IDs that went with each barcode,,,,,
+The 'sample_type' can be 'pos' for postive control; 'neg' for negative control; or 'field' for field sample,,,,,
+Only the barcode and sample_id column are madatory; all other columns are optional,,,,,
+If you use this file as a template remember to delete the instructions,,,,,
