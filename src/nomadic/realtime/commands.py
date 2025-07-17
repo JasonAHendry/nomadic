@@ -41,9 +41,11 @@ def load_defaults_from_config(ctx, param, value):
     "--workspace",
     "workspace_path",
     default="./",
-    show_default=True,
+    show_default="current directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the the workspace where all the files will be stored",
+    help="Path of the the workspace where all input/output files (bed, metadata, results) are stored. "
+    "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
+    "as they are predefined in the workspace config or can be loaded from the workspace",
     callback=set_workspace,
 )
 @click.option(
@@ -55,7 +57,7 @@ def load_defaults_from_config(ctx, param, value):
     "--output",
     type=click.Path(),
     show_default="<workspace>/results/<experiment_name>",
-    help="Path to the output directory where results will be stored.",
+    help="Path to the output directory where results of this experiment will be stored. Usually this is not needed and results will be stored in your workspace",
 )
 @click.option(
     "-f",
@@ -95,7 +97,8 @@ def load_defaults_from_config(ctx, param, value):
     "--resume",
     is_flag=True,
     default=False,
-    help="Resume a previous experiment run if the output directory already exists. Only use if resuming an already started experiment.",
+    help="Resume a previous experiment run if the output directory already exists. Only use if you want to force resuming an already started experiment. "
+    "Not needed in interactive mode as this will be prompted",
 )
 @click.option(
     "-v",
