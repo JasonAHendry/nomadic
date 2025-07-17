@@ -43,7 +43,7 @@ def load_defaults_from_config(ctx, param, value):
     default="./",
     show_default="current directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the the workspace where all input/output files (bed, metadata, results) are stored. "
+    help="Path of the workspace where all input/output files (beds, metadata, results) are stored. "
     "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
     "as they are predefined in the workspace config or can be loaded from the workspace",
     callback=set_workspace,
@@ -57,7 +57,7 @@ def load_defaults_from_config(ctx, param, value):
     "--output",
     type=click.Path(),
     show_default="<workspace>/results/<experiment_name>",
-    help="Path to the output directory where results of this experiment will be stored. Usually this is not needed and results will be stored in your workspace",
+    help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
 @click.option(
     "-f",
