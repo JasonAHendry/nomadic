@@ -70,6 +70,7 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         df = pd.DataFrame(fastq_dts)
+        df = df.join(self.metadata.required_metadata, on="barcode")
         df_path = f"{self.expt_dirs.approach_dir}/summary.fastq.csv"
         df.to_csv(df_path, index=False)
 
@@ -92,6 +93,7 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         df = pd.DataFrame(qcbams_dts)
+        df = df.join(self.metadata.required_metadata, on="barcode")
         df_path = f"{self.expt_dirs.approach_dir}/summary.bam_flagstats.csv"
         df.to_csv(df_path, index=False)
 
@@ -111,6 +113,7 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         bedcov_df = pd.concat(bedcov_dfs)
+        bedcov_df = bedcov_df.join(self.metadata.required_metadata, on="barcode")
         df_path = f"{self.expt_dirs.approach_dir}/summary.bedcov.csv"
         bedcov_df.to_csv(df_path, index=False)
 
@@ -130,6 +133,7 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         depth_df = pd.concat(depth_dfs)
+        depth_df = depth_df.join(self.metadata.required_metadata, on="barcode")
         df_path = f"{self.expt_dirs.approach_dir}/summary.depth.csv"
         depth_df.to_csv(df_path, index=False)
 
@@ -179,9 +183,16 @@ class ExperimentPipelineRT(ABC):
             output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
         )
         annotator.run()
-        annotator.convert_to_csv(f"{self.expt_dirs.approach_dir}/summary.variants.csv")
+        csv_path = f"{self.expt_dirs.approach_dir}/summary.variants.csv"
+        temp_path = csv_path.replace(".csv", "temp.csv")
+        annotator.convert_to_csv(temp_path)
+
+        df = pd.read_csv(temp_path)
+        df = df.join(self.metadata.required_metadata, on="barcode")
+        df.to_csv(csv_path)
 
         # Clean-up
+        os.remove(temp_path)
         os.remove(filtered_vcf)
         os.remove(unfiltered_vcf)
 
