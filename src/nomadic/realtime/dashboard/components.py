@@ -450,7 +450,7 @@ class RegionCoveragePie(RealtimeDashboardComponent):
             )
 
             # Compute totals
-            pie_data = df.groupby("name")[dropdown_stat].sum()
+            pie_data = df.groupby("name", observed=False)[dropdown_stat].sum()
 
             # Generate figure
             fig = go.Figure(
@@ -714,7 +714,7 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
-            grps = region_df.groupby("barcode")
+            grps = region_df.groupby("barcode", observed=False)
             n_barcodes = len(grps)
             col_map = dict(
                 zip(
@@ -736,7 +736,7 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
                     marker=dict(color=col_map[barcode_name]),
                     name=barcode_name,
                 )
-                for barcode_name, bdf in region_df.groupby("barcode")
+                for barcode_name, bdf in region_df.groupby("barcode", observed=False)
             ]
 
             # Create the plot
@@ -817,7 +817,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
-            grps = region_df.groupby("barcode")
+            grps = region_df.groupby("barcode", observed=False)
             n_barcodes = len(grps)
             col_map = dict(
                 zip(
@@ -924,7 +924,7 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
-            grps = region_df.groupby("barcode")
+            grps = region_df.groupby("barcode", observed=False)
             n_barcodes = len(grps)
             col_map = dict(
                 zip(
@@ -944,7 +944,7 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
                     marker=dict(color=col_map[barcode_name]),
                     name=barcode_name,
                 )
-                for barcode_name, bdf in region_df.groupby("barcode")
+                for barcode_name, bdf in region_df.groupby("barcode", observed=False)
             ]
 
             # Create the plot
@@ -1064,6 +1064,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 aggfunc=lambda x: x,
                 data=target_df,
                 dropna=False,
+                observed=False,
             )
 
             # Reorder mutations based on position

@@ -18,6 +18,7 @@ def find_metadata(input_dir: str) -> MetadataTableParser:
         f"{metadata_dir}/{file}"
         for file in os.listdir(metadata_dir)
         if file.endswith(".csv")
+        and not file.startswith("._")  # ignore AppleDouble files
     ]  # TODO: what about no-suffix files?
 
     if len(csvs) != 1:  # Could alternatively load and LOOK
