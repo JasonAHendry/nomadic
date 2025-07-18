@@ -27,7 +27,7 @@ class Organism(enum.Enum):
     type=click.Path(exists=False),
     help="Path of the the workspace where all the files will be stored",
 )
-@click.command(short_help="Help setting up nomadic.")
+@click.command(short_help="Start a workspace.")
 def start(organism, workspace_path) -> None:
     """
     Get started with nomadic.
