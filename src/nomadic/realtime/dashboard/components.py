@@ -360,14 +360,16 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 return go.Figure()
             df = pd.read_csv(self.flagstats_csv)
 
+            x = df.apply(
+                partial(sample_string_from_row, metadata=self.metadata),
+                axis=1,
+            )
+
             # Generate figure
             fig = go.Figure(
                 data=[
                     go.Bar(
-                        x=df.apply(
-                            partial(sample_string_from_row, metadata=self.metadata),
-                            axis=1,
-                        ),
+                        x=x,
                         y=df[cat],
                         marker=dict(color=MAPPING_COLS[cat]),
                         name=cat,
@@ -757,7 +759,7 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
                     marker=dict(color=col_map[sample]),
                     name=sample,
                 )
-                for sample, bdf in region_df.groupby("sample_string", observed=False)
+                for sample, bdf in grps
             ]
 
             # Create the plot
