@@ -2,6 +2,8 @@ import os
 from nomadic.util.exceptions import ReferenceGenomeMissingError
 from abc import ABC, abstractmethod
 
+from nomadic.util.dirs import user_data_dir
+
 
 # ================================================================
 # Base classes for reference sequences
@@ -51,11 +53,9 @@ class Reference(ABC):
     def root_path():
         """
         Return the root path for where data is stored.
-        Fasta files, GFF files, and other resources will be stored in <root_path>/resources/...
+        Fasta files, GFF files, and other resources will be stored in <user_data_dir>/resources/...
         """
-        # does not work at the moment, because we don't handle spaces correctly in the path
-        # return user_data_dir()
-        return "."
+        return user_data_dir()
 
     def confirm_downloaded(self) -> None:
         """
