@@ -2,7 +2,7 @@ import datetime
 import os
 from abc import ABC, abstractmethod
 from typing import Optional
-from functools import partial
+import math
 
 import numpy as np
 import pandas as pd
@@ -360,8 +360,12 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 return go.Figure()
             df = pd.read_csv(self.flagstats_csv)
 
+            if "sample_id" not in df.columns:
+                # for backwards compatibility to be able to show old experiments where this column was not in the data
+                df = df.join(self.metadata.required_metadata, on="barcode")
+
             x = df.apply(
-                partial(sample_string_from_row, metadata=self.metadata),
+                sample_string_from_row,
                 axis=1,
             )
 
@@ -540,6 +544,9 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             df["name"] = pd.Categorical(
                 values=df["name"], categories=self.regions.names, ordered=True
             )
+            if "sample_id" not in df.columns:
+                # for backwards compatibility to be able to show old experiments where this column was not in the data
+                df = df.join(self.metadata.required_metadata, on="barcode")
 
             # Prepare plotting data
             # plot_data = [
@@ -565,9 +572,7 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             #     fig.add_trace(plot_trace)
             fig = px.strip(
                 df,
-                x=df.apply(
-                    partial(sample_string_from_row, metadata=self.metadata), axis=1
-                ),
+                x=df.apply(sample_string_from_row, axis=1),
                 color="name",
                 color_discrete_map=self.regions.col_map_hex,
                 y=df[dropdown_stat],
@@ -734,10 +739,8 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
-            region_df["sample_string"] = df.apply(
-                partial(sample_string_from_row, metadata=self.metadata), axis=1
-            )
-            grps = region_df.groupby("sample_string", observed=False)
+
+            grps = region_df.groupby("barcode", observed=False)
             n_samples = len(grps)
             col_map = dict(
                 zip(
@@ -756,10 +759,10 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
                     x=bdf["pos"],
                     y=bdf["depth"],
                     mode="lines",
-                    marker=dict(color=col_map[sample]),
-                    name=sample,
+                    marker=dict(color=col_map[barcode]),
+                    name=self.metadata.get_sample_id(barcode),
                 )
-                for sample, bdf in grps
+                for barcode, bdf in grps
             ]
 
             # Create the plot
@@ -842,10 +845,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
-            region_df["sample_string"] = region_df.apply(
-                partial(sample_string_from_row, metadata=self.metadata), axis=1
-            )
-            grps = region_df.groupby("sample_string", observed=False)
+            grps = region_df.groupby("barcode", observed=False)
             n_samples = len(grps)
             col_map = dict(
                 zip(
@@ -863,11 +863,11 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
                 go.Scatter(
                     x=sorted(sample_df["depth"]),
                     y=percentiles,
-                    marker=dict(color=col_map[sample]),
+                    marker=dict(color=col_map[barcode]),
                     mode="lines",
-                    name=sample,
+                    name=self.metadata.get_sample_id(barcode),
                 )
-                for sample, sample_df in grps
+                for barcode, sample_df in grps
             ]
 
             # Create the plot
@@ -954,10 +954,7 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
 
             # Select target gene and group by sample
             region_df = df.query("name == @target_region")
-            region_df["sample_string"] = region_df.apply(
-                partial(sample_string_from_row, metadata=self.metadata), axis=1
-            )
-            grps = region_df.groupby("sample_string", observed=False)
+            grps = region_df.groupby("barcode", observed=False)
             n_samples = len(grps)
             col_map = dict(
                 zip(
@@ -974,10 +971,10 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
             plot_data = [
                 go.Histogram(
                     x=bdf["depth"],
-                    marker=dict(color=col_map[sample_name]),
-                    name=sample_name,
+                    marker=dict(color=col_map[barcode]),
+                    name=self.metadata.get_sample_id(barcode),
                 )
-                for sample_name, bdf in region_df.groupby("sample_string", observed=False)
+                for barcode, bdf in grps
             ]
 
             # Create the plot
@@ -1046,11 +1043,13 @@ class VariantHeatmap(RealtimeDashboardComponent):
         self.regions = regions
         self.metadata = metadata
         self.component_id = component_id
-        self.barcodes = (
+        barcodes = (
             metadata.barcodes.copy()
         )  # TODO: would this be by reference or value?
-        if "unclassified" in self.barcodes:
-            self.barcodes.remove("unclassified")
+        if "unclassified" in barcodes:
+            barcodes.remove("unclassified")
+        self.categories = [self.metadata.get_sample_id(barcode) for barcode in barcodes]
+
         self.variant_csv = variant_csv
         self.region_dropdown_id = region_dropdown_id
 
@@ -1083,16 +1082,16 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 " and gt != './.'"
             )
             target_df = df.query(qry)
+            if "sample_id" not in target_df.columns:
+                # for backwards compatibility to be able to show old experiments where this column was not in the data
+                target_df = target_df.join(
+                    self.metadata.required_metadata, on="barcode"
+                )
 
             # Munge for plot
             target_df["sample_string"] = pd.Categorical(
-                values=target_df.apply(
-                    partial(sample_string_from_row, metadata=self.metadata), axis=1
-                ),
-                categories=[
-                    sample_string(barcode, self.metadata.get_sample_id(barcode))
-                    for barcode in self.barcodes
-                ],
+                values=target_df.apply(sample_string_from_row, axis=1),
+                categories=self.categories,
                 ordered=True,
             )
 
@@ -1167,26 +1166,10 @@ class VariantHeatmap(RealtimeDashboardComponent):
             return fig
 
 
-def sample_string_from_row(
-    row: pd.Series, metadata: Optional[MetadataTableParser] = None
-) -> str:
+def sample_string_from_row(row: pd.Series) -> str:
     """Create the representation of sample"""
 
-    if "sample_id" not in row:
-        # for backwards compatibility, the sample_id used to not be included
-        # we can try to get it from the metadata
-        if metadata is not None:
-            sample_id = metadata.get_sample_id(row["barcode"])
-            if sample_id is not None:
-                return sample_string(row["barcode"], sample_id)
+    if "sample_id" not in row or not isinstance(row["sample_id"], str):
         return row["barcode"]
 
-    return sample_string(row["barcode"], row["sample_id"])
-
-
-def sample_string(barcode: str, sample_id: Optional[str] = None) -> str:
-    if sample_id is None:
-        # for backwards compatibility, the sample_id used to not be included
-        return barcode
-
-    return f"{sample_id} ({barcode})"
+    return row["sample_id"]

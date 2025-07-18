@@ -108,6 +108,8 @@ class MetadataTableParser:
             self.barcodes.append("unclassified")
 
     def get_sample_id(self, barcode: str) -> Optional[str]:
+        if barcode == "unclassified":
+            return barcode
         metadata = self.required_metadata
         if barcode not in metadata.index:
             return None
