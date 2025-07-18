@@ -2,6 +2,7 @@ import os
 import uuid
 import shutil
 import subprocess
+import shlex
 from typing import List
 
 
@@ -26,9 +27,9 @@ def view(input_vcf, output_vcf, dry_run=False, **kwargs):
 
     """
 
-    cmd = f"bcftools view -I {input_vcf} "
+    cmd = f"bcftools view -I {shlex.quote(input_vcf)} "
     cmd += " ".join([f"-{k} {v}" for k, v in kwargs.items()])
-    cmd += f" -o {output_vcf}"
+    cmd += f" -o {shlex.quote(output_vcf)}"
 
     if dry_run:
         print(cmd)
@@ -58,9 +59,9 @@ def sort(input_vcf, output_vcf, dry_run=False, **kwargs):
 
     """
 
-    cmd = f"bcftools sort {input_vcf} "
+    cmd = f"bcftools sort {shlex.quote(input_vcf)} "
     cmd += " ".join([f"-{k} {v}" for k, v in kwargs.items()])
-    cmd += f" -o {output_vcf}"
+    cmd += f" -o {shlex.quote(output_vcf)}"
 
     if dry_run:
         print(cmd)
@@ -82,8 +83,8 @@ def index(input_vcf):
 
     """
 
-    cmd = f"bcftools index -f {input_vcf}"
-    subprocess.run(cmd, shell=True, check=True)
+    cmd = ["bcftools", "index", "-f", input_vcf]
+    subprocess.run(cmd, check=True)
 
 
 def merge(vcfs: List[str], output_vcf: str):
@@ -92,10 +93,8 @@ def merge(vcfs: List[str], output_vcf: str):
 
     TODO: Could add arguments to this, but not strictly necessary
     """
-    vcf_string = " ".join(vcfs)
-
-    cmd = f"bcftools merge -F x {vcf_string} -Oz -o {output_vcf}"
-    subprocess.run(cmd, shell=True, check=True)
+    cmd = ["bcftools", "merge", "-F", "x", *vcfs, "-Oz", "-o", output_vcf]
+    subprocess.run(cmd, check=True)
 
 
 def reheader(input_vcf, output_vcf, sample_names):
@@ -129,12 +128,8 @@ def reheader(input_vcf, output_vcf, sample_names):
         cleanup = True
 
     # Construct and run command
-    cmd = "bcftools reheader"
-    cmd += f" {input_vcf}"
-    cmd += f" -s {sample_file}"
-    cmd += f" -o {output_vcf}"
-
-    subprocess.run(cmd, shell=True, check=True)
+    cmd = ["bcftools", "reheader", input_vcf, "-s", sample_file, "-o", output_vcf]
+    subprocess.run(cmd, check=True)
 
     # Remove file
     os.remove(sample_file)

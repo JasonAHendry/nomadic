@@ -21,8 +21,7 @@ def samtools_view(input_bam, args, output_bam):
 
     """
 
-    cmd = "samtools view %s %s -o %s" % (input_bam, args, output_bam)
-    subprocess.run(cmd, check=True, shell=True)
+    subprocess.run(["samtools", "view", input_bam, args, "-o", output_bam], check=True)
 
     return None
 
@@ -40,8 +39,7 @@ def samtools_index(input_bam):
 
     """
 
-    cmd = "samtools index %s" % input_bam
-    subprocess.run(cmd, shell=True, check=True)
+    subprocess.run(["samtools", "index", input_bam], check=True)
 
     return None
 
@@ -63,8 +61,7 @@ def samtools_merge(bam_files, output_bam):
 
     """
 
-    cmd = "samtools merge -f %s %s" % (output_bam, " ".join(bam_files))
-    subprocess.run(cmd, shell=True, check=True)
+    subprocess.run(["samtools", "merge", "-f", output_bam, *bam_files], check=True)
 
     return None
 
@@ -87,8 +84,9 @@ def samtools_flagstats(input_bam: str, output_json: str) -> None:
     temp_json = f"{input_bam[:-4]}.temp.{str(uuid.uuid4())[:8]}.json"
 
     # Run
-    cmd = f"samtools flagstats -O json {input_bam} > {temp_json}"
-    subprocess.run(cmd, shell=True, check=True)
+    cmd = ["samtools", "flagstats", "-O", "json", input_bam]
+    with open(temp_json, "w") as file:
+        subprocess.run(cmd, check=True, stdout=file)
 
     # Clean and write to output
     orig_dt = json.load(open(temp_json, "r"))["QC-passed reads"]
@@ -127,13 +125,13 @@ def samtools_depth(input_bam, output_path, region_str=None):
 
     """
 
-    cmd = "samtools depth"
+    cmd = ["samtools", "depth"]
     if region_str is not None:
-        cmd += f" -r {region_str}"
-    cmd += " -aa"  # output all positions
-    cmd += " -J"
-    cmd += f" -o {output_path}"
-    cmd += f" {input_bam}"
-    subprocess.run(cmd, shell=True, check=True)
+        cmd.extend(["-r", region_str])
+    cmd.append("-aa")  # output all positions
+    cmd.append("-J")
+    cmd.extend(["-o", output_path])
+    cmd.append(input_bam)
+    subprocess.run(cmd, check=True)
 
     return None

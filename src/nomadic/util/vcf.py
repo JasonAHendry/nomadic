@@ -2,6 +2,7 @@ import os
 import re
 import warnings
 import subprocess
+import shlex
 import pandas as pd
 from dataclasses import dataclass
 from nomadic.download.references import Reference
@@ -124,8 +125,8 @@ class VariantAnnotator:
         """
         cmd = "bcftools +fill-tags"
         if output_vcf:
-            cmd += f" -Oz -o {output_vcf}"
-        cmd += f" {input_vcf}"
+            cmd += f" -Oz -o {shlex.quote(output_vcf)}"
+        cmd += f" {shlex.quote(input_vcf)}"
         cmd += " -- -t FORMAT/WSAF=1-FORMAT/AD/FORMAT/DP"
 
         return cmd
@@ -136,13 +137,13 @@ class VariantAnnotator:
         their amplicon position
         """
         cmd = "bcftools annotate"
-        cmd += f" -a {self.bed_path}"
+        cmd += f" -a {shlex.quote(self.bed_path)}"
         cmd += " -c CHROM,FROM,TO,AMP_ID"
         cmd += f" -H '{self.AMP_HEADER}'"
         cmd += " -Oz"
         if output_vcf:
-            cmd += f" -o {output_vcf}"
-        cmd += f" {input_vcf}"
+            cmd += f" -o {shlex.quote(output_vcf)}"
+        cmd += f" {shlex.quote(input_vcf)}"
 
         return cmd
 
@@ -152,13 +153,13 @@ class VariantAnnotator:
         to compute variant consequences
         """
         cmd = "bcftools csq"
-        cmd += f" -f {self.reference.fasta_path}"
-        cmd += f" -g {self.reference.gff_standard_path}"
+        cmd += f" -f {shlex.quote(self.reference.fasta_path)}"
+        cmd += f" -g {shlex.quote(self.reference.gff_standard_path)}"
         cmd += " --phase a"
         cmd += " -Oz"
         if output_vcf:
-            cmd += f" -o {output_vcf}"
-        cmd += f" {input_vcf}"
+            cmd += f" -o {shlex.quote(output_vcf)}"
+        cmd += f" {shlex.quote(input_vcf)}"
 
         return cmd
 
@@ -197,14 +198,16 @@ class VariantAnnotator:
 
         # Write header
         sep = "\t"
-        cmd_header = f"printf 'barcode{sep}{sep.join(list(fixed) + list(called))}\n' > {output_tsv}"
+        cmd_header = f"printf 'barcode{sep}{sep.join(list(fixed) + list(called))}\n' > {shlex.quote(output_tsv)}"
         sepb = f"{sep}%"  # for bcftools, % accesses variable
 
         # Iterate and query for each sample
-        cmd_query = f"for sample in `bcftools query {self.output_vcf} -l`; do"
+        cmd_query = (
+            f"for sample in `bcftools query {shlex.quote(self.output_vcf)} -l`; do"
+        )
         cmd_query += "  bcftools query -s $sample"
         cmd_query += f' -f "$sample{sepb}{sepb.join(fixed.values())}{sep}[%{sepb.join(called.values())}]\n"'
-        cmd_query += f" {self.output_vcf} >> {output_tsv};"
+        cmd_query += f" {shlex.quote(self.output_vcf)} >> {shlex.quote(output_tsv)};"
         cmd_query += " done;"
 
         cmd = f"{cmd_header} && {cmd_query}"

@@ -4,6 +4,7 @@ import uuid
 import glob
 import subprocess
 import pandas as pd
+import shlex
 
 from typing import List
 from abc import ABC, abstractmethod
@@ -183,7 +184,7 @@ class MappingRT(AnalysisStepRT):
         log.info("Running real-time mapping...")
 
         incr_bam = self._get_incremental_bam_path(incr_id)
-        self.mapper.map_from_fastqs(fastq_path=" ".join(new_fastqs))
+        self.mapper.map_from_fastqs(fastq_paths=new_fastqs)
         self.mapper.run(output_bam=incr_bam)
         samtools_index(incr_bam)
 
@@ -339,9 +340,17 @@ class BedCovRT(AnalysisStepRT):
 
         # Run, writing to temporary BED
         temp_bed = f"{input_bam[:-4]}.temp.{str(uuid.uuid4())[:8]}.bed"
-        cmd = f"samtools bedcov -d {self.cov_thresh} -c"
-        cmd += f" {self.bed_path} {input_bam} > {temp_bed}"
-        subprocess.run(cmd, shell=True, check=True)
+        cmd = [
+            "samtools",
+            "bedcov",
+            "-d",
+            str(self.cov_thresh),
+            "-c",
+            self.bed_path,
+            input_bam,
+        ]
+        with open(temp_bed, "w") as file:
+            subprocess.run(cmd, check=True, stdout=file)
 
         # Load temp BED, compute summaries, write
         df = pd.read_csv(temp_bed, sep="\t", header=None)
@@ -507,10 +516,10 @@ class CallVariantsRT(AnalysisStepRT):
             with open(sample_name_file, "w") as file:
                 file.write(f"{self.barcode_name}\n")
 
-        cmd = f"bcftools reheader {input_vcf} -s {sample_name_file}"
+        cmd = f"bcftools reheader {shlex.quote(input_vcf)} -s {shlex.quote(sample_name_file)}"
         if output_vcf is None:
             return cmd
-        return f"{cmd} -o {output_vcf}"
+        return f"{cmd} -o {shlex.quote(output_vcf)}"
 
     def _get_lowcomplexity_filter_command(self) -> str:
         """
@@ -525,13 +534,17 @@ class CallVariantsRT(AnalysisStepRT):
         )
         if not os.path.exists(bed_mask_path):
             print("Creating low-complexity mask for amplicons...")
-            cmd = (
-                "bedtools intersect"
-                f" -a {self.reference.fasta_mask_path}"
-                f" -b {self.expt_dirs.regions_bed}"
-                f" -wa > {bed_mask_path}"
-            )
-            subprocess.run(cmd, shell=True, check=True)
+            cmd = [
+                "bedtools",
+                "intersect",
+                "-a",
+                self.reference.fasta_mask_path,
+                "-b",
+                self.expt_dirs.regions_bed,
+                "-wa",
+            ]
+            with open(bed_mask_path, "w") as file:
+                subprocess.run(cmd, check=True, stdout=file)
             print("Done.")
 
         # Masking command
@@ -540,7 +553,7 @@ class CallVariantsRT(AnalysisStepRT):
             " --mode +"
             " --soft-filter LowComplexity"
             " --set-GTs ."
-            f" --mask-file {bed_mask_path}"
+            f" --mask-file {shlex.quote(bed_mask_path)}"
             " -Ou -"
         )
 
@@ -576,8 +589,8 @@ class CallVariantsRT(AnalysisStepRT):
             "bcftools mpileup -B -I -Q12 --max-BQ 30 -h 100"
             f" --annotate {self.ANNOTATE_MPILEUP}"
             f" --max-depth {self.MAX_DEPTH}"
-            f" -f {self.reference.fasta_path}"
-            f" -Ov {input_bam}"
+            f" -f {shlex.quote(self.reference.fasta_path)}"
+            f" -Ov {shlex.quote(input_bam)}"
         )
 
         cmd_call = f"bcftools call -m -P 0.01 -a {self.ANNOTATE_CALL} -Oz - "
@@ -592,8 +605,8 @@ class CallVariantsRT(AnalysisStepRT):
         cmd_view = (
             "bcftools view"
             " --max-alleles 2"
-            f" -R {self.bed_path}"
-            f" -Ou {self.unfiltered_vcf} "
+            f" -R {shlex.quote(self.bed_path)}"
+            f" -Ou {shlex.quote(self.unfiltered_vcf)} "
         )
 
         cmd_depth_filter = (
@@ -613,7 +626,7 @@ class CallVariantsRT(AnalysisStepRT):
             " --soft-filter LowQual"
             " --set-GTs ."
             f" --exclude 'QUAL < {self.MIN_QUAL}'"
-            f" -Oz -o {self.output_vcf} - "
+            f" -Oz -o {shlex.quote(self.output_vcf)} - "
         )
 
         cmd = f"{cmd_view} | {cmd_depth_filter} | {cmd_lowcomplexity_filter} |{cmd_qual_filter}"
@@ -673,13 +686,13 @@ class AnnotateVariantsRT(AnalysisStepRT):
 
         """
         cmd = "bcftools annotate"
-        cmd += f" -a {self.bed_path}"
+        cmd += f" -a {shlex.quote(self.bed_path)}"
         cmd += " -c CHROM,FROM,TO,AMP_ID"
         cmd += f" -H '{self.AMP_HEADER}'"
         cmd += " -Oz"
         if output_vcf:
-            cmd += f" -o {output_vcf}"
-        cmd += f" {input_vcf}"
+            cmd += f" -o {shlex.quote(output_vcf)}"
+        cmd += f" {shlex.quote(input_vcf)}"
 
         return cmd
 
@@ -690,13 +703,13 @@ class AnnotateVariantsRT(AnalysisStepRT):
 
         """
         cmd = "bcftools csq"
-        cmd += f" -f {self.reference.fasta_path}"
-        cmd += f" -g {self.reference.gff_standard_path}"
+        cmd += f" -f {shlex.quote(self.reference.fasta_path)}"
+        cmd += f" -g {shlex.quote(self.reference.gff_standard_path)}"
         cmd += " --phase a"
         cmd += " -Oz"
         if output_vcf:
-            cmd += f" -o {output_vcf}"
-        cmd += f" {input_vcf}"
+            cmd += f" -o {shlex.quote(output_vcf)}"
+        cmd += f" {shlex.quote(input_vcf)}"
 
         return cmd
 
@@ -730,15 +743,15 @@ class AnnotateVariantsRT(AnalysisStepRT):
         called = {"gt": "GT", "dp": "DP", "wsaf": "VAF"}
 
         sep = "\\t"
-        cmd_header = (
-            f" echo '{sep.join(list(fixed) + list(called))}\n' > {self.output_tsv}"
-        )
+        cmd_header = f" echo '{sep.join(list(fixed) + list(called))}\n' > {shlex.quote(self.output_tsv)}"
         sep += "%"
         cmd_query = "bcftools query"
         cmd_query += (
             f" -f '%{sep.join(fixed.values())}\t[%{sep.join(called.values())}]\n'"
         )
-        cmd_query += f" {self.output_vcf} >> {self.output_tsv}"
+        cmd_query += (
+            f" {shlex.quote(self.output_vcf)} >> {shlex.quote(self.output_tsv)}"
+        )
 
         cmd = f"{cmd_header} && {cmd_query}"
         subprocess.run(cmd, shell=True, check=True)
