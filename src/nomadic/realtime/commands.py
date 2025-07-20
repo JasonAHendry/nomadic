@@ -77,7 +77,7 @@ def load_defaults_from_config(ctx, param, value):
     "-b",
     "--region_bed",
     type=click.Path(),
-    required=True,
+    required=False,
     help="Path to BED file specifying genomic regions of interest or name of panel, e.g. 'nomads8' or 'nomadsMVP'.",
 )
 @click.option(
