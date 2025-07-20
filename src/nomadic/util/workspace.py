@@ -1,15 +1,7 @@
 import os
+import click
 
 from nomadic.util.dirs import produce_dir
-
-
-def init_workspace(path: str):
-    if os.path.exists(path):
-        raise RuntimeError(f"folder/file {path} already exists")
-
-    produce_dir(path, "results")
-    produce_dir(path, "beds")
-    produce_dir(path, "metadata")
 
 
 def check_if_workspace(path: str) -> bool:
@@ -35,11 +27,29 @@ def looks_like_a_bed_filepath(path: str) -> bool:
 
 
 class Workspace:
-    def __init__(self, path: str):
-        self.path = path
+    def __init__(self, workspace_path: str):
+        self.path = workspace_path
+
+    @classmethod
+    def create_from_directory(cls, workspace_path: str):
+        """
+        Create a new workspace from a directory path
+        """
+        if os.path.exists(workspace_path):
+            raise click.ClickException(
+                f"A workspace with the name '{workspace_path}' already exists!"
+            )
+
+        produce_dir(
+            workspace_path, "results"
+        )  # NB: this creates intermediate directories
+        produce_dir(workspace_path, "beds")
+        produce_dir(workspace_path, "metadata")
+
+        return cls(workspace_path)
 
     def __str__(self):
-        return f"Nomadic Workspace at {self.path}"
+        return f"Nomadic Workspace at: {self.path}"
 
     def __repr__(self):
         return f"Workspace(path={self.path})"

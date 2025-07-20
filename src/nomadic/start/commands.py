@@ -7,7 +7,7 @@ import click
 
 from nomadic.download.main import main as download_reference
 from nomadic.util.config import default_config_path, write_config
-from nomadic.util.workspace import Workspace, init_workspace
+from nomadic.util.workspace import Workspace
 
 
 class Organism(enum.Enum):
@@ -37,8 +37,7 @@ def start(organism, workspace_path) -> None:
     """
 
     click.echo(f"Workspace will be created at: {workspace_path}")
-    init_workspace(workspace_path)
-    workspace = Workspace(workspace_path)
+    workspace = Workspace.create_from_directory(workspace_path)
 
     if organism == Organism.pfalciparum:
         setup_pfalciparum(workspace)
