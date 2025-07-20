@@ -22,3 +22,6 @@ dependencies:
   - flake8
   - pip
   - pytest
+  - mkdocs
+  - mkdocs-material
+  - pymdown-extensions
