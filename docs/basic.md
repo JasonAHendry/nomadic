@@ -51,13 +51,12 @@ By default the name of the new workspace is `nomadic`. You can enter the workspa
 cd nomadic
 ```
 
-Inside of the workspace, you should see the four folders.
+Inside of the workspace, you should see the following folders:
 
 | Folder | Contents |
 | --- | --- |
 | `beds` | Contains information about amplicons used in sequencing. |
 | `metadata` | Where you should put all of your metadata files. |
-| `resources` | Contains information about the reference genome. By default, this is the *P. falciparum* 3D7 reference genome downloaded from [plasmodb](https://plasmodb.org/plasmo/app). |
 | `results` | Where the results from running *Nomadic* will go. Initially it will be empty. |
 
 

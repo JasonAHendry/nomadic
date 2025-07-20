@@ -28,12 +28,10 @@ It was designed to work with amplicon sequencing data from the NOMADS-MVP protoc
 
 
 ## Features
-- [x] Real-time read mapping with [*Minimap2*](https://github.com/lh3/minimap2)
-- [x] Real-time sample quality control and amplicon coverage evaluation
+- [x] Real-time read mapping with [*Minimap2*](https://github.com/lh3/minimap2).
+- [x] Real-time sample quality control and amplicon coverage evaluation.
 - [x] Real-time variant calling with [*bcftools*](https://github.com/samtools/bcftools). These calls are preleiminary; treat with caution.
-- [x] Support for different reference genomes or amplicons panels
-
-
+- [x] Support for different reference genomes or amplicons panels.
 
 
 

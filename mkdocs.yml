@@ -9,7 +9,7 @@ theme:
     accent: amber
   logo: img/little_logo.svg
   features:
-    - navigation.tabs
+  #  - navigation.tabs
     - navigation.sections
     - content.code.copy
 markdown_extensions:
