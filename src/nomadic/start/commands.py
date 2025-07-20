@@ -25,14 +25,15 @@ class Organism(enum.Enum):
     "workspace_path",
     default="nomadic",
     type=click.Path(exists=False),
-    help="Path of the the workspace where all the files will be stored",
+    show_default=True,
+    help="Path to workspace.",
 )
 @click.command(short_help="Start a workspace.")
 def start(organism, workspace_path) -> None:
     """
     Get started with nomadic.
 
-    This command will help you set up a new workspace for nomadic for a specific organism.
+    This command will help you set up a new workspace for a specific organism.
     """
 
     click.echo(f"Workspace will be created at: {workspace_path}")
@@ -42,10 +43,12 @@ def start(organism, workspace_path) -> None:
     if organism == Organism.pfalciparum:
         setup_pfalciparum(workspace)
     else:
-        RuntimeError("unknown organism")
+        RuntimeError(
+            "Organism is not available."
+        )  # I am pretty sure it is impossible to enter this code block
 
     click.echo(
-        "You can now enter your workspace with `cd nomadic` and run `nomadic realtime <experiment_name>` to start real-time analysis."
+        f"You can now enter your workspace with `cd {workspace_path}` and run `nomadic realtime <experiment_name>` to start real-time analysis."
     )
 
 
@@ -94,7 +97,7 @@ def copy_example_metadata(workspace):
 
 def copy_bed_files(workspace: Workspace, organism_name):
     bed_files = files("nomadic.start").joinpath("data", "beds", organism_name).iterdir()
-    click.echo("Copying bed files")
+    click.echo("Copying amplicon BED files.")
     for bed_file in bed_files:
         data = bed_file.read_text()
         dest_path = os.path.join(workspace.get_beds_dir(), bed_file.name)
