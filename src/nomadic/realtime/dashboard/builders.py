@@ -99,7 +99,7 @@ class RealtimeDashboardBuilder(ABC):
 
         if in_thread:
             dashboard_thread = threading.Thread(
-                target=lambda: app.run(**kwargs), name="dashboard"
+                target=lambda: app.run(**kwargs), name="dashboard", daemon=True
             )
             dashboard_thread.start()
         else:
