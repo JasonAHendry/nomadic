@@ -1,5 +1,7 @@
 import os
 import shutil
+import json
+from typing import NamedTuple, Optional
 
 import platformdirs
 
@@ -32,6 +34,18 @@ def produce_dir(*args):
         os.makedirs(dir_name)
 
     return dir_name
+
+
+class ExperimentSettings(NamedTuple):
+    name: str
+    start: str
+    call: bool
+    fastq_dir: str
+    metadata_csv: str
+    region_bed: str
+    reference_name: str
+    n_barcodes: int
+    n_regions: int
 
 
 class ExperimentDirectories:
@@ -103,6 +117,18 @@ class ExperimentDirectories:
             self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
             if not os.path.exists(self.regions_bed):
                 shutil.copy(regions.path, self.regions_bed)
+
+    def save_settings(self, experiment_settings: ExperimentSettings):
+        with open(os.path.join(self.metadata_dir, "settings.json"), "w") as file:
+            json.dump(experiment_settings._asdict(), file)
+
+    def load_settings(self) -> Optional[ExperimentSettings]:
+        filename = os.path.join(self.metadata_dir, "settings.json")
+        if not os.path.isfile(filename):
+            return None
+        with open(filename, "r") as file:
+            data = json.load(file)
+            return ExperimentSettings(**data)
 
 
 def user_data_dir() -> str:
