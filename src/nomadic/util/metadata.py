@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 import warnings
 import pandas as pd
 from typing import List
@@ -101,8 +102,18 @@ class MetadataTableParser:
         self._check_all_barcodes()
 
         self.barcodes = self.df["barcode"].tolist()
+        self.required_metadata = self.df[self.REQUIRED_COLUMNS].set_index("barcode")
+
         if include_unclassified:
             self.barcodes.append("unclassified")
+
+    def get_sample_id(self, barcode: str) -> Optional[str]:
+        if barcode == "unclassified":
+            return barcode
+        metadata = self.required_metadata
+        if barcode not in metadata.index:
+            return None
+        return metadata.loc[barcode].get("sample_id", None)
 
     def _check_for_columns(self):
         """

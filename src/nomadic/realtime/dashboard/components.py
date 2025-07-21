@@ -1,19 +1,20 @@
-import os
 import datetime
-import pandas as pd
-
+import os
 from abc import ABC, abstractmethod
-from dash import Dash, html, dcc
-from dash.dependencies import Input, Output
+from typing import Optional
+import re
 
 import numpy as np
-import seaborn as sns
-import plotly.graph_objects as go
+import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+import seaborn as sns
+from dash import Dash, dcc, html
+from dash.dependencies import Input, Output
 from matplotlib.colors import rgb2hex
 
-from nomadic.util.regions import RegionBEDParser
 from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.regions import RegionBEDParser
 
 pd.options.mode.chained_assignment = None
 
@@ -318,12 +319,18 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
     """
 
     def __init__(
-        self, expt_name: str, component_id: str, flagstats_csv: str, checklist_id: str
+        self,
+        expt_name: str,
+        component_id: str,
+        flagstats_csv: str,
+        checklist_id: str,
+        metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.flagstats_csv = flagstats_csv
         self.checklist_id = checklist_id
+        self.metadata = metadata
 
     def _define_layout(self):
         """
@@ -353,11 +360,20 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 return go.Figure()
             df = pd.read_csv(self.flagstats_csv)
 
+            if "sample_id" not in df.columns:
+                # for backwards compatibility to be able to show old experiments where this column was not in the data
+                df = df.join(self.metadata.required_metadata, on="barcode")
+
+            x = df.apply(
+                sample_string_from_row,
+                axis=1,
+            )
+
             # Generate figure
             fig = go.Figure(
                 data=[
                     go.Bar(
-                        x=df["barcode"],
+                        x=x,
                         y=df[cat],
                         marker=dict(color=MAPPING_COLS[cat]),
                         name=cat,
@@ -369,6 +385,7 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
 
             # Format
             fig.update_layout(
+                xaxis_title="Samples",
                 yaxis_title="Alignment Count",
                 barmode="stack",
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
@@ -488,12 +505,14 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
         regions: RegionBEDParser,
         bedcov_csv: str,
         dropdown_id: str,
+        metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.bedcov_csv = bedcov_csv
         self.regions = regions
         self.dropdown_id = dropdown_id
+        self.metadata = metadata
 
     def _define_layout(self):
         """
@@ -525,6 +544,9 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             df["name"] = pd.Categorical(
                 values=df["name"], categories=self.regions.names, ordered=True
             )
+            if "sample_id" not in df.columns:
+                # for backwards compatibility to be able to show old experiments where this column was not in the data
+                df = df.join(self.metadata.required_metadata, on="barcode")
 
             # Prepare plotting data
             # plot_data = [
@@ -550,13 +572,14 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             #     fig.add_trace(plot_trace)
             fig = px.strip(
                 df,
-                x="barcode",
+                x=df.apply(sample_string_from_row, axis=1),
                 color="name",
                 color_discrete_map=self.regions.col_map_hex,
                 y=df[dropdown_stat],
             )
 
             fig.update_layout(
+                xaxis_title="Samples",
                 yaxis_title=dropdown_stat,
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
                 yaxis=dict(
@@ -685,12 +708,14 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
         component_id: str,
         depth_csv: str,
         region_dropdown_id: str,
+        metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.regions = regions
         self.depth_csv = depth_csv
         self.region_dropdown_id = region_dropdown_id
+        self.metadata = metadata
 
     def _define_layout(self):
         """Layout is graph"""
@@ -714,12 +739,13 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
+
             grps = region_df.groupby("barcode", observed=False)
-            n_barcodes = len(grps)
+            n_samples = len(grps)
             col_map = dict(
                 zip(
                     grps.groups.keys(),
-                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_barcodes)],
+                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_samples)],
                 )
             )
 
@@ -733,10 +759,10 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
                     x=bdf["pos"],
                     y=bdf["depth"],
                     mode="lines",
-                    marker=dict(color=col_map[barcode_name]),
-                    name=barcode_name,
+                    marker=dict(color=col_map[barcode]),
+                    name=sample_string(barcode, self.metadata.get_sample_id(barcode)),
                 )
-                for barcode_name, bdf in region_df.groupby("barcode", observed=False)
+                for barcode, bdf in grps
             ]
 
             # Create the plot
@@ -788,12 +814,14 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
         component_id: str,
         depth_csv: str,
         region_dropdown_id: str,
+        metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.regions = regions
         self.depth_csv = depth_csv
         self.region_dropdown_id = region_dropdown_id
+        self.metadata = metadata
 
     def _define_layout(self):
         """Layout is graph"""
@@ -818,11 +846,11 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
             grps = region_df.groupby("barcode", observed=False)
-            n_barcodes = len(grps)
+            n_samples = len(grps)
             col_map = dict(
                 zip(
                     grps.groups.keys(),
-                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_barcodes)],
+                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_samples)],
                 )
             )
 
@@ -833,13 +861,13 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
             percentiles = 100 * (1 - np.arange(target_bp + 1) / target_bp)
             plot_data = [
                 go.Scatter(
-                    x=sorted(barcode_df["depth"]),
+                    x=sorted(sample_df["depth"]),
                     y=percentiles,
                     marker=dict(color=col_map[barcode]),
                     mode="lines",
-                    name=barcode,
+                    name=sample_string(barcode, self.metadata.get_sample_id(barcode)),
                 )
-                for barcode, barcode_df in grps
+                for barcode, sample_df in grps
             ]
 
             # Create the plot
@@ -895,12 +923,14 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
         component_id: str,
         depth_csv: str,
         region_dropdown_id: str,
+        metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.regions = regions
         self.depth_csv = depth_csv
         self.region_dropdown_id = region_dropdown_id
+        self.metadata = metadata
 
     def _define_layout(self):
         """Layout is graph"""
@@ -922,14 +952,14 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
                 return go.Figure()
             df = pd.read_csv(self.depth_csv)
 
-            # Select target gene and group by barcode
+            # Select target gene and group by sample
             region_df = df.query("name == @target_region")
             grps = region_df.groupby("barcode", observed=False)
-            n_barcodes = len(grps)
+            n_samples = len(grps)
             col_map = dict(
                 zip(
                     grps.groups.keys(),
-                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_barcodes)],
+                    [rgb2hex(c) for c in sns.color_palette(self.pal, n_samples)],
                 )
             )
 
@@ -941,10 +971,10 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
             plot_data = [
                 go.Histogram(
                     x=bdf["depth"],
-                    marker=dict(color=col_map[barcode_name]),
-                    name=barcode_name,
+                    marker=dict(color=col_map[barcode]),
+                    name=sample_string(barcode, self.metadata.get_sample_id(barcode)),
                 )
-                for barcode_name, bdf in region_df.groupby("barcode", observed=False)
+                for barcode, bdf in grps
             ]
 
             # Create the plot
@@ -1013,11 +1043,16 @@ class VariantHeatmap(RealtimeDashboardComponent):
         self.regions = regions
         self.metadata = metadata
         self.component_id = component_id
-        self.barcodes = (
+        barcodes = (
             metadata.barcodes.copy()
         )  # TODO: would this be by reference or value?
-        if "unclassified" in self.barcodes:
-            self.barcodes.remove("unclassified")
+        if "unclassified" in barcodes:
+            barcodes.remove("unclassified")
+        self.categories = [
+            sample_string(barcode, self.metadata.get_sample_id(barcode))
+            for barcode in barcodes
+        ]
+
         self.variant_csv = variant_csv
         self.region_dropdown_id = region_dropdown_id
 
@@ -1050,16 +1085,23 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 " and gt != './.'"
             )
             target_df = df.query(qry)
+            if "sample_id" not in target_df.columns:
+                # for backwards compatibility to be able to show old experiments where this column was not in the data
+                target_df = target_df.join(
+                    self.metadata.required_metadata, on="barcode"
+                )
 
             # Munge for plot
-            target_df["barcode"] = pd.Categorical(
-                values=target_df["barcode"], categories=self.barcodes, ordered=True
+            target_df["sample_string"] = pd.Categorical(
+                values=target_df.apply(sample_string_from_row, axis=1),
+                categories=self.categories,
+                ordered=True,
             )
 
             # Pivot
             plot_df = pd.pivot_table(
                 index="aa_change",
-                columns="barcode",
+                columns="sample_string",
                 values=["wsaf", "dp", "gt"],
                 aggfunc=lambda x: x,
                 data=target_df,
@@ -1107,6 +1149,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
             MAR = 40
             # SZ = 50
             fig.update_layout(
+                xaxis_title="Samples",
                 hovermode="y unified",
                 paper_bgcolor="white",  # Sets the background color of the paper
                 plot_bgcolor="white",
@@ -1124,3 +1167,28 @@ class VariantHeatmap(RealtimeDashboardComponent):
             )
 
             return fig
+
+
+def sample_string_from_row(row: pd.Series) -> str:
+    """Create the representation of sample"""
+
+    if "sample_id" not in row or not isinstance(row["sample_id"], str):
+        return sample_string(row["barcode"])
+
+    return sample_string(row["barcode"], row["sample_id"])
+
+
+def sample_string(barcode: str, sample_id: Optional[str] = None) -> str:
+    if sample_id is None:
+        return barcode
+
+    if barcode == "unclassified":
+        return barcode
+
+    match = re.search(r"\d+", barcode)
+
+    assert match, "should have found a number"
+
+    number = int(match.group())
+
+    return f"{sample_id} ({number:02d})"
