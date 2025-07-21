@@ -4,7 +4,7 @@ import webbrowser
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import ExperimentDirectories
+from nomadic.util.dirs import ExperimentDirectories, ExperimentSettings
 from nomadic.util.regions import RegionBEDParser
 from nomadic.realtime.factory import PipelineFactory
 
@@ -49,6 +49,20 @@ def main(
     log.info(f"  Found {regions.n_regions} regions of interest.")
     log.info(f"  Outputs will be written to: {expt_dirs.expt_dir}.")
     log.info("Done.\n")
+
+    expt_dirs.save_settings(
+        experiment_settings=ExperimentSettings(
+            name=expt_name,
+            start=time.ctime(),
+            fastq_dir=fastq_dir,
+            metadata_csv=metadata_csv,
+            region_bed=region_bed,
+            reference_name=reference_name,
+            n_barcodes=len(metadata.barcodes) - 1,
+            n_regions=regions.n_regions,
+            call=call,
+        )
+    )
 
     # INITIALISE WATCHERS
     factory = PipelineFactory(
