@@ -51,14 +51,16 @@ def test_check_barcode_warning_error(barcode, try_to_fix, expected):
 #
 # --------------------------------------------------------------------------------
 
+test_files_folder = "src/nomadic/util/_test_data/"
+
 
 @pytest.mark.parametrize(
     "csv_path,csv_shape",
     [
-        ("tests/_data/metadata/sample_info_good.csv", (5, 5)),
-        ("tests/_data/metadata/sample_info_semicolon.csv", (5, 5)),
-        ("tests/_data/metadata/sample_info_eurosep.csv", (5, 6)),
-        ("tests/_data/metadata/sample_info_hybridsep-col.csv", (5, 6)),
+        (test_files_folder + "metadata/sample_info_good.csv", (5, 5)),
+        (test_files_folder + "metadata/sample_info_semicolon.csv", (5, 5)),
+        (test_files_folder + "metadata/sample_info_eurosep.csv", (5, 6)),
+        (test_files_folder + "metadata/sample_info_hybridsep-col.csv", (5, 6)),
     ],
 )
 def test_metadata_correct(csv_path, csv_shape):
@@ -69,8 +71,8 @@ def test_metadata_correct(csv_path, csv_shape):
 @pytest.mark.parametrize(
     "csv_path,csv_shape",
     [
-        ("tests/_data/metadata/sample_info_badbarcode-format.csv", (5, 5)),
-        ("tests/_data/metadata/sample_info_badbarcode-int.csv", (5, 5)),
+        (test_files_folder + "metadata/sample_info_badbarcode-format.csv", (5, 5)),
+        (test_files_folder + "metadata/sample_info_badbarcode-int.csv", (5, 5)),
     ],
 )
 def test_metadata_warns(csv_path, csv_shape):
@@ -83,19 +85,19 @@ def test_metadata_warns(csv_path, csv_shape):
     "csv_path,error_msg",
     [
         (
-            "tests/_data/metadata/sample_info_onecolumn.csv",
+            test_files_folder + "metadata/sample_info_onecolumn.csv",
             "Metadata must contain column called sample_id!",
         ),
         (
-            "tests/_data/metadata/sample_info_dupbarcode.csv",
+            test_files_folder + "metadata/sample_info_dupbarcode.csv",
             "Column barcode must contain only unique entires, but barcode04 is duplicated.",
         ),
         (
-            "tests/_data/metadata/sample_info_nobarcode.csv",
+            test_files_folder + "metadata/sample_info_nobarcode.csv",
             "Metadata must contain column called barcode!",
         ),
         (
-            "tests/_data/metadata/sample_info_badheader.csv",
+            test_files_folder + "metadata/sample_info_badheader.csv",
             "Found multiple delimiters (, ;) in header: ﻿barcode;sample_id,parasite_per_ul,location;platform;number.",
         ),
     ],

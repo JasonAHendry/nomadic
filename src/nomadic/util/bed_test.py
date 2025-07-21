@@ -1,6 +1,6 @@
 import pytest
-from nomadic.util.bed import BEDRecord
-from nomadic.util.exceptions import BEDFormatError
+from .bed import BEDRecord
+from .exceptions import BEDFormatError
 
 
 # --------------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import pandas as pd
 import warnings
 import subprocess
 from abc import ABC, abstractmethod
+import shlex
 
 from nomadic.download.references import Reference, PlasmodiumFalciparum3D7
 from nomadic.util.metadata import MetadataTableParser
@@ -167,7 +168,7 @@ class ExperimentPipelineRT(ABC):
             " --types='snps'"
             " --min-alleles 2"
             " --max-alleles 2"
-            f" -Oz -o {filtered_vcf} {unfiltered_vcf}"
+            f" -Oz -o {shlex.quote(filtered_vcf)} {shlex.quote(unfiltered_vcf)}"
         )
         subprocess.run(cmd, check=True, shell=True)
 
