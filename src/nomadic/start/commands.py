@@ -1,6 +1,5 @@
 import enum
 import os
-from contextlib import chdir
 from importlib.resources import files
 
 import click
@@ -56,10 +55,7 @@ def setup_pfalciparum(workspace):
 
     reference_name = "Pf3D7"
 
-    # workaround for that we can not set the root in download_reference
-    with chdir(workspace.path):
-        download_reference(reference_name)
-        pass
+    download_reference(reference_name)
 
     copy_bed_files(workspace, Organism.pfalciparum.name)
 
