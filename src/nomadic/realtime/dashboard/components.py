@@ -2,7 +2,7 @@ import datetime
 import os
 from abc import ABC, abstractmethod
 from typing import Optional
-import math
+import re
 
 import numpy as np
 import pandas as pd
@@ -760,7 +760,7 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
                     y=bdf["depth"],
                     mode="lines",
                     marker=dict(color=col_map[barcode]),
-                    name=self.metadata.get_sample_id(barcode),
+                    name=sample_string(barcode, self.metadata.get_sample_id(barcode)),
                 )
                 for barcode, bdf in grps
             ]
@@ -865,7 +865,7 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
                     y=percentiles,
                     marker=dict(color=col_map[barcode]),
                     mode="lines",
-                    name=self.metadata.get_sample_id(barcode),
+                    name=sample_string(barcode, self.metadata.get_sample_id(barcode)),
                 )
                 for barcode, sample_df in grps
             ]
@@ -972,7 +972,7 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
                 go.Histogram(
                     x=bdf["depth"],
                     marker=dict(color=col_map[barcode]),
-                    name=self.metadata.get_sample_id(barcode),
+                    name=sample_string(barcode, self.metadata.get_sample_id(barcode)),
                 )
                 for barcode, bdf in grps
             ]
@@ -1048,7 +1048,10 @@ class VariantHeatmap(RealtimeDashboardComponent):
         )  # TODO: would this be by reference or value?
         if "unclassified" in barcodes:
             barcodes.remove("unclassified")
-        self.categories = [self.metadata.get_sample_id(barcode) for barcode in barcodes]
+        self.categories = [
+            sample_string(barcode, self.metadata.get_sample_id(barcode))
+            for barcode in barcodes
+        ]
 
         self.variant_csv = variant_csv
         self.region_dropdown_id = region_dropdown_id
@@ -1170,6 +1173,22 @@ def sample_string_from_row(row: pd.Series) -> str:
     """Create the representation of sample"""
 
     if "sample_id" not in row or not isinstance(row["sample_id"], str):
-        return row["barcode"]
+        return sample_string(row["barcode"])
 
-    return row["sample_id"]
+    return sample_string(row["barcode"], row["sample_id"])
+
+
+def sample_string(barcode: str, sample_id: Optional[str] = None) -> str:
+    if sample_id is None:
+        return barcode
+
+    if barcode == "unclassified":
+        return barcode
+
+    match = re.search(r"\d+", barcode)
+
+    assert match, "should have found a number"
+
+    number = int(match.group())
+
+    return f"{sample_id} ({number:02d})"
