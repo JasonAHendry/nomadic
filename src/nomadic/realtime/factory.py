@@ -87,7 +87,8 @@ class PipelineFactory:
         """
         return [
             BarcodeWatcher(
-                barcode_fastq_dir=f"{self.fastq_dir}/{b}",
+                barcode=b,
+                fastq_dir=self.fastq_dir,
                 barcode_pipeline=self._get_barcode_pipeline(barcode_name=b),
                 work_log_path=f"{self.expt_dirs.get_barcode_dir(b)}/.work.log",
             )
