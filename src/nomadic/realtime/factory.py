@@ -106,7 +106,7 @@ class PipelineFactory:
 
         return ExptMappingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
 
-    def get_dashboard(self) -> RealtimeDashboardBuilder:
+    def get_dashboard(self, *, start_time=None) -> RealtimeDashboardBuilder:
         """
         Get the appropriate dashboard
 
@@ -121,6 +121,8 @@ class PipelineFactory:
                 bedcov_csv=f"{self.expt_dirs.approach_dir}/summary.bedcov.csv",
                 depth_csv=f"{self.expt_dirs.approach_dir}/summary.depth.csv",
                 variant_csv=f"{self.expt_dirs.approach_dir}/summary.variants.csv",
+                start_time=start_time,
+                is_realtime=True,
             )
 
         return MappingRTDashboard(
@@ -131,4 +133,6 @@ class PipelineFactory:
             flagstats_csv=f"{self.expt_dirs.approach_dir}/summary.bam_flagstats.csv",
             bedcov_csv=f"{self.expt_dirs.approach_dir}/summary.bedcov.csv",
             depth_csv=f"{self.expt_dirs.approach_dir}/summary.depth.csv",
+            start_time=start_time,
+            is_realtime=True,
         )
