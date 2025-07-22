@@ -2,6 +2,8 @@ import logging
 import threading
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
+from datetime import datetime
+from typing import Optional
 
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.metadata import MetadataTableParser
@@ -42,13 +44,16 @@ class RealtimeDashboardBuilder(ABC):
     SLOW_NAME = "interval"
     SLOW_INTERVAL = 60_000
 
-    def __init__(self, expt_name, css_style_sheets, metadata: MetadataTableParser):
+    def __init__(
+        self, expt_name, css_style_sheets, metadata: MetadataTableParser, is_realtime
+    ):
         self.expt_name = expt_name
         self.css_style_sheets = css_style_sheets
         self.metadata = metadata
 
         self.components = []
         self.layout = []
+        self.is_realtime = is_realtime
 
     @abstractmethod
     def _gen_layout(self):
@@ -111,7 +116,9 @@ class RealtimeDashboardBuilder(ABC):
     #
     # ---------------------------------------------------------------------------
 
-    def _add_banner(self, fastq_csv: str) -> None:
+    def _add_banner(
+        self, fastq_csv: str, start_time: Optional[datetime] = None
+    ) -> None:
         """
         Add a banner which shows the logo and summarise the number of FASTQ files
         processed
@@ -120,7 +127,11 @@ class RealtimeDashboardBuilder(ABC):
 
         # Create the component
         self.expt_summary = ExperimentSummaryFASTQ(
-            expt_name=self.expt_name, component_id="expt-summary", fastq_csv=fastq_csv
+            expt_name=self.expt_name,
+            component_id="expt-summary",
+            fastq_csv=fastq_csv,
+            start_time=start_time,
+            is_realtime=self.is_realtime,
         )
 
         # Define banner layout
@@ -337,26 +348,29 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         flagstats_csv,
         bedcov_csv,
         depth_csv,
+        start_time: Optional[datetime],
+        is_realtime: bool,
     ):
         """
         Initialise all of the dashboard components
 
         """
 
-        super().__init__(expt_name, self.CSS_STYLE, metadata)
+        super().__init__(expt_name, self.CSS_STYLE, metadata, is_realtime)
 
         self.regions = regions
         self.fastq_csv = fastq_csv
         self.flagstats_csv = flagstats_csv
         self.bedcov_csv = bedcov_csv
         self.depth_csv = depth_csv
+        self.start_time = start_time
 
     def _gen_layout(self):
         """
         Generate the layout
 
         """
-        self._add_banner(self.fastq_csv)
+        self._add_banner(self.fastq_csv, start_time=self.start_time)
         self._add_mapping_row(self.flagstats_csv)
         self._add_bedcov_row(self.bedcov_csv, self.regions)
         self._add_depth_row(self.depth_csv, self.regions)
@@ -382,13 +396,15 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         bedcov_csv,
         depth_csv,
         variant_csv,
+        start_time: Optional[datetime],
+        is_realtime: bool,
     ):
         """
         Initialise all of the dashboard components
 
         """
 
-        super().__init__(expt_name, self.CSS_STYLE, metadata)
+        super().__init__(expt_name, self.CSS_STYLE, metadata, is_realtime)
 
         self.regions = regions
         self.fastq_csv = fastq_csv
@@ -396,6 +412,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         self.bedcov_csv = bedcov_csv
         self.depth_csv = depth_csv
         self.variant_csv = variant_csv
+        self.start_time = start_time
 
     def _add_calling_row(self, variant_csv: str, regions: RegionBEDParser) -> None:
         """
@@ -443,7 +460,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         Generate the layout for the variant calling dashboard
 
         """
-        self._add_banner(self.fastq_csv)
+        self._add_banner(self.fastq_csv, self.start_time)
         self._add_mapping_row(self.flagstats_csv)
         self._add_bedcov_row(self.bedcov_csv, self.regions)
         self._add_depth_row(self.depth_csv, self.regions)
