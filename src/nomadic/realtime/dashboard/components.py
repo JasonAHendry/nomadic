@@ -876,6 +876,12 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
             target_info = self.regions.df.query("name == @target_region").squeeze()
             target_bp = target_info["end"] - target_info["start"]
 
+            if not pd.api.types.is_scalar(target_bp):
+                # should normally not happen, but can happen when a user has
+                # still open an old dashboard with different target_regions
+                # then the query will return an empty series
+                return go.Figure()
+
             # Plot data
             percentiles = 100 * (1 - np.arange(target_bp + 1) / target_bp)
             plot_data = [
