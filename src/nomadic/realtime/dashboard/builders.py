@@ -292,15 +292,21 @@ class RealtimeDashboardBuilder(ABC):
         footer = html.Footer(
             className="footer",
             children=[
-                html.A(
-                    href="https://jasonahendry.github.io/nomadic/",
-                    children="Documentation",
-                    target="_blank",
-                ),
-                html.A(
-                    href="https://github.com/JasonAHendry/nomadic",
-                    children="Source Code",
-                    target="_blank",
+                html.P(
+                    children=[
+                        "For more information, please see the ",
+                        html.A(
+                            href="https://jasonahendry.github.io/nomadic/",
+                            children="documentation",
+                            target="_blank",
+                        ),
+                        " or ",
+                        html.A(
+                            href="https://github.com/JasonAHendry/nomadic",
+                            children="source code",
+                            target="_blank",
+                        ),
+                    ],
                 ),
             ],
         )
