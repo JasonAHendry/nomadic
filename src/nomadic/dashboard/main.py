@@ -2,7 +2,7 @@ import webbrowser
 import os
 from nomadic.realtime.dashboard.builders import MappingRTDashboard, CallingRTDashboard
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import ExperimentDirectories
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.settings import load_settings
 

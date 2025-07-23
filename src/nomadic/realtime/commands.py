@@ -1,14 +1,15 @@
 import os
 
 import click
+
 from nomadic.download.references import REFERENCE_COLLECTION
+from nomadic.util import minknow
+from nomadic.util.config import default_config_path, load_config
 from nomadic.util.workspace import (
-    check_if_workspace,
     Workspace,
+    check_if_workspace,
     looks_like_a_bed_filepath,
 )
-from nomadic.util import minknow
-from nomadic.util.config import load_config, default_config_path
 
 
 def set_workspace(ctx, param, workspace_path):

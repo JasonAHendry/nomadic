@@ -4,7 +4,6 @@ from importlib.resources import files
 
 import click
 
-from nomadic.download.main import main as download_reference
 from nomadic.util.config import default_config_path, write_config
 from nomadic.util.workspace import Workspace
 
@@ -54,6 +53,9 @@ def setup_pfalciparum(workspace):
     click.echo("Setting up workspace for Plasmodium falciparum.")
 
     reference_name = "Pf3D7"
+
+    # To speed up initial run, only import here when needed
+    from nomadic.download.main import main as download_reference
 
     download_reference(reference_name)
 

@@ -11,7 +11,8 @@ from abc import ABC, abstractmethod
 
 from nomadic.map.mappers import Minimap2
 from nomadic.download.references import REFERENCE_COLLECTION
-from nomadic.util.dirs import produce_dir, ExperimentDirectories
+from nomadic.util.dirs import produce_dir
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.samtools import (
     samtools_merge,
