@@ -7,7 +7,7 @@ from nomadic.util.workspace import (
     Workspace,
     looks_like_a_bed_filepath,
 )
-from nomadic.util.minknow import default_fastq_dir
+from nomadic.util import minknow
 from nomadic.util.config import load_config, default_config_path
 
 
@@ -63,8 +63,9 @@ def load_defaults_from_config(ctx, param, value):
     "-f",
     "--fastq_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    show_default="/var/lib/minknow/data/<experiment_name>/fastq_pass",
-    help="Path to `fastq_pass` directory produced by MinKNOW or Guppy.",
+    default="/var/lib/minknow/data",
+    show_default=True,
+    help="Path to `fastq_pass` output directory of minknow (e.g. `/var/lib/minknow/data/<experiment_name>/.../.../fastq_pass`), or to the general output directory of minknow (e.g. `/var/lib/minknow/data`)",
 )
 @click.option(
     "-m",
@@ -153,12 +154,9 @@ def realtime(
                 message=f"Region BED file not found at {region_bed}.",
             )
 
-    if fastq_dir is None:
-        fastq_dir = default_fastq_dir(experiment_name)
-        if not os.path.isdir(fastq_dir):
-            raise click.BadParameter(
-                message=f"FASTQ directory not found at {fastq_dir}. Does {experiment_name} match the minknow experiment name and is minknow already running long enough?",
-            )
+    if not minknow.is_fastq_dir(fastq_dir):
+        # should be base path of minknow data, build fastq glob with experiment name.
+        fastq_dir = minknow.fastq_dir_glob(fastq_dir, experiment_name)
 
     if reference_name is None:
         raise click.BadParameter(

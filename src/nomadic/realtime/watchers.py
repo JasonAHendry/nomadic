@@ -1,8 +1,9 @@
 import os
 import enum
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import hashlib
 
+from nomadic.util import minknow
 from .pipelines.barcode import BarcodePipelineRT
 
 
@@ -19,16 +20,18 @@ class Action(enum.Enum):
 class BarcodeWatcher:
     def __init__(
         self,
-        barcode_fastq_dir: str,
+        barcode: str,
+        fastq_dir: str,
         barcode_pipeline: BarcodePipelineRT,
         work_log_path: str,
     ):
         """
-        Watch a barcode directory `barcode_fastq_dir` and run a BarcodePipeline `barcode_pipeline`
+        Watch a barcode directory and run a BarcodePipeline `barcode_pipeline`
         when new FASTQ files are found
         """
 
-        self.barcode_fastq_dir = barcode_fastq_dir
+        self.barcode = barcode
+        self.fastq_dir = fastq_dir
         self.barcode_pipeline = barcode_pipeline
         # path to work log file, used to recover when application is restarted
         self.work_log_path = work_log_path
@@ -47,15 +50,20 @@ class BarcodeWatcher:
         Check if any new FASTQ files have been generated
         """
 
-        # In case the directory hasn't been created yet, i.e. no FASTQs
-        if not os.path.exists(self.barcode_fastq_dir):
+        fastq_barcode_dir = self._fastq_barcode_dir()
+        if fastq_barcode_dir is None:
+            # Could not find fastq_dir
             return
+
+        # In case the directory hasn't been created yet, i.e. no FASTQs for this barcode
+        if not os.path.exists(fastq_barcode_dir):
+            return None
 
         # If it has, collect the FASTQs
         observed_fastqs = set(
             [
-                f"{self.barcode_fastq_dir}/{file}"
-                for file in os.listdir(self.barcode_fastq_dir)
+                f"{fastq_barcode_dir}/{file}"
+                for file in os.listdir(fastq_barcode_dir)
                 if self._is_fastq(file)
             ]
         )
@@ -63,12 +71,31 @@ class BarcodeWatcher:
         # Are any unprocessed?
         return observed_fastqs.difference(self.processed_fastqs)
 
+    def _fastq_barcode_dir(self) -> Optional[str]:
+        if "*" in self.fastq_dir:
+            # is the glob to find the fastq_dir
+            fastq_dir = minknow.fastq_dir(fastq_dir_glob=self.fastq_dir)
+        else:
+            fastq_dir = self.fastq_dir
+
+        if fastq_dir is None:
+            # Dir is not yet created by minkown or wrong experiment name
+            return None
+
+        fastq_barcode_dir = os.path.join(fastq_dir, self.barcode)
+
+        return fastq_barcode_dir
+
     def catch_up_from_work_log(self) -> tuple[int, int]:
         """
         Read the log file and set all FASTQs that have been processed before
         """
         if not os.path.exists(self.work_log_path):
             return 0, 0
+
+        barcode_fastq_dir = self._fastq_barcode_dir()
+        if barcode_fastq_dir is None:
+            raise RuntimeError("barcode fastq dir does not exist")
 
         started_and_not_ended = dict()
         with open(self.work_log_path, "r") as log_file:
@@ -78,7 +105,7 @@ class BarcodeWatcher:
                 incr_id, action, fastqs = parse_log_line(line.strip())
                 # Filename in log is just the basename, so we need to prepend the directory
                 fastqs = [
-                    f"{self.barcode_fastq_dir}/{fastq}"
+                    f"{barcode_fastq_dir}/{fastq}"
                     for fastq in fastqs
                     if self._is_fastq(fastq)
                 ]
