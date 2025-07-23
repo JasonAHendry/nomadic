@@ -4,11 +4,9 @@ from datetime import datetime
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.factory import PipelineFactory
-from nomadic.util.dirs import (
-    ExperimentDirectories,
-)
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.settings import (
     ExperimentSettings,

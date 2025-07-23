@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from abc import ABC, abstractmethod
-from nomadic.util.dirs import ExperimentDirectories
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.realtime.steps import (
     FASTQCountRT,

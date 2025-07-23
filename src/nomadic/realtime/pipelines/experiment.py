@@ -7,8 +7,9 @@ from abc import ABC, abstractmethod
 import shlex
 
 from nomadic.download.references import Reference, PlasmodiumFalciparum3D7
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import ExperimentDirectories, produce_dir
+from nomadic.util.dirs import produce_dir
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.wrappers import bcftools
 from nomadic.util.vcf import VariantAnnotator

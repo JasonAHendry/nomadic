@@ -2,7 +2,7 @@ from typing import List
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import ExperimentDirectories
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 
 from nomadic.realtime.watchers import BarcodeWatcher
