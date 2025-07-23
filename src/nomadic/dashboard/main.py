@@ -4,6 +4,7 @@ from nomadic.realtime.dashboard.builders import MappingRTDashboard, CallingRTDas
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.dirs import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
+from nomadic.util.settings import load_settings
 
 
 def find_metadata(input_dir: str) -> MetadataTableParser:
@@ -80,8 +81,15 @@ def main(input_dir: str):
     metadata = find_metadata(input_dir)
     expt_dirs = ExperimentDirectories(input_dir, metadata)
     regions = find_regions(input_dir)
+    settings = load_settings(expt_dirs.get_settings_file())
 
-    expt_name = os.path.basename(input_dir)
+    if settings is not None:
+        expt_name = settings.name
+        start_time = settings.start_date
+    else:
+        expt_name = os.path.basename(input_dir)
+        start_time = None
+
     print("Input Parameters:")
     print(f"  Input dir: {input_dir}")
     print(f"  Experiment Name: {expt_name}")
@@ -98,6 +106,7 @@ def main(input_dir: str):
         "flagstats_csv": f"{expt_dirs.approach_dir}/summary.bam_flagstats.csv",
         "bedcov_csv": f"{expt_dirs.approach_dir}/summary.bedcov.csv",
         "depth_csv": f"{expt_dirs.approach_dir}/summary.depth.csv",
+        "start_time": start_time,
     }
 
     if variant_calling_performed(expt_dirs):
@@ -105,10 +114,11 @@ def main(input_dir: str):
         dashboard = CallingRTDashboard(
             **shared_kwargs,
             variant_csv=f"{expt_dirs.approach_dir}/summary.variants.csv",
+            is_realtime=False,
         )
     else:
         print("  Variant calling: False")
-        dashboard = MappingRTDashboard(**shared_kwargs)
+        dashboard = MappingRTDashboard(**shared_kwargs, is_realtime=False)
     print("Done.")
 
     print("")

@@ -1,12 +1,21 @@
 import time
 import webbrowser
+from datetime import datetime
 
 from nomadic.download.references import REFERENCE_COLLECTION
+from nomadic.realtime.factory import PipelineFactory
+from nomadic.util.dirs import (
+    ExperimentDirectories,
+)
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
-from nomadic.realtime.factory import PipelineFactory
+from nomadic.util.settings import (
+    ExperimentSettings,
+    load_settings,
+    save_settings,
+    verify_compatible_settings,
+)
 
 WAIT_INTERVAL = 5
 
@@ -50,6 +59,31 @@ def main(
     log.info(f"  Outputs will be written to: {expt_dirs.expt_dir}.")
     log.info("Done.\n")
 
+    # LOAD/STORE EXPERIMENT SETTINGS
+    previous_settings = load_settings(expt_dirs.get_settings_file())
+    experiment_settings = ExperimentSettings(
+        name=expt_name,
+        start_date=datetime.now().replace(microsecond=0),
+        fastq_dir=fastq_dir,
+        metadata_csv=metadata_csv,
+        region_bed=region_bed,
+        reference_name=reference_name,
+        n_barcodes=len(metadata.barcodes) - 1,
+        n_regions=regions.n_regions,
+        call=call,
+    )
+    start_time = None
+    if previous_settings is None:
+        # first run
+        save_settings(
+            expt_dirs.get_settings_file(), experiment_settings=experiment_settings
+        )
+    else:
+        verify_compatible_settings(
+            old_settings=previous_settings, new_settings=experiment_settings
+        )
+        start_time = previous_settings.start_date
+
     # INITIALISE WATCHERS
     factory = PipelineFactory(
         expt_name, metadata, regions, expt_dirs, fastq_dir, call, reference_name
@@ -57,7 +91,7 @@ def main(
 
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
-    dashboard = factory.get_dashboard()
+    dashboard = factory.get_dashboard(start_time=start_time)
     dashboard.run(in_thread=True)
 
     webbrowser.open("http://127.0.0.1:8050")

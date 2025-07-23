@@ -87,6 +87,10 @@ class ExperimentDirectories:
 
         return self._barcode_dirs[barcode_name]
 
+    def get_settings_file(self) -> str:
+        """Get the path to the setting file for the experiment"""
+        return os.path.join(self.metadata_dir, "settings.json")
+
     def _setup_metadata_dir(
         self, metadata: MetadataTableParser, regions: RegionBEDParser
     ) -> None:

@@ -177,10 +177,21 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
 
     logo_src_path = "assets/nomadic_logo-01.png"
 
-    def __init__(self, expt_name: str, component_id: str, fastq_csv: str):
+    def __init__(
+        self,
+        expt_name: str,
+        component_id: str,
+        fastq_csv: str,
+        start_time: Optional[datetime.datetime] = None,
+        is_realtime: bool = True,
+    ):
         super().__init__(expt_name, component_id)
-        self.t0 = datetime.datetime.now().replace(microsecond=0)
+        if start_time is not None:
+            self.t0 = start_time
+        else:
+            self.t0 = datetime.datetime.now().replace(microsecond=0)
         self.fastq_csv = fastq_csv
+        self.is_realtime = is_realtime
 
     def _define_layout(self):
         """
@@ -224,19 +235,27 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
             # TODO: this is pretty horrible to make look decent
             tab = "\t"
             n_tabs = 4
+
+            content = [
+                f"Experiment Name:{tab * (n_tabs - 1)}{self.expt_name}",
+                html.Br(),
+                f"Started at:{tab * n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                html.Br(),
+                f"Time elapsed:{tab * n_tabs}{t1 - self.t0}",
+                html.Br(),
+                f"FASTQs Processed:{tab * (n_tabs - 2)}{n_fastq}",
+            ]
+
+            if not self.is_realtime:
+                # remove time elapsed
+                del content[-3]
+                del content[-2]
+
             children = [
                 html.H3("Run Overview", style=dict(margin="0px", marginTop="20px")),
                 html.Pre(
                     # pre_contents,
-                    [
-                        f"Experiment Name:{tab * (n_tabs - 1)}{self.expt_name}",
-                        html.Br(),
-                        f"Started at:{tab * n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
-                        html.Br(),
-                        f"Time elapsed:{tab * n_tabs}{t1 - self.t0}",
-                        html.Br(),
-                        f"FASTQs Processed:{tab * (n_tabs - 2)}{n_fastq}",
-                    ],
+                    content,
                     style=dict(fontFamily="Arial", margin="0px"),
                 ),
             ]
