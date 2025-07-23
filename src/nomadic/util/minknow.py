@@ -30,8 +30,14 @@ def fastq_dir(fastq_dir_glob: str) -> Optional[str]:
 
 
 def is_fastq_dir(path: str) -> bool:
-    return "fastq_pass" in path
+    return (
+        path.endswith("fastq_pass") or path.endswith("fastq_pass/")
+    ) and os.path.isdir(path)
 
 
 def fastq_dir_glob(data_dir: str, experiment_name: str) -> str:
-    return f"{os.path.join(data_dir, experiment_name)}/*/*/fastq_pass"
+    if not data_dir.endswith(experiment_name) and not data_dir.endswith(
+        f"{experiment_name}/"
+    ):
+        data_dir = os.path.join(data_dir, experiment_name)
+    return f"{data_dir}/*/*/fastq_pass"

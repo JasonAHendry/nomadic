@@ -154,7 +154,7 @@ def realtime(
                 message=f"Region BED file not found at {region_bed}.",
             )
 
-    if not minknow.is_fastq_dir(fastq_dir) and experiment_name not in fastq_dir:
+    if not minknow.is_fastq_dir(fastq_dir):
         # should be base path of minknow data, build fastq glob with experiment name.
         fastq_dir = minknow.fastq_dir_glob(fastq_dir, experiment_name)
 
