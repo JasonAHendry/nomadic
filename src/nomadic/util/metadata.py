@@ -6,7 +6,7 @@ from typing import List
 from .exceptions import MetadataFormatError
 
 
-def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";"]):
+def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";", "\t"]):
     """
     Determine which delimiter is being used in a CSV
 
