@@ -288,6 +288,31 @@ class RealtimeDashboardBuilder(ABC):
         self.components.append(self.depth_hist)
         self.layout.append(depth_row)
 
+    def _add_footer(self):
+        footer = html.Footer(
+            className="footer",
+            children=[
+                html.P(
+                    children=[
+                        "For more information, please see the ",
+                        html.A(
+                            href="https://jasonahendry.github.io/nomadic/",
+                            children="documentation",
+                            target="_blank",
+                        ),
+                        " or ",
+                        html.A(
+                            href="https://github.com/JasonAHendry/nomadic",
+                            children="source code",
+                            target="_blank",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        self.layout.append(footer)
+
 
 # --------------------------------------------------------------------------------
 # Concrete dashboards
@@ -335,6 +360,7 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         self._add_mapping_row(self.flagstats_csv)
         self._add_bedcov_row(self.bedcov_csv, self.regions)
         self._add_depth_row(self.depth_csv, self.regions)
+        self._add_footer()
 
 
 class CallingRTDashboard(RealtimeDashboardBuilder):
@@ -422,3 +448,4 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         self._add_bedcov_row(self.bedcov_csv, self.regions)
         self._add_depth_row(self.depth_csv, self.regions)
         self._add_calling_row(self.variant_csv, self.regions)
+        self._add_footer()
