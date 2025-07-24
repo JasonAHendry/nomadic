@@ -1,6 +1,6 @@
 We will populate this page with more details soon. But for now, we would direct advanced users to the [*Nomadic* github](https://github.com/JasonAHendry/nomadic) and the help text of individual commands for advanced information about *Nomadic*.
 
-For a quick refernece, here is the help for `nomadic realtime`
+For a quick reference, here is the help for `nomadic realtime`
 
 ```
 Usage: nomadic realtime [OPTIONS] EXPERIMENT_NAME

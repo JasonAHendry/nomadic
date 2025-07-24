@@ -22,7 +22,7 @@ In *Nomadic*, information about read mapping is displayed in a stacked barplot. 
 - Reads with **only one unique alignment** to the reference genome are shown in dark blue. These are called primary alignments, and are labeled `n_primary`. These are the best for downstream analysis.
 - Reads with **no alignments** to the reference genome are shown in grey. These are unmapped reads, and labeled `n_unmapped`. This can happen if the read is too short or low quality to be accurately mapped, or derives from an organism other than the reference genome. With NOMADS-MVP, the unmapped reads typically represent offtarget amplification of the host genome.
 - Reads with **two or more alignments** to the reference are labeled in the lighest shade of blue. These are called secondary alignments, are are labeled `n_secondary`. These can occur when a sequencing read originates from a repetitive region of the genome.
-- Reads that must be **split in peices to be aligned** to the reference genome are shown in the middle shade of blue. These are called chimeric alignments, and are labeled `n_chimera`. These are usually caused by technical factors during library preparation of sequencing, but can also indicate structural varation.
+- Reads that must be **split in pieces to be aligned** to the reference genome are shown in the middle shade of blue. These are called chimeric alignments, and are labeled `n_chimera`. These are usually caused by technical factors during library preparation of sequencing, but can also indicate structural varation.
 
 The pie chart at the left shows the overall read mapping distribution across all sequenced samples.
 
