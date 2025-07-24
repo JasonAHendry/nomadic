@@ -94,7 +94,7 @@ Now navigate to your workspace folder:
 cd <path/to/your/workspace>
 ```
 
-And launch *Nomadc*:
+And launch *Nomadic*:
 
 
 ```
