@@ -21,13 +21,13 @@ bash Miniforge3-$(uname)-$(uname -m).sh
 ### Steps
 Open a terminal window and type:
 ```
-conda install -c bioconda -n nomadic nomadic
+conda create -c bioconda -n nomadic nomadic
 ```
 
 Or, if you are using *Mamba*:
 
 ```
-mambda install -c bioconda -n nomadic nomadic
+mambda create -c bioconda -n nomadic nomadic
 ```
 
 *Nomadic* should now be installed in it's own conda environment.
