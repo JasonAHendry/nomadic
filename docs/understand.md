@@ -40,7 +40,7 @@ The second panel of the dashboard **shows information about the amount of covera
 
 ![region_coverage](img/understand/region_coverage.png)
 
-*Nomadic* shows this information as a scatter plot. For each sample (x-axis), a point will be drawn for each target region. The color indicates the identity of the target region and there is a legend at the top of the plot. For example, in NOMADS-MVP, the pink points correspond to *kelch13*. The y-axis gives the mean coverage (`mean_cov`), number of reads (`n_reads`) or percentage of bases with greater than 100x coverage (`cov_gr100_per`), depending on what is selected in the drop down menu located above the pie chart.
+*Nomadic* shows this information as a scatter plot. For each sample (x-axis), a point will be drawn for each target region. The colour indicates the identity of the target region and there is a legend at the top of the plot. For example, in NOMADS-MVP, the pink points correspond to *kelch13*. The y-axis gives the mean coverage (`mean_cov`), number of reads (`n_reads`) or percentage of bases with greater than 100x coverage (`cov_gr100_per`), depending on what is selected in the drop down menu located above the pie chart.
 
 The pie chart aggregates information across all samples. In an ideal scenario, the slices of the pie will be close to equal, indicating that the different target regions have similar coverage. In practice, coverage can vary between targets due to differences in PCR efficiency. As long as the lowest abundance amplicon is still recieving sufficient coverage (typically 100x), this is not a major problem.
 
@@ -57,7 +57,7 @@ The bottom panel of the dashboard **shows information about variant calling**.
 ![variant_calling](img/understand/variant_calling-ama1.png)
 
 *Nomadic* shows variant calling information as a heatmap for each target region. You can select different target regions using the drop down menu at the top left.
-In the heatmap, the samples are on the x-axis and the variants (i.e. mutations) are on the y-axis. The color in each cell of the heatmap gives the within-sample alternative allele frequency (WSAF).
+In the heatmap, the samples are on the x-axis and the variants (i.e. mutations) are on the y-axis. The colour in each cell of the heatmap gives the within-sample alternative allele frequency (WSAF).
 
 !!! note
     The within-sample alternative allele frequency (WSAF) is the *fraction* of sequencing reads that carry the alternative allele (i.e. variant or mutation). It ranges from 0 to 1.
@@ -69,4 +69,4 @@ In the heatmap, the samples are on the x-axis and the variants (i.e. mutations) 
 | Light blue, yellow, orange | 0.0 < WSAF < 1.0 | The WSAF is between 0 and 1. These means some, but not all, of the reads in the sample carry the mutation. For *P. falciparum* malaria, this indicates that the sample is polyclonal, and at least one clone has the mutation. | The sample **does** carry the mutation. It is heterozygous alternative. |
 | White | Not available | This indicates that not enough sequencing reads have been collected for the sample to make a determination. | Not enough data. Sample has failed or more sequencing time is required. |
 
-In the plot above shows the target *ama1* for a set of control samples. The first three barcodes are 3D7, HB3 and Dd2. They are monoclonal, so all mutations are either dark purple (WSAF=0) or dark red (WSAF=1). After that, we have mixed strains together at different proportions, making them polyclonal, which leads to intermediate colors. The last three barcodes (46, 47, 48) are negative controls, hence they are the heatmap is white.
+In the plot above shows the target *ama1* for a set of control samples. The first three barcodes are 3D7, HB3 and Dd2. They are monoclonal, so all mutations are either dark purple (WSAF=0) or dark red (WSAF=1). After that, we have mixed strains together at different proportions, making them polyclonal, which leads to intermediate colours. The last three barcodes (46, 47, 48) are negative controls, hence they are the heatmap is white.
