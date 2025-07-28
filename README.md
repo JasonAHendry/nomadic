@@ -1,6 +1,6 @@
 [![build](https://github.com/JasonAHendry/nomadic/actions/workflows/build.yml/badge.svg)](https://github.com/JasonAHendry/nomadic/actions/workflows/build.yml)
 [![View - Docs](https://img.shields.io/badge/View-Docs-blue?logo=materialformkdocs&logoColor=blue)](https://jasonahendry.github.io/nomadic/)
-![Conda Downloads](https://img.shields.io/conda/dn/bioconda/nomadic?color=green&link=https%3A%2F%2Fanaconda.org%2Fbioconda%2Fnomadic)
+[![Conda Downloads](https://img.shields.io/conda/dn/bioconda/nomadic?color=green&link=https%3A%2F%2Fanaconda.org%2Fbioconda%2Fnomadic)](https://anaconda.org/bioconda/nomadic)
 ![OS - Linux | OSX](https://img.shields.io/badge/OS-Linux_|_OSX-informational)
 <p align="center"><img src="docs/img/home/nomadic_logo.png" width="500"></p>
 
