@@ -18,6 +18,7 @@ dependencies:
   - click
   - platformdirs
   - pyyaml
+  - i18nice
   - black
   - flake8
   - pip

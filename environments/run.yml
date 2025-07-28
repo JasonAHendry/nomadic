@@ -17,4 +17,5 @@ dependencies:
   - click
   - platformdirs
   - pyyaml
+  - i18nice
   - pip
