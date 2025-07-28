@@ -2,8 +2,31 @@ import os
 import difflib
 
 import click
+import click.shell_completion
 
 from nomadic.util.workspace import Workspace, check_if_workspace
+
+
+def complete_experiment_name(ctx: click.Context, param, incomplete):
+    """Complete experiment names based on existing folders in results directory."""
+    workspace_path = ctx.params.get("workspace_path", "./")
+    results_dir = Workspace(workspace_path).get_results_dir()
+    result = []
+    if os.path.exists(results_dir):
+        experiments = [
+            dir
+            for dir in os.listdir(results_dir)
+            if os.path.isdir(os.path.join(results_dir, dir))
+        ]
+        result = [
+            click.shell_completion.CompletionItem(experiment)
+            for experiment in experiments
+            if experiment.startswith(incomplete)
+        ]
+    if not result:
+        # If no experiments found, return the incomplete input as a directory suggestion as we also accept paths
+        return [click.shell_completion.CompletionItem(incomplete, type="dir")]
+    return result
 
 
 def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
@@ -28,10 +51,6 @@ def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
 
 
 @click.command(short_help="Just run the dashboard.")
-@click.argument(
-    "experiment",
-    type=str,
-)
 @click.option(
     "-w",
     "--workspace",
@@ -40,6 +59,11 @@ def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
     show_default=True,
     type=click.Path(exists=True, file_okay=False, dir_okay=True),
     help="Path of the the workspace where all the files will be stored",
+)
+@click.argument(
+    "experiment",
+    type=str,
+    shell_complete=complete_experiment_name,
 )
 def dashboard(workspace_path, experiment):
     """
