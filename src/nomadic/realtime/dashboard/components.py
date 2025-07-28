@@ -15,6 +15,7 @@ from matplotlib.colors import rgb2hex
 
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
+from i18n import t
 
 pd.options.mode.chained_assignment = None
 
@@ -115,7 +116,7 @@ class ExperimentSummary(RealtimeDashboardComponent):
 
     """
 
-    logo_src_path = "assets/nomadic_logo-01.png"
+    logo_src_path = "assets/nomadic_logo.png"
 
     def __init__(self, expt_name: str, component_id: str):
         super().__init__(expt_name, component_id)
@@ -175,7 +176,7 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
 
     """
 
-    logo_src_path = "assets/nomadic_logo-01.png"
+    logo_src_path = "assets/nomadic_logo.png"
 
     def __init__(
         self,
@@ -237,13 +238,13 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
             n_tabs = 4
 
             content = [
-                f"Experiment Name:{tab * (n_tabs - 1)}{self.expt_name}",
+                f"{t('Experiment Name')}:{tab * (n_tabs - 1)}{self.expt_name}",
                 html.Br(),
-                f"Started at:{tab * n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"{t('Started at')}:{tab * n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
                 html.Br(),
-                f"Time elapsed:{tab * n_tabs}{t1 - self.t0}",
+                f"{t('Time elapsed')}:{tab * n_tabs}{t1 - self.t0}",
                 html.Br(),
-                f"FASTQs Processed:{tab * (n_tabs - 2)}{n_fastq}",
+                f"{t('FASTQs Processed')}:{tab * (n_tabs - 2)}{n_fastq}",
             ]
 
             if not self.is_realtime:
@@ -318,7 +319,7 @@ class MappingStatsPie(RealtimeDashboardComponent):
             fig = go.Figure(
                 data=[
                     go.Pie(
-                        labels=selected_categories,
+                        labels=[t(category) for category in selected_categories],
                         values=pie_values,
                         marker=dict(colors=[MAPPING_COLS[cat] for cat in pie_cats]),
                     )
@@ -395,7 +396,7 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                         x=x,
                         y=df[cat],
                         marker=dict(color=MAPPING_COLS[cat]),
-                        name=cat,
+                        name=t(cat),
                     )
                     for cat in MAPPING_CATS
                     if cat in selected_categories
@@ -589,17 +590,24 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             # fig = go.Figure()
             # for plot_trace in plot_data:
             #     fig.add_trace(plot_trace)
+            plot_df = pd.DataFrame.from_dict(
+                {
+                    t("Sample"): df.apply(sample_string_from_row, axis=1),
+                    t("name"): df["name"],
+                    t(dropdown_stat): df[dropdown_stat],
+                }
+            )
             fig = px.strip(
-                df,
-                x=df.apply(sample_string_from_row, axis=1),
-                color="name",
+                plot_df,
+                x=t("Sample"),
+                color=t("name"),
                 color_discrete_map=self.regions.col_map_hex,
-                y=df[dropdown_stat],
+                y=t(dropdown_stat),
             )
 
             fig.update_layout(
-                xaxis_title="Samples",
-                yaxis_title=dropdown_stat,
+                xaxis_title=t("Samples"),
+                yaxis_title=t(dropdown_stat),
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
                 yaxis=dict(
                     showline=True,
@@ -1155,7 +1163,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
                     xgap=1,
                     ygap=1,
                     colorscale="Spectral_r",
-                    colorbar=dict(title="WSAF", outlinecolor="black", outlinewidth=1),
+                    colorbar=dict(title="WSAF*", outlinecolor="black", outlinewidth=1),
                     hovertemplate=htemp,
                     hoverongaps=False,
                     name="",
