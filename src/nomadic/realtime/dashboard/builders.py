@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
 from datetime import datetime
 from typing import Optional
+from importlib.resources import files, as_file
 
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.metadata import MetadataTableParser
@@ -17,7 +18,8 @@ from nomadic.realtime.dashboard.components import (
     DepthProfileCumulativeDist,
     VariantHeatmap,
 )
-
+import i18n
+from i18n import t
 
 # --------------------------------------------------------------------------------
 # Interface for different dashboards
@@ -92,6 +94,7 @@ class RealtimeDashboardBuilder(ABC):
 
         """
 
+        setup_translations()
         app = self._gen_app()
         self._gen_layout()
         self.layout.append(self._gen_timer(self.FAST_NAME, self.FAST_INTERVAL))
@@ -153,7 +156,14 @@ class RealtimeDashboardBuilder(ABC):
         # Create checklist of mapping categories
         checklist = dcc.Checklist(
             id="mapping-checklist",
-            options=CATEGORIES,
+            options=[
+                {
+                    "label": t(category),
+                    "value": category,
+                    "title": t(f"{category}_tooltip"),
+                }
+                for category in CATEGORIES
+            ],
             value=CATEGORIES,
             inline=True,
         )
@@ -205,7 +215,10 @@ class RealtimeDashboardBuilder(ABC):
         # Dropdown of different statistics
         dropdown = dcc.Dropdown(
             id="bedcov-dropdown",
-            options=["mean_cov", "n_reads", "cov_gr100_per"],
+            options=[
+                {"label": t(option), "value": option, "title": t(f"{option}_tooltip")}
+                for option in ["mean_cov", "n_reads", "cov_gr100_per"]
+            ],
             value="n_reads",
             style=dict(width="300px"),
         )
@@ -442,11 +455,14 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         variant_row = html.Div(
             className="variant-row",
             children=[
-                html.H3("Preliminary Variant Calling", style=dict(marginTop="0px")),
+                html.H3("Preliminary Variant Calls", style=dict(marginTop="0px")),
                 variant_dropdown,
                 html.Div(
                     className="variant-plots",
                     children=[self.variant_heat.get_layout()],
+                ),
+                html.P(
+                    t("variant_heatmap_description"),
                 ),
             ],
         )
@@ -466,3 +482,18 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         self._add_depth_row(self.depth_csv, self.regions)
         self._add_calling_row(self.variant_csv, self.regions)
         self._add_footer()
+
+
+def setup_translations():
+    """
+    Set up translations for the dashboard
+
+    This function loads the translation files from the package resources
+    and appends them to the i18n load path.
+
+    """
+    with as_file(files("nomadic.realtime.dashboard").joinpath("translations")) as path:
+        i18n.load_path.append(str(path))
+        i18n.set("filename_format", "{locale}.{format}")
+        i18n.load_everything()
+    i18n.set("locale", "en")

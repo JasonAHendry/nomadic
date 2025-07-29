@@ -34,6 +34,7 @@ requirements:
     - dash
     - pysam
     - pyyaml
+    - i18nice
     # tools
     - minimap2
     - samtools >=1.20

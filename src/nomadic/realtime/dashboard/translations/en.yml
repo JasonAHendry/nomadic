@@ -1,0 +1,29 @@
+en:
+  # Banner
+  Experiment Name: Experiment Name
+  Started at: Started at
+  Time elapsed: Time elapsed
+  FASTQs Processed: FASTQs Processed
+  # Mapping
+  n_primary: Primary
+  n_secondary: Secondary
+  n_chimeria: Chimera
+  n_unmapped: Unmapped
+  n_primary_tooltip: Number of primary alignments. Primary alignment is the best or main alignment of a read to the reference genome.
+  n_secondary_tooltip: Secondary alignments are alternative alignments of a read to the reference genome, which are not the primary alignment. It means that the read could be aligned to multiple locations in the genome.
+  n_chimeria_tooltip: Chimeric alignments are those that have multiple segments aligned to different locations of the reference genome, so the read had to be split into multiple parts.
+  n_unmapped_tooltip: Unmapped reads are those that could not be mapped to the reference genome.
+
+  # Regions
+  n_reads: Number of reads
+  mean_cov: Mean coverage
+  cov_gr100_per: Coverage >100x (bp, %%)
+  n_reads_tooltip: The number of reads that have been mapped to the region.
+  mean_cov_tooltip: The mean coverage over the region.
+  cov_gr100_per_tooltip: The percentage of the region that has a coverage greater than 100x.
+  name: region
+  Sample: Sample
+  Samples: Samples
+
+  # Variant Calls
+  variant_heatmap_description: "* The within-sample alternative allele frequency (WSAF) is the fraction of sequencing reads that carry the alternative allele (i.e. variant or mutation). It ranges from 0 to 1."
