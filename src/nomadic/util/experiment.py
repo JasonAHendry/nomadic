@@ -2,9 +2,41 @@ from nomadic.util.dirs import produce_dir
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
 
-
 import os
 import shutil
+from typing import NamedTuple
+
+
+class SummaryFiles(NamedTuple):
+    """
+    Named tuple to hold paths to summary files.
+    """
+
+    fastqs_processed: str
+    read_mapping: str
+    region_coverages: str
+    depth_profiles: str
+    variants: str
+
+
+# Currently used summary file names
+default_config_path = "config/defaults.json"
+summary_files = SummaryFiles(
+    fastqs_processed="summary.fastqs_processed.csv",
+    read_mapping="summary.read_mapping.csv",
+    region_coverages="summary.region_coverages.csv",
+    depth_profiles="summary.depth_profiles.csv",
+    variants="summary.variants.csv",
+)
+
+# Legacy summary file names for backward compatibility
+legacy_summary_files = SummaryFiles(
+    fastqs_processed="summary.fastq.csv",
+    read_mapping="summary.bam_flagstats.csv",
+    region_coverages="summary.bedcov.csv",
+    depth_profiles="summary.depth.csv",
+    variants="summary.variants.csv",
+)
 
 
 class ExperimentDirectories:
@@ -63,6 +95,40 @@ class ExperimentDirectories:
     def get_settings_file(self) -> str:
         """Get the path to the setting file for the experiment"""
         return os.path.join(self.metadata_dir, "settings.json")
+
+    def get_summary_files(self) -> SummaryFiles:
+        if os.path.exists(
+            f"{self.approach_dir}/{legacy_summary_files.fastqs_processed}"
+        ):
+            # Use legacy summary files if the old format exists
+            return SummaryFiles(
+                fastqs_processed=os.path.join(
+                    self.approach_dir, legacy_summary_files.fastqs_processed
+                ),
+                read_mapping=os.path.join(
+                    self.approach_dir, legacy_summary_files.read_mapping
+                ),
+                region_coverages=os.path.join(
+                    self.approach_dir, legacy_summary_files.region_coverages
+                ),
+                depth_profiles=os.path.join(
+                    self.approach_dir, legacy_summary_files.depth_profiles
+                ),
+                variants=os.path.join(self.approach_dir, legacy_summary_files.variants),
+            )
+        return SummaryFiles(
+            fastqs_processed=os.path.join(
+                self.approach_dir, summary_files.fastqs_processed
+            ),
+            read_mapping=os.path.join(self.approach_dir, summary_files.read_mapping),
+            region_coverages=os.path.join(
+                self.approach_dir, summary_files.region_coverages
+            ),
+            depth_profiles=os.path.join(
+                self.approach_dir, summary_files.depth_profiles
+            ),
+            variants=os.path.join(self.approach_dir, summary_files.variants),
+        )
 
     def _setup_metadata_dir(
         self, metadata: MetadataTableParser, regions: RegionBEDParser

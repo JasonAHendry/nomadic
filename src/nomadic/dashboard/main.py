@@ -58,7 +58,7 @@ def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:
     Check if the variant calling TSV is present
     """
 
-    return os.path.exists(f"{expt_dirs.approach_dir}/summary.variants.csv")
+    return os.path.exists(expt_dirs.get_summary_files().variants)
 
 
 def main(input_dir: str):
@@ -98,14 +98,16 @@ def main(input_dir: str):
     print(f"  Found {len(metadata.barcodes) - 1} barcodes in this experiment.")
     print(f"  Found {regions.n_regions} regions of interest.")
 
+    summary_files = expt_dirs.get_summary_files()
+
     shared_kwargs = {
         "expt_name": expt_name,
         "regions": regions,
         "metadata": metadata,
-        "fastq_csv": f"{expt_dirs.approach_dir}/summary.fastq.csv",
-        "flagstats_csv": f"{expt_dirs.approach_dir}/summary.bam_flagstats.csv",
-        "bedcov_csv": f"{expt_dirs.approach_dir}/summary.bedcov.csv",
-        "depth_csv": f"{expt_dirs.approach_dir}/summary.depth.csv",
+        "fastq_csv": summary_files.fastqs_processed,
+        "read_mapping_csv": summary_files.read_mapping,
+        "region_coverages_csv": summary_files.region_coverages,
+        "depth_profiles_csv": summary_files.depth_profiles,
         "start_time": start_time,
     }
 
@@ -113,7 +115,7 @@ def main(input_dir: str):
         print("  Variant calling: True")
         dashboard = CallingRTDashboard(
             **shared_kwargs,
-            variant_csv=f"{expt_dirs.approach_dir}/summary.variants.csv",
+            variant_csv=summary_files.variants,
             is_realtime=False,
         )
     else:

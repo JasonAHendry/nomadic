@@ -74,23 +74,19 @@ class AnalysisStepRT(ABC):
 # --------------------------------------------------------------------------------
 
 
-class FASTQCountRT(AnalysisStepRT):
+class FASTQProcessedRT(AnalysisStepRT):
     """
-    Map a set of FASTQ files from a given barcode,
-    merge them with the cumulative BAM
-
+    Store the number of processed FASTQ files
     """
 
-    step_name = ""
+    step_name = "fastq"
 
     def __init__(self, barcode_name: str, expt_dirs: ExperimentDirectories):
         super().__init__(barcode_name, expt_dirs)
 
         self.step_dir = produce_dir(self.barcode_dir, self.step_name)
         self.incr_dir = produce_dir(self.step_dir, ".incremental")
-        self.output_json = (
-            f"{self.barcode_dir}/{self.barcode_name}.n_processed_fastq.json"
-        )
+        self.output_json = f"{self.step_dir}/{self.barcode_name}.n_processed_fastq.json"
 
     def _get_incremental_json_path(self, incr_id: str):
         """
@@ -228,12 +224,6 @@ class FlagstatsRT(AnalysisStepRT):
         expt_dirs: ExperimentDirectories,
         ref_name: str = "Pf3D7",
     ):
-        """
-        Define initial directories and file paths
-        TODO: choose mapping algorithm and reference genome
-
-        """
-
         super().__init__(barcode_name, expt_dirs)
 
         self.step_dir = produce_dir(self.barcode_dir, self.step_name)
@@ -299,7 +289,7 @@ class FlagstatsRT(AnalysisStepRT):
 # --------------------------------------------------------------------------------
 
 
-class BedCovRT(AnalysisStepRT):
+class RegionCoverage(AnalysisStepRT):
     """
     Analyse coverage across a set of regions defined
     by a BED file
@@ -389,7 +379,7 @@ class BedCovRT(AnalysisStepRT):
 # --------------------------------------------------------------------------------
 
 
-class RegionDepthRT(AnalysisStepRT):
+class RegionDepthProfileRT(AnalysisStepRT):
     """
     Analyse coverage across a set of regions defined
     by a BED file
@@ -403,7 +393,7 @@ class RegionDepthRT(AnalysisStepRT):
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
-        ref_name: str = "Pf3D7",
+        ref_name: str,
     ):
         """Initialise output directory and define file names"""
 

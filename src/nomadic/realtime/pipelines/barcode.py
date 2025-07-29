@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod
 from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.realtime.steps import (
-    FASTQCountRT,
+    FASTQProcessedRT,
     MappingRT,
     FlagstatsRT,
-    BedCovRT,
-    RegionDepthRT,
+    RegionCoverage,
+    RegionDepthProfileRT,
     CallVariantsRT,
 )
 
@@ -108,11 +108,13 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
 
         # Initialise analysis steps
         common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
-        self.fastq_step = FASTQCountRT(**common)
+        self.fastq_step = FASTQProcessedRT(**common)
         self.map_step = MappingRT(**common, ref_name=ref_name)
         self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
-        self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
-        self.depth_step = RegionDepthRT(
+        self.bedcov_step = RegionCoverage(
+            **common, bed_path=bed_path, ref_name=ref_name
+        )
+        self.depth_step = RegionDepthProfileRT(
             **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
         )
 
@@ -160,11 +162,13 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
 
         # Initialise analysis steps
         common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
-        self.fastq_step = FASTQCountRT(**common)
+        self.fastq_step = FASTQProcessedRT(**common)
         self.map_step = MappingRT(**common, ref_name=ref_name)
         self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
-        self.bedcov_step = BedCovRT(**common, bed_path=bed_path, ref_name=ref_name)
-        self.depth_step = RegionDepthRT(
+        self.bedcov_step = RegionCoverage(
+            **common, bed_path=bed_path, ref_name=ref_name
+        )
+        self.depth_step = RegionDepthProfileRT(
             **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
         )
         self.call_step = CallVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
