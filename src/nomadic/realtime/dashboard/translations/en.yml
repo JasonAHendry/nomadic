@@ -7,11 +7,11 @@ en:
   # Mapping
   n_primary: Primary
   n_secondary: Secondary
-  n_chimeria: Chimera
+  n_supplementary: Supplementary
   n_unmapped: Unmapped
   n_primary_tooltip: Number of primary alignments. Primary alignment is the best or main alignment of a read to the reference genome.
   n_secondary_tooltip: Secondary alignments are alternative alignments of a read to the reference genome, which are not the primary alignment. It means that the read could be aligned to multiple locations in the genome.
-  n_chimeria_tooltip: Chimeric alignments are those that have multiple segments aligned to different locations of the reference genome, so the read had to be split into multiple parts.
+  n_supplementary_tooltip: Supplementary alignments exist for chimeric reads that have multiple segments aligned to different locations of the reference genome, so the read had to be split into multiple parts.
   n_unmapped_tooltip: Unmapped reads are those that could not be mapped to the reference genome.
 
   # Regions

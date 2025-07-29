@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None
 
 TIMER_INTERVAL_ID = "interval"
 
-MAPPING_CATS = ["n_primary", "n_chimeria", "n_secondary", "n_unmapped"]
+MAPPING_CATS = ["n_primary", "n_supplementary", "n_secondary", "n_unmapped"]
 MAPPING_COLS = dict(
     zip(
         MAPPING_CATS,
@@ -276,11 +276,15 @@ class MappingStatsPie(RealtimeDashboardComponent):
     """
 
     def __init__(
-        self, expt_name: str, component_id: str, flagstats_csv: str, checklist_id: str
+        self,
+        expt_name: str,
+        component_id: str,
+        read_mapping_csv: str,
+        checklist_id: str,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.flagstats_csv = flagstats_csv
+        self.read_mapping_csv = read_mapping_csv
         self.checklist_id = checklist_id
 
     def _define_layout(self):
@@ -307,9 +311,13 @@ class MappingStatsPie(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data
-            if not os.path.exists(self.flagstats_csv):
+            if not os.path.exists(self.read_mapping_csv):
                 return go.Figure()
-            df = pd.read_csv(self.flagstats_csv)
+            df = pd.read_csv(self.read_mapping_csv)
+
+            if "n_chimeria" in df.columns:
+                # for backwards compatibility to be able to show old experiments where this old name was used
+                df.rename(columns={"n_chimeria": "n_supplementary"}, inplace=True)
 
             # Compute totals
             pie_cats = [c for c in MAPPING_CATS if c in selected_categories]
@@ -342,13 +350,13 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
         self,
         expt_name: str,
         component_id: str,
-        flagstats_csv: str,
+        read_mapping_csv: str,
         checklist_id: str,
         metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.flagstats_csv = flagstats_csv
+        self.read_mapping_csv = read_mapping_csv
         self.checklist_id = checklist_id
         self.metadata = metadata
 
@@ -376,9 +384,13 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data
-            if not os.path.exists(self.flagstats_csv):
+            if not os.path.exists(self.read_mapping_csv):
                 return go.Figure()
-            df = pd.read_csv(self.flagstats_csv)
+            df = pd.read_csv(self.read_mapping_csv)
+
+            if "n_chimeria" in df.columns:
+                # for backwards compatibility to be able to show old experiments where this old name was used
+                df.rename(columns={"n_chimeria": "n_supplementary"}, inplace=True)
 
             if "sample_id" not in df.columns:
                 # for backwards compatibility to be able to show old experiments where this column was not in the data
@@ -446,12 +458,12 @@ class RegionCoveragePie(RealtimeDashboardComponent):
         expt_name: str,
         component_id: str,
         regions: RegionBEDParser,
-        bedcov_csv: str,
+        region_coverage_csv: str,
         dropdown_id: str,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.bedcov_csv = bedcov_csv
+        self.region_coverage_csv = region_coverage_csv
         self.regions = regions
         self.dropdown_id = dropdown_id
 
@@ -479,9 +491,9 @@ class RegionCoveragePie(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data
-            if not os.path.exists(self.bedcov_csv):
+            if not os.path.exists(self.region_coverage_csv):
                 return go.Figure()
-            df = pd.read_csv(self.bedcov_csv)
+            df = pd.read_csv(self.region_coverage_csv)
             df["name"] = pd.Categorical(
                 values=df["name"], categories=self.regions.names, ordered=True
             )
@@ -523,13 +535,13 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
         expt_name: str,
         component_id: str,
         regions: RegionBEDParser,
-        bedcov_csv: str,
+        region_coverage_csv: str,
         dropdown_id: str,
         metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.bedcov_csv = bedcov_csv
+        self.region_coverage_csv = region_coverage_csv
         self.regions = regions
         self.dropdown_id = dropdown_id
         self.metadata = metadata
@@ -558,9 +570,9 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data, and sort
-            if not os.path.exists(self.bedcov_csv):
+            if not os.path.exists(self.region_coverage_csv):
                 return go.Figure()
-            df = pd.read_csv(self.bedcov_csv)
+            df = pd.read_csv(self.region_coverage_csv)
             df["name"] = pd.Categorical(
                 values=df["name"], categories=self.regions.names, ordered=True
             )
@@ -637,10 +649,10 @@ class OverallGauge(RealtimeDashboardComponent):
 
     """
 
-    def __init__(self, expt_name: str, component_id: str, bedcov_csv: str):
+    def __init__(self, expt_name: str, component_id: str, region_coverage_csv: str):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.bedcov_csv = bedcov_csv
+        self.region_coverage_csv = region_coverage_csv
 
     def _define_layout(self):
         """
@@ -660,9 +672,9 @@ class OverallGauge(RealtimeDashboardComponent):
             """Update each interval"""
 
             # Load data, and sort
-            if not os.path.exists(self.bedcov_csv):
+            if not os.path.exists(self.region_coverage_csv):
                 return go.Figure()
-            df = pd.read_csv(self.bedcov_csv)
+            df = pd.read_csv(self.region_coverage_csv)
 
             # Compute key statistics
             total_bp = df["length"].sum()
@@ -733,14 +745,14 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
         expt_name: str,
         regions: RegionBEDParser,
         component_id: str,
-        depth_csv: str,
+        depth_profiles_csv: str,
         region_dropdown_id: str,
         metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.regions = regions
-        self.depth_csv = depth_csv
+        self.depth_profiles_csv = depth_profiles_csv
         self.region_dropdown_id = region_dropdown_id
         self.metadata = metadata
 
@@ -760,9 +772,9 @@ class DepthProfileLinePlot(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data
-            if not os.path.exists(self.depth_csv):
+            if not os.path.exists(self.depth_profiles_csv):
                 return go.Figure()
-            df = pd.read_csv(self.depth_csv)
+            df = pd.read_csv(self.depth_profiles_csv)
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
@@ -839,14 +851,14 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
         expt_name: str,
         regions: RegionBEDParser,
         component_id: str,
-        depth_csv: str,
+        depth_profiles_csv: str,
         region_dropdown_id: str,
         metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.regions = regions
-        self.depth_csv = depth_csv
+        self.depth_profiles_csv = depth_profiles_csv
         self.region_dropdown_id = region_dropdown_id
         self.metadata = metadata
 
@@ -866,9 +878,9 @@ class DepthProfileCumulativeDist(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data
-            if not os.path.exists(self.depth_csv):
+            if not os.path.exists(self.depth_profiles_csv):
                 return go.Figure()
-            df = pd.read_csv(self.depth_csv)
+            df = pd.read_csv(self.depth_profiles_csv)
 
             # Select target gene and group by barcode
             region_df = df.query("name == @target_region")
@@ -948,14 +960,14 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
         expt_name: str,
         regions: RegionBEDParser,
         component_id: str,
-        depth_csv: str,
+        depth_profiles_csv: str,
         region_dropdown_id: str,
         metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
         self.regions = regions
-        self.depth_csv = depth_csv
+        self.depth_profiles_csv = depth_profiles_csv
         self.region_dropdown_id = region_dropdown_id
         self.metadata = metadata
 
@@ -975,9 +987,9 @@ class DepthProfileHistogram(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data
-            if not os.path.exists(self.depth_csv):
+            if not os.path.exists(self.depth_profiles_csv):
                 return go.Figure()
-            df = pd.read_csv(self.depth_csv)
+            df = pd.read_csv(self.depth_profiles_csv)
 
             # Select target gene and group by sample
             region_df = df.query("name == @target_region")

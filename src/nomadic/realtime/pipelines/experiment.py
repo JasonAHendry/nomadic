@@ -67,13 +67,15 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(open(f"{barcode_dir}/{b}.n_processed_fastq.json", "r"))
+                dt = json.load(
+                    open(f"{barcode_dir}/fastq/{b}.n_processed_fastq.json", "r")
+                )
                 fastq_dts.append(dt)
             except FileNotFoundError:
                 continue
         df = pd.DataFrame(fastq_dts)
         df = df.join(self.metadata.required_metadata, on="barcode")
-        df_path = f"{self.expt_dirs.approach_dir}/summary.fastq.csv"
+        df_path = self.expt_dirs.get_summary_files().fastqs_processed
         df.to_csv(df_path, index=False)
 
     def _run_qcbams(self):
@@ -96,7 +98,7 @@ class ExperimentPipelineRT(ABC):
                 continue
         df = pd.DataFrame(qcbams_dts)
         df = df.join(self.metadata.required_metadata, on="barcode")
-        df_path = f"{self.expt_dirs.approach_dir}/summary.bam_flagstats.csv"
+        df_path = self.expt_dirs.get_summary_files().read_mapping
         df.to_csv(df_path, index=False)
 
     def _run_bedcov(self):
@@ -116,7 +118,7 @@ class ExperimentPipelineRT(ABC):
                 continue
         bedcov_df = pd.concat(bedcov_dfs)
         bedcov_df = bedcov_df.join(self.metadata.required_metadata, on="barcode")
-        df_path = f"{self.expt_dirs.approach_dir}/summary.bedcov.csv"
+        df_path = self.expt_dirs.get_summary_files().region_coverage
         bedcov_df.to_csv(df_path, index=False)
 
     def _run_depth(self):
@@ -136,7 +138,7 @@ class ExperimentPipelineRT(ABC):
                 continue
         depth_df = pd.concat(depth_dfs)
         depth_df = depth_df.join(self.metadata.required_metadata, on="barcode")
-        df_path = f"{self.expt_dirs.approach_dir}/summary.depth.csv"
+        df_path = self.expt_dirs.get_summary_files().depth_profiles
         depth_df.to_csv(df_path, index=False)
 
     def _run_variant(self):
@@ -185,7 +187,7 @@ class ExperimentPipelineRT(ABC):
             output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
         )
         annotator.run()
-        csv_path = f"{self.expt_dirs.approach_dir}/summary.variants.csv"
+        csv_path = self.expt_dirs.get_summary_files().variants
         temp_path = csv_path.replace(".csv", "temp.csv")
         annotator.convert_to_csv(temp_path)
 

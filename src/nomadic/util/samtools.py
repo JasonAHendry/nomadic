@@ -97,7 +97,7 @@ def samtools_flagstats(input_bam: str, output_json: str) -> None:
         "n_mapped": orig_dt["mapped"],
         "n_primary": orig_dt["primary mapped"],
         "n_secondary": orig_dt["secondary"],
-        "n_chimeria": orig_dt["supplementary"],
+        "n_supplementary": orig_dt["supplementary"],
         "n_unmapped": orig_dt["total"] - orig_dt["mapped"],
     }
     json.dump(clean_dt, open(output_json, "w"))

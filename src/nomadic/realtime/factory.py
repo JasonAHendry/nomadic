@@ -112,16 +112,17 @@ class PipelineFactory:
         Get the appropriate dashboard
 
         """
+        summary_files = self.expt_dirs.get_summary_files()
         if self.call:
             return CallingRTDashboard(
                 expt_name=self.experiment_name,
                 regions=self.regions,
                 metadata=self.metadata,
-                fastq_csv=f"{self.expt_dirs.approach_dir}/summary.fastq.csv",
-                flagstats_csv=f"{self.expt_dirs.approach_dir}/summary.bam_flagstats.csv",
-                bedcov_csv=f"{self.expt_dirs.approach_dir}/summary.bedcov.csv",
-                depth_csv=f"{self.expt_dirs.approach_dir}/summary.depth.csv",
-                variant_csv=f"{self.expt_dirs.approach_dir}/summary.variants.csv",
+                fastq_csv=summary_files.fastqs_processed,
+                read_mapping_csv=summary_files.read_mapping,
+                region_coverage_csv=summary_files.region_coverage,
+                depth_profiles_csv=summary_files.depth_profiles,
+                variant_csv=summary_files.variants,
                 start_time=start_time,
                 is_realtime=True,
             )
@@ -130,10 +131,10 @@ class PipelineFactory:
             expt_name=self.experiment_name,
             regions=self.regions,
             metadata=self.metadata,
-            fastq_csv=f"{self.expt_dirs.approach_dir}/summary.fastq.csv",
-            flagstats_csv=f"{self.expt_dirs.approach_dir}/summary.bam_flagstats.csv",
-            bedcov_csv=f"{self.expt_dirs.approach_dir}/summary.bedcov.csv",
-            depth_csv=f"{self.expt_dirs.approach_dir}/summary.depth.csv",
+            fastq_csv=summary_files.fastqs_processed,
+            read_mapping_csv=summary_files.read_mapping,
+            region_coverage_csv=summary_files.region_coverage,
+            depth_profiles_csv=summary_files.depth_profiles,
             start_time=start_time,
             is_realtime=True,
         )
