@@ -17,7 +17,7 @@ Each row corresponds to a sample, which can be identified by its barcode (e.g. `
 | `n_unmapped` | Number of unmapped reads. |
 | `n_primary` | Number of reads mapping uniquely. |
 | `n_secondary` | Number of reads mapping to more than one location. |
-| `n_chimera` | Number of reads mapping as chimeras. |
+| `n_supplementary` | Number of reads mapping as chimeras. |
 
 For more information about read mapping, please see [Understanding the Dashboard](understand.md#read-mapping-statistics).
 
