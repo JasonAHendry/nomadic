@@ -2,8 +2,7 @@ name: docs
 on:
   push:
     branches:
-      - master
-      - develop # remove once we are on master/main again
+      - main
 permissions:
   contents: write
 jobs:
