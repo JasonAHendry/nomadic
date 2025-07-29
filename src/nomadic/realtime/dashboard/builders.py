@@ -151,7 +151,7 @@ class RealtimeDashboardBuilder(ABC):
         """
 
         # Here you can set what mapping statistics to make viewable
-        CATEGORIES = ["n_primary", "n_chimeria", "n_secondary", "n_unmapped"]
+        CATEGORIES = ["n_primary", "n_secondary", "n_supplementary", "n_unmapped"]
 
         # Create checklist of mapping categories
         checklist = dcc.Checklist(

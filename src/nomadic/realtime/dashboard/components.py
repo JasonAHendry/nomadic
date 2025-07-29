@@ -28,7 +28,7 @@ pd.options.mode.chained_assignment = None
 
 TIMER_INTERVAL_ID = "interval"
 
-MAPPING_CATS = ["n_primary", "n_chimeria", "n_secondary", "n_unmapped"]
+MAPPING_CATS = ["n_primary", "n_supplementary", "n_secondary", "n_unmapped"]
 MAPPING_COLS = dict(
     zip(
         MAPPING_CATS,
@@ -315,6 +315,10 @@ class MappingStatsPie(RealtimeDashboardComponent):
                 return go.Figure()
             df = pd.read_csv(self.read_mapping_csv)
 
+            if "n_chimeria" in df.columns:
+                # for backwards compatibility to be able to show old experiments where this old name was used
+                df.rename(columns={"n_chimeria": "n_supplementary"}, inplace=True)
+
             # Compute totals
             pie_cats = [c for c in MAPPING_CATS if c in selected_categories]
             pie_values = df[pie_cats].sum().tolist()
@@ -383,6 +387,10 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
             if not os.path.exists(self.read_mapping_csv):
                 return go.Figure()
             df = pd.read_csv(self.read_mapping_csv)
+
+            if "n_chimeria" in df.columns:
+                # for backwards compatibility to be able to show old experiments where this old name was used
+                df.rename(columns={"n_chimeria": "n_supplementary"}, inplace=True)
 
             if "sample_id" not in df.columns:
                 # for backwards compatibility to be able to show old experiments where this column was not in the data
