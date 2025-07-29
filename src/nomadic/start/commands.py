@@ -3,6 +3,7 @@ import os
 from importlib.resources import files
 
 import click
+import click.shell_completion
 
 from nomadic.util.config import default_config_path, write_config
 from nomadic.util.workspace import Workspace
@@ -12,10 +13,21 @@ class Organism(enum.Enum):
     pfalciparum = enum.auto()
 
 
+# Autocomplete is currently not working for enums, see https://github.com/pallets/click/issues/3015
+def complete_organism(ctx: click.Context, param, incomplete):
+    """Complete organism names based on the Organism enum."""
+    return [
+        click.shell_completion.CompletionItem(organism.name)
+        for organism in Organism
+        if organism.name.casefold().startswith(incomplete.casefold())
+    ]
+
+
 @click.argument(
     "organism",
-    type=click.Choice(Organism),
+    type=click.Choice(Organism, case_sensitive=False),
     required=True,
+    shell_complete=complete_organism,
 )
 @click.option(
     "-w",
@@ -32,6 +44,10 @@ def start(organism, workspace_path) -> None:
     Get started with nomadic.
 
     This command will help you set up a new workspace for a specific organism.
+
+    Currently supported organisms:
+
+      - Plasmodium falciparum (pfalciparum)
     """
 
     click.echo(f"Workspace will be created at: {workspace_path}")
@@ -59,7 +75,7 @@ def setup_pfalciparum(workspace):
 
     download_reference(reference_name)
 
-    copy_bed_files(workspace, Organism.pfalciparum.name)
+    copy_bed_files(workspace, organism_name=Organism.pfalciparum.name)
 
     copy_example_metadata(workspace)
 
@@ -92,7 +108,7 @@ def copy_example_metadata(workspace):
         text_file.write(data)
 
 
-def copy_bed_files(workspace: Workspace, organism_name):
+def copy_bed_files(workspace: Workspace, *, organism_name):
     bed_files = files("nomadic.start").joinpath("data", "beds", organism_name).iterdir()
     click.echo("Copying amplicon BED files.")
     for bed_file in bed_files:

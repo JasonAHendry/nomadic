@@ -1,6 +1,7 @@
 import os
 
 import click
+import click.shell_completion
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util import minknow
@@ -12,30 +13,59 @@ from nomadic.util.workspace import (
 )
 
 
-def set_workspace(ctx, param, workspace_path):
-    """Set the workspace path in the context object so we can use it later."""
-    ctx.ensure_object(dict)
-    ctx.obj["workspace_path"] = workspace_path
-    return workspace_path
+def complete_experiment_name(ctx: click.Context, param, incomplete):
+    """Complete experiment names based on existing metadatafiles in the workspace."""
+    workspace_path = ctx.params.get("workspace_path", "./")
+    metadata_path = Workspace(workspace_path).get_metadata_dir()
+    if os.path.exists(metadata_path):
+        experiments = [
+            f.removesuffix(".csv")
+            for f in os.listdir(metadata_path)
+            if f.endswith(".csv")
+        ]
+        return [
+            click.shell_completion.CompletionItem(experiment)
+            for experiment in experiments
+            if experiment.startswith(incomplete)
+        ]
+    return []
 
 
-def load_defaults_from_config(ctx, param, value):
+def complete_bed_file(ctx: click.Context, param, incomplete):
+    """Complete bed file options based on existing BED files in the workspace."""
+    workspace_path = ctx.params.get("workspace_path", "./")
+    workspace = Workspace(workspace_path)
+    result = []
+    if os.path.exists(workspace.get_beds_dir()):
+        panels = workspace.get_panel_names()
+        result = [
+            click.shell_completion.CompletionItem(panel)
+            for panel in panels
+            if panel.startswith(incomplete)
+        ]
+    if not result:
+        return [click.shell_completion.CompletionItem(incomplete, type="file")]
+    return result
+
+
+def load_defaults_from_config(ctx: click.Context, param, value):
     """Load configuration from the default config file if it exists."""
-    config_path = os.path.join(ctx.obj.get("workspace_path", "./"), default_config_path)
+    config_path = os.path.join(
+        ctx.params.get("workspace_path", "./"), default_config_path
+    )
     if os.path.isfile(config_path):
         defaults = load_config(config_path).get("defaults", None)
         if defaults is not None:
-            click.echo(f"Loaded defaults from {config_path}")
+            if not ctx.resilient_parsing:
+                # Don't print defaults if parsing is resilient, as this is used for shell completion
+                click.echo(f"Loaded defaults from {config_path}")
             ctx.default_map = defaults
             ctx.show_default = True
+    return value
 
 
 @click.command(
     short_help="Run analysis in real-time.",
-)
-@click.argument(
-    "experiment_name",
-    type=str,
 )
 @click.option(
     "-w",
@@ -47,7 +77,11 @@ def load_defaults_from_config(ctx, param, value):
     help="Path of the workspace where all input/output files (beds, metadata, results) are stored. "
     "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
     "as they are predefined in the workspace config or can be loaded from the workspace",
-    callback=set_workspace,
+)
+@click.argument(
+    "experiment_name",
+    type=str,
+    shell_complete=complete_experiment_name,
 )
 @click.option(
     callback=load_defaults_from_config,
@@ -56,7 +90,7 @@ def load_defaults_from_config(ctx, param, value):
 @click.option(
     "-o",
     "--output",
-    type=click.Path(),
+    type=click.Path(dir_okay=True, file_okay=False),
     show_default="<workspace>/results/<experiment_name>",
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
@@ -81,6 +115,7 @@ def load_defaults_from_config(ctx, param, value):
     type=click.Path(),
     required=False,
     help="Path to BED file specifying genomic regions of interest or name of panel, e.g. 'nomads8' or 'nomadsMVP'.",
+    shell_complete=complete_bed_file,
 )
 @click.option(
     "-r",
