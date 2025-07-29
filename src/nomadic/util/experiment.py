@@ -14,7 +14,7 @@ class SummaryFiles(NamedTuple):
 
     fastqs_processed: str
     read_mapping: str
-    region_coverages: str
+    region_coverage: str
     depth_profiles: str
     variants: str
 
@@ -24,7 +24,7 @@ default_config_path = "config/defaults.json"
 summary_files = SummaryFiles(
     fastqs_processed="summary.fastqs_processed.csv",
     read_mapping="summary.read_mapping.csv",
-    region_coverages="summary.region_coverages.csv",
+    region_coverage="summary.region_coverage.csv",
     depth_profiles="summary.depth_profiles.csv",
     variants="summary.variants.csv",
 )
@@ -33,7 +33,7 @@ summary_files = SummaryFiles(
 legacy_summary_files = SummaryFiles(
     fastqs_processed="summary.fastq.csv",
     read_mapping="summary.bam_flagstats.csv",
-    region_coverages="summary.bedcov.csv",
+    region_coverage="summary.bedcov.csv",
     depth_profiles="summary.depth.csv",
     variants="summary.variants.csv",
 )
@@ -108,8 +108,8 @@ class ExperimentDirectories:
                 read_mapping=os.path.join(
                     self.approach_dir, legacy_summary_files.read_mapping
                 ),
-                region_coverages=os.path.join(
-                    self.approach_dir, legacy_summary_files.region_coverages
+                region_coverage=os.path.join(
+                    self.approach_dir, legacy_summary_files.region_coverage
                 ),
                 depth_profiles=os.path.join(
                     self.approach_dir, legacy_summary_files.depth_profiles
@@ -121,8 +121,8 @@ class ExperimentDirectories:
                 self.approach_dir, summary_files.fastqs_processed
             ),
             read_mapping=os.path.join(self.approach_dir, summary_files.read_mapping),
-            region_coverages=os.path.join(
-                self.approach_dir, summary_files.region_coverages
+            region_coverage=os.path.join(
+                self.approach_dir, summary_files.region_coverage
             ),
             depth_profiles=os.path.join(
                 self.approach_dir, summary_files.depth_profiles

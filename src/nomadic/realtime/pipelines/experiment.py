@@ -118,7 +118,7 @@ class ExperimentPipelineRT(ABC):
                 continue
         bedcov_df = pd.concat(bedcov_dfs)
         bedcov_df = bedcov_df.join(self.metadata.required_metadata, on="barcode")
-        df_path = self.expt_dirs.get_summary_files().region_coverages
+        df_path = self.expt_dirs.get_summary_files().region_coverage
         bedcov_df.to_csv(df_path, index=False)
 
     def _run_depth(self):

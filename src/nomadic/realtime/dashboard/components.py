@@ -458,12 +458,12 @@ class RegionCoveragePie(RealtimeDashboardComponent):
         expt_name: str,
         component_id: str,
         regions: RegionBEDParser,
-        region_coverages_csv: str,
+        region_coverage_csv: str,
         dropdown_id: str,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.region_coverages_csv = region_coverages_csv
+        self.region_coverage_csv = region_coverage_csv
         self.regions = regions
         self.dropdown_id = dropdown_id
 
@@ -491,9 +491,9 @@ class RegionCoveragePie(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data
-            if not os.path.exists(self.region_coverages_csv):
+            if not os.path.exists(self.region_coverage_csv):
                 return go.Figure()
-            df = pd.read_csv(self.region_coverages_csv)
+            df = pd.read_csv(self.region_coverage_csv)
             df["name"] = pd.Categorical(
                 values=df["name"], categories=self.regions.names, ordered=True
             )
@@ -535,13 +535,13 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
         expt_name: str,
         component_id: str,
         regions: RegionBEDParser,
-        region_coverages_csv: str,
+        region_coverage_csv: str,
         dropdown_id: str,
         metadata: MetadataTableParser,
     ):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.region_coverages_csv = region_coverages_csv
+        self.region_coverage_csv = region_coverage_csv
         self.regions = regions
         self.dropdown_id = dropdown_id
         self.metadata = metadata
@@ -570,9 +570,9 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             """Called every time an input changes"""
 
             # Load data, and sort
-            if not os.path.exists(self.region_coverages_csv):
+            if not os.path.exists(self.region_coverage_csv):
                 return go.Figure()
-            df = pd.read_csv(self.region_coverages_csv)
+            df = pd.read_csv(self.region_coverage_csv)
             df["name"] = pd.Categorical(
                 values=df["name"], categories=self.regions.names, ordered=True
             )
@@ -649,10 +649,10 @@ class OverallGauge(RealtimeDashboardComponent):
 
     """
 
-    def __init__(self, expt_name: str, component_id: str, region_coverages_csv: str):
+    def __init__(self, expt_name: str, component_id: str, region_coverage_csv: str):
         # Store inputs
         super().__init__(expt_name, component_id)
-        self.region_coverages_csv = region_coverages_csv
+        self.region_coverage_csv = region_coverage_csv
 
     def _define_layout(self):
         """
@@ -672,9 +672,9 @@ class OverallGauge(RealtimeDashboardComponent):
             """Update each interval"""
 
             # Load data, and sort
-            if not os.path.exists(self.region_coverages_csv):
+            if not os.path.exists(self.region_coverage_csv):
                 return go.Figure()
-            df = pd.read_csv(self.region_coverages_csv)
+            df = pd.read_csv(self.region_coverage_csv)
 
             # Compute key statistics
             total_bp = df["length"].sum()

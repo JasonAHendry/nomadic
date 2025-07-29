@@ -106,7 +106,7 @@ def main(input_dir: str):
         "metadata": metadata,
         "fastq_csv": summary_files.fastqs_processed,
         "read_mapping_csv": summary_files.read_mapping,
-        "region_coverages_csv": summary_files.region_coverages,
+        "region_coverage_csv": summary_files.region_coverage,
         "depth_profiles_csv": summary_files.depth_profiles,
         "start_time": start_time,
     }

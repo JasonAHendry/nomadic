@@ -206,8 +206,8 @@ class RealtimeDashboardBuilder(ABC):
         self.components.append(self.mapping_bar)
         self.layout.append(mapping_row)
 
-    def _add_region_coverages_row(
-        self, region_coverages_csv: str, regions: RegionBEDParser
+    def _add_region_coverage_row(
+        self, region_coverage_csv: str, regions: RegionBEDParser
     ) -> None:
         """
         Add a row summarising coverage across amplicons
@@ -230,14 +230,14 @@ class RealtimeDashboardBuilder(ABC):
             self.expt_name,
             component_id="bedcov-pie",
             regions=regions,
-            region_coverages_csv=region_coverages_csv,
+            region_coverage_csv=region_coverage_csv,
             dropdown_id="bedcov-dropdown",
         )
         self.region_strip = RegionCoverageStrip(
             self.expt_name,
             component_id="bedcov-strip",
             regions=regions,
-            region_coverages_csv=region_coverages_csv,
+            region_coverage_csv=region_coverage_csv,
             dropdown_id="bedcov-dropdown",
             metadata=self.metadata,
         )
@@ -361,7 +361,7 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         metadata: MetadataTableParser,
         fastq_csv,
         read_mapping_csv,
-        region_coverages_csv,
+        region_coverage_csv,
         depth_profiles_csv,
         start_time: Optional[datetime],
         is_realtime: bool,
@@ -376,7 +376,7 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         self.regions = regions
         self.fastq_csv = fastq_csv
         self.read_mapping_csv = read_mapping_csv
-        self.region_coverages_csv = region_coverages_csv
+        self.region_coverage_csv = region_coverage_csv
         self.depth_profiles_csv = depth_profiles_csv
         self.start_time = start_time
 
@@ -387,7 +387,7 @@ class MappingRTDashboard(RealtimeDashboardBuilder):
         """
         self._add_banner(self.fastq_csv, start_time=self.start_time)
         self._add_mapping_row(self.read_mapping_csv)
-        self._add_region_coverages_row(self.region_coverages_csv, self.regions)
+        self._add_region_coverage_row(self.region_coverage_csv, self.regions)
         self._add_depth_row(self.depth_profiles_csv, self.regions)
         self._add_footer()
 
@@ -408,7 +408,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         metadata: MetadataTableParser,
         fastq_csv,
         read_mapping_csv,
-        region_coverages_csv,
+        region_coverage_csv,
         depth_profiles_csv,
         variant_csv,
         start_time: Optional[datetime],
@@ -424,7 +424,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         self.regions = regions
         self.fastq_csv = fastq_csv
         self.read_mapping_csv = read_mapping_csv
-        self.region_coverages_csv = region_coverages_csv
+        self.region_coverage_csv = region_coverage_csv
         self.depth_profiles_csv = depth_profiles_csv
         self.variant_csv = variant_csv
         self.start_time = start_time
@@ -480,7 +480,7 @@ class CallingRTDashboard(RealtimeDashboardBuilder):
         """
         self._add_banner(self.fastq_csv, self.start_time)
         self._add_mapping_row(self.read_mapping_csv)
-        self._add_region_coverages_row(self.region_coverages_csv, self.regions)
+        self._add_region_coverage_row(self.region_coverage_csv, self.regions)
         self._add_depth_row(self.depth_profiles_csv, self.regions)
         self._add_calling_row(self.variant_csv, self.regions)
         self._add_footer()
