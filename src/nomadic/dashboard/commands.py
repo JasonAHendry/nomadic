@@ -80,7 +80,8 @@ def dashboard(workspace_path, experiment):
 
         input_dir = workspace.get_output_dir(experiment)
     else:
-        input_dir = experiment
+        # Normalize the path to for example remove trailing slashes
+        input_dir = os.path.normpath(experiment)
         if "/" not in experiment and not os.path.exists(input_dir):
             # Probably tried to find experiment by name, so warn that workspace does not exist
             raise click.BadParameter(
@@ -89,7 +90,8 @@ def dashboard(workspace_path, experiment):
             )
 
     if not os.path.exists(input_dir):
-        input_dir = experiment
+        # Normalize the path to for example remove trailing slashes
+        input_dir = os.path.normpath(experiment)
         if not os.path.exists(input_dir):
             if "/" in experiment:
                 # Probably tried to find experiment by path, so warn that input directory does not exist
