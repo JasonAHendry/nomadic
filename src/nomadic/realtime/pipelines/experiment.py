@@ -196,7 +196,6 @@ class ExperimentPipelineRT(ABC):
         # Clean-up
         os.remove(temp_path)
         os.remove(filtered_vcf)
-        os.remove(unfiltered_vcf)
 
 
 # --------------------------------------------------------------------------------
