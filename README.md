@@ -32,7 +32,7 @@ cd nomadic
 nomadic realtime <expt_name>
 ```
 
-For more detailed information, see our [Documentation](https://jasonahendry.github.io/)
+For more detailed information, see our [Documentation](https://jasonahendry.github.io/nomadic)
 
 ## Development
 For development, clone the repo, create a conda environment and activate it
