@@ -172,7 +172,6 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
             **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
         )
         self.call_step = CallVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
-        # self.annot_step = AnnotateVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
 
     def _run(self, new_fastq: List[str], incr_id: str) -> None:
         """
@@ -194,9 +193,6 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
 
         _ = self.call_step.run(final_bam)
         self.call_step.merge()
-
-        # self.annot_step.run(final_vcf)
-        # self.annot_step.merge()
 
         self.fastq_step.run(new_fastq, incr_id)
         self.fastq_step.merge()
