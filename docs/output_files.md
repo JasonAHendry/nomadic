@@ -3,8 +3,8 @@
 
 *Nomadic* produces several files that provide information about the quality of your sequencing run, and the variants that were detected. They can be found in the results directory (`results/<expt_name>`), and are described briefly below:
 
-### `summary.bam_flagstats.csv`
-The `summary.bam_flagstats.csv` contains information about read mapping for each sample.
+### `summary.read_mapping.csv`
+The `summary.read_mapping.csv` contains information about read mapping for each sample.
 
 Each row corresponds to a sample, which can be identified by its barcode (e.g. `barcode01`). The values provided come from [`samtools flagstats`](https://www.htslib.org/doc/samtools-flagstat.html) and are counts of read mapping flags inside of the sample's BAM file. Together they summarise how well your sequencing reads mapped to your reference genome.
 
@@ -21,8 +21,8 @@ Each row corresponds to a sample, which can be identified by its barcode (e.g. `
 
 For more information about read mapping, please see [Understanding the Dashboard](understand.md#read-mapping-statistics).
 
-### `summary.bedcov.csv`
-The `summary.bedcov.csv` file contains information about sequencing coverage over each amplicon in each sample.
+### `summary.region_coverage.csv`
+The `summary.region_coverage.csv` file contains information about sequencing coverage over each amplicon in each sample.
 
 
 Each row contains information about coverage over a specific amplicon in a specific sample. The sample is indicated by its barcode (e.g. `barcode01`) and the amplicon is indicated by its `name` (as well as position and length). The values provided come from [`samtools bedcov`](https://www.htslib.org/doc/samtools-bedcov.html).

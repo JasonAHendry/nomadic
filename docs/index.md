@@ -37,8 +37,8 @@ It was designed to work with amplicon sequencing data from the NOMADS-MVP protoc
 
 ## Resources
 
-- NOMADS-MVP Protocol: TODO (english and french)
-- Manuscript: TODO
+- The NOMADS-MVP protocol is available in [English](https://www.protocols.io/view/nomads-mvp-rapid-genomic-surveillance-of-malaria-w-kxygxy284l8j/v1) and [French](https://www.protocols.io/view/surveillance-g-nomique-du-paludisme-par-la-m-thod-q26g75b5qlwz/v1).
+- Read our preprint [here](https://www.biorxiv.org/content/10.1101/2025.07.23.666274v1).
 
 ## Acknowledgements
 This work was funded by the Bill and Melinda Gates Foundation (INV-003660, INV-048316).
