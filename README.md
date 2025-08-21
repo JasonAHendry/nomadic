@@ -2,6 +2,8 @@
 [![View - Docs](https://img.shields.io/badge/View-Docs-blue?logo=materialformkdocs&logoColor=blue)](https://jasonahendry.github.io/nomadic/)
 [![Conda Downloads](https://img.shields.io/conda/dn/bioconda/nomadic?color=green&link=https%3A%2F%2Fanaconda.org%2Fbioconda%2Fnomadic)](https://anaconda.org/bioconda/nomadic)
 ![OS - Linux | OSX](https://img.shields.io/badge/OS-Linux_|_OSX-informational)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/nomadic/README.html)
+
 <p align="center"><img src="docs/img/home/nomadic_logo.png" width="500"></p>
 
 ## Overview
