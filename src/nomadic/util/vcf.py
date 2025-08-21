@@ -107,12 +107,14 @@ class VariantAnnotator:
         input_vcf: str,
         bed_path: str,
         reference: Reference,
+        caller: str,
         output_vcf: str = None,
     ) -> None:
         # Inputs
         self.input_vcf = input_vcf
         self.bed_path = bed_path
         self.reference = reference  # The GFF path needs to be GFF3 compliant
+        self.caller = caller
 
         # Output
         self.output_vcf = output_vcf
@@ -127,7 +129,12 @@ class VariantAnnotator:
         if output_vcf:
             cmd += f" -Oz -o {shlex.quote(output_vcf)}"
         cmd += f" {shlex.quote(input_vcf)}"
-        cmd += " -- -t FORMAT/WSAF=1-FORMAT/AD/FORMAT/DP"
+        if self.caller == "delve":
+            cmd += " -- -t FORMAT/WSAF=FORMAT/MVAF"
+        elif self.caller == "bcftools":
+            cmd += " -- -t FORMAT/WSAF=1-FORMAT/AD/FORMAT/DP"
+        else:
+            raise RuntimeError(f"Unknown caller: {self.caller}")
 
         return cmd
 
@@ -194,7 +201,13 @@ class VariantAnnotator:
             "consequence": "BCSQ",
             "amplicon": "AMP_ID",
         }
-        called = {"gt": "GT", "gq": "GQ", "dp": "DP", "wsaf": "WSAF{0}"}
+
+        if self.caller == "delve":
+            called = {"gt": "GT", "dp": "DP", "wsaf": "WSAF"}
+        elif self.caller == "bcftools":
+            called = {"gt": "GT", "gq": "GQ", "dp": "DP", "wsaf": "WSAF{0}"}
+        else:
+            raise RuntimeError(f"Unknown caller: {self.caller}")
 
         # Write header
         sep = "\t"

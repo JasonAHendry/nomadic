@@ -9,7 +9,8 @@ from nomadic.realtime.steps import (
     FlagstatsRT,
     RegionCoverage,
     RegionDepthProfileRT,
-    CallVariantsRT,
+    CallVariantsRTBcftools,
+    CallVariantsRTDelve,
 )
 
 
@@ -151,6 +152,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
         bed_path: str,
+        caller: str,
         ref_name: str = "Pf3D7",
     ):
         """
@@ -171,7 +173,16 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         self.depth_step = RegionDepthProfileRT(
             **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
         )
-        self.call_step = CallVariantsRT(**common, bed_path=bed_path, ref_name=ref_name)
+        if caller == "delve":
+            self.call_step = CallVariantsRTDelve(
+                **common, bed_path=bed_path, ref_name=ref_name
+            )
+        elif caller == "bcftools":
+            self.call_step = CallVariantsRTBcftools(
+                **common, bed_path=bed_path, ref_name=ref_name
+            )
+        else:
+            raise RuntimeError(f"Unknown caller: {caller}")
 
     def _run(self, new_fastq: List[str], incr_id: str) -> None:
         """

@@ -141,7 +141,7 @@ class ExperimentPipelineRT(ABC):
         df_path = self.expt_dirs.get_summary_files().depth_profiles
         depth_df.to_csv(df_path, index=False)
 
-    def _run_variant(self):
+    def _run_variant(self, caller: str):
         """
         Summarise variant calling results across all barcodes
 
@@ -184,6 +184,7 @@ class ExperimentPipelineRT(ABC):
             input_vcf=filtered_vcf,
             bed_path=self.regions.path,
             reference=self.reference,
+            caller=caller,
             output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
         )
         annotator.run()
@@ -238,9 +239,20 @@ class ExptCallingPipelineRT(ExperimentPipelineRT):
 
     """
 
+    def __init__(
+        self,
+        metadata: MetadataTableParser,
+        expt_dirs: ExperimentDirectories,
+        regions: RegionBEDParser,
+        caller: str,
+        reference: Reference = PlasmodiumFalciparum3D7(),
+    ):
+        self.caller = caller
+        super().__init__(metadata, expt_dirs, regions, reference)
+
     def run(self):
         self._run_fastq()
         self._run_qcbams()
         self._run_bedcov()
         self._run_depth()
-        self._run_variant()
+        self._run_variant(self.caller)

@@ -37,7 +37,7 @@ class PipelineFactory:
         regions: RegionBEDParser,
         expt_dirs: ExperimentDirectories,
         fastq_dir: str,
-        call: bool = False,
+        caller: str,
         ref_name: str = "Pf3D7",
     ):
         """
@@ -58,10 +58,7 @@ class PipelineFactory:
         self.ref_name = ref_name
         self.reference = REFERENCE_COLLECTION[ref_name]
 
-        if not isinstance(call, bool):
-            raise ValueError("`call` must be a boolean.")
-
-        self.call = call
+        self.caller = caller
 
     def _get_barcode_pipeline(self, barcode_name: str) -> BarcodePipelineRT:
         """
@@ -75,8 +72,8 @@ class PipelineFactory:
             "ref_name": self.ref_name,
         }
 
-        if self.call:
-            return BarcodeCallingPipelineRT(**kwargs)
+        if self.caller:
+            return BarcodeCallingPipelineRT(caller=self.caller, **kwargs)
 
         return BarcodeMappingPipelineRT(**kwargs)
 
@@ -100,9 +97,9 @@ class PipelineFactory:
         Get the appropriate experiment pipeline
 
         """
-        if self.call:
+        if self.caller:
             return ExptCallingPipelineRT(
-                self.metadata, self.expt_dirs, self.regions, self.reference
+                self.metadata, self.expt_dirs, self.regions, self.caller, self.reference
             )
 
         return ExptMappingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
@@ -113,7 +110,7 @@ class PipelineFactory:
 
         """
         summary_files = self.expt_dirs.get_summary_files()
-        if self.call:
+        if self.caller:
             return CallingRTDashboard(
                 expt_name=self.experiment_name,
                 regions=self.regions,

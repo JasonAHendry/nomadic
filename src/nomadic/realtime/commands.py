@@ -124,11 +124,17 @@ def load_defaults_from_config(ctx: click.Context, param, value):
     help="Choose a reference genome to be used in real-time analysis.",
 )
 @click.option(
-    "-c",
     "--call",
     is_flag=True,
     default=False,
-    help="Perform preliminary variant calling of biallelic SNPs in real-time.",
+    help="Perform preliminary variant calling of biallelic SNPs in real-time. (Deprecated, use --caller instead)",
+)
+@click.option(
+    "-c",
+    "--caller",
+    help="Specify the variant caller to use for variant calling of biallelic SNPs in real-time.",
+    default=None,
+    type=click.Choice(["bcftools", "delve"]),
 )
 @click.option(
     "--resume",
@@ -153,6 +159,7 @@ def realtime(
     region_bed,
     reference_name,
     call,
+    caller,
     resume,
     verbose,
 ):
@@ -211,6 +218,9 @@ def realtime(
             abort=True,
         )
 
+    if not caller and call:
+        caller = "bcftools"
+
     from .main import main
 
     main(
@@ -221,6 +231,6 @@ def realtime(
         metadata_csv,
         region_bed,
         reference_name,
-        call,
+        caller,
         verbose,
     )

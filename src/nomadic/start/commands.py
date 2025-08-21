@@ -80,16 +80,16 @@ def setup_pfalciparum(workspace):
     copy_example_metadata(workspace)
 
     default_bed = "nomadsMVP"
-    call = True
+    caller = "delve"
 
     click.echo(f"Setting reference genome: {reference_name}")
     click.echo(f"Setting default BED file: {default_bed}")
-    click.echo(f"Setting default variant calling: {call}")
+    click.echo(f"Setting default variant caller: {caller}")
 
     defaults = {
         "reference_name": reference_name,
         "region_bed": default_bed,
-        "call": call,
+        "caller": caller,
     }
 
     write_config(

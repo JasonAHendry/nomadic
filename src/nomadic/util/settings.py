@@ -9,7 +9,7 @@ from typing import NamedTuple, Optional
 class ExperimentSettings(NamedTuple):
     name: str
     start_date: datetime
-    call: bool
+    caller: str
     fastq_dir: str
     metadata_csv: str
     region_bed: str
@@ -71,4 +71,7 @@ def load_settings(path: str) -> Optional[ExperimentSettings]:
     with open(path, "r") as file:
         data = json.load(file)
         data["start_date"] = parse_date(data["start_date"])
+        if "call" in data:  # for backwards compatibility
+            data["caller"] = "bcftools"
+            del data["call"]
         return ExperimentSettings(**data)

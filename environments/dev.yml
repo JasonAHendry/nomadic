@@ -9,6 +9,7 @@ dependencies:
   - bcftools >=1.20
   - htslib
   - bedtools
+  - delve-bio =0.1.*
   - pysam
   - jupyter
   - dash
