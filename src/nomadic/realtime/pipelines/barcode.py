@@ -137,6 +137,7 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
         self.depth_step.merge()
 
         self.fastq_step.run(new_fastq, incr_id)
+        self.fastq_step.merge()
 
 
 class BarcodeCallingPipelineRT(BarcodePipelineRT):
