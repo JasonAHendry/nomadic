@@ -10,7 +10,7 @@ def fastq_dir(fastq_dir_glob: str) -> Optional[str]:
     This is typically where Minknow/Guppy writes the FASTQ files.
 
     """
-    fastq_pass_dirs = glob.glob(fastq_dir_glob)
+    fastq_pass_dirs = sorted(glob.glob(fastq_dir_glob))
     if len(fastq_pass_dirs) > 1:
         warnings.warn(
             f"Found {len(fastq_pass_dirs)} 'fastq_pass' directories,"
