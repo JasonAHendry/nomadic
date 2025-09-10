@@ -44,7 +44,7 @@ class Consequence:
             return
 
         AAs = "ARNDCEQGHILKMFPSTWYV"
-        stop = "\*"
+        stop = r"\*"
         match = re.match(
             f"([0-9]+)([{AAs}|{stop}])(?:>[0-9]+([{AAs}|{stop}]))?", self.aa_change
         )
@@ -75,10 +75,11 @@ class Consequence:
         if csq_string == ".":  # intergenic
             return cls(".", ".", ".", ".")
 
-        if csq_string.startswith("@"):  # compound variety, recorded elsewhere
-            return cls(".", ".", ".", f"compound{csq_string}")
-
         consequences = csq_string.split(",")
+
+        consequences = [c for c in consequences if not c.startswith("@")] # filter recorded elsewhere
+        if len(consequences) == 0:
+            return cls(".", ".", ".", ".")
         if len(consequences) > 1:
             warnings.warn(
                 f"Found multiple consequences of variant: {csq_string}! Keeping only first."

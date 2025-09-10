@@ -197,8 +197,8 @@ class ExperimentPipelineRT(ABC):
         df.to_csv(csv_path)
 
         # Clean-up
-        os.remove(temp_path)
-        os.remove(filtered_vcf)
+        # os.remove(temp_path)
+        # os.remove(filtered_vcf)
 
 
 # --------------------------------------------------------------------------------

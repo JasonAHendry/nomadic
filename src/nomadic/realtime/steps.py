@@ -511,6 +511,8 @@ class CallVariantsRTDelve(AnalysisStepRT):
         Run variant calling with delve
 
         """
+        log.info("Calling variants with delve...")
+
         filtered_bam_path = input_bam.replace(".bam", ".filtered.bam")
 
         cmd_filter_input = f"samtools view {shlex.quote(input_bam)} -e '![SA]' -b -o {shlex.quote(filtered_bam_path)}"
@@ -672,6 +674,7 @@ class CallVariantsRTBcftools(AnalysisStepRT):
         `-P` : Prior on mutation rate
 
         """
+        log.info("Calling variants with bcftools...")
 
         cmd_pileup = (
             "bcftools mpileup -B -I -Q12 --max-BQ 30 -h 100"
