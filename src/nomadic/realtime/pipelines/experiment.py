@@ -174,7 +174,6 @@ class ExperimentPipelineRT(ABC):
             " --apply-filters PASS"
             " --types='snps'"
             " --min-alleles 2"
-            " --max-alleles 2"
             f" -Oz -o {shlex.quote(filtered_vcf)} {shlex.quote(unfiltered_vcf)}"
         )
         subprocess.run(cmd, check=True, shell=True)

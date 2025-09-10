@@ -528,6 +528,7 @@ class CallVariantsRTDelve(AnalysisStepRT):
             f" -s {shlex.quote(self.barcode_name)}"
             f" -R {shlex.quote(self.bed_path)}"
             f" -f {shlex.quote(self.reference.fasta_path)}"
+            " --set-failed-GTs ."
             f" {shlex.quote(filtered_bam_path)}"
         )
 

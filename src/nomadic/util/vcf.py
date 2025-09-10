@@ -77,8 +77,9 @@ class Consequence:
 
         consequences = csq_string.split(",")
 
-        consequences = [c for c in consequences if not c.startswith("@")] # filter recorded elsewhere
-        if len(consequences) == 0:
+        if any(c.startswith('@') for c in consequences):
+            # This means a change for this aa was already recorded elsewhere
+            # it might result in the same change, and we can not handle multiple same changes
             return cls(".", ".", ".", ".")
         if len(consequences) > 1:
             warnings.warn(
