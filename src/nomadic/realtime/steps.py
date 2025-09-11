@@ -518,7 +518,7 @@ class CallVariantsRTDelve(AnalysisStepRT):
         cmd_filter_input = f"samtools view {shlex.quote(input_bam)} -e '![SA]' -b -o {shlex.quote(filtered_bam_path)}"
 
         cmd_call = (
-            "delve"
+            "delve call"
             f" --model-params {','.join([str(v) for v in self.MODEL_PARAMS])}"
             f" --min-cov {self.MIN_DEPTH}"
             f" --min-BQ {self.MIN_QUAL}"

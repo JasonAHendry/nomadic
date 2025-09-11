@@ -40,7 +40,7 @@ requirements:
     - samtools >=1.20
     - bcftools >=1.20
     - bedtools
-    - delve-bio =0.1.*
+    - delve-bio =0.2.*
 
 test:
   imports:
