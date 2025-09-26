@@ -132,7 +132,7 @@ def load_defaults_from_config(ctx: click.Context, param, value):
 @click.option(
     "-c",
     "--caller",
-    help="Specify the variant caller to use for variant calling of biallelic SNPs in real-time.",
+    help="Call biallelic SNPs in real-time with the indicated variant caller. If this flag is omitted, no variant calling is performed.",
     default=None,
     type=click.Choice(["bcftools", "delve"]),
 )

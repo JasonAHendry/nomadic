@@ -273,14 +273,11 @@ class VariantAnnotator:
 
         """
 
-        warnings.warn(
-            "Converting VCF to CSV can lead to errors if multiallelic SNPs are called!"
-        )
-
         if output_csv is None:
             output_csv = self.output_vcf.replace(".vcf.gz", ".csv")
 
         temp_tsv = output_csv.replace(".csv", ".temp.tsv")
+        # using tsv file to deal with commas in fields like consequence and multi-allelic alt
         self._convert_to_tsv(temp_tsv)
         self._parse_consequences(
             input_tsv=temp_tsv, output_file=output_csv, output_sep=","
