@@ -24,6 +24,7 @@ def selective_rsync(
         exclusions(list): A list of file patterns to exclude
         recursive(bool): Copy top-level files or entire directory
         delete(bool): Delete files in target that are not in source
+        checksum(bool): Use checksum to determine if files have changed
         verbose(bool): Whether to output verbose rsync information
         progressbar(bool): Whether to show a progress bar
     """
