@@ -1,33 +1,50 @@
-import enum
+# import enum
 import os
 from importlib.resources import files
+from dataclasses import dataclass
 
 import click
-import click.shell_completion
+# import click.shell_completion
 
 from nomadic.util.config import default_config_path, write_config
 from nomadic.util.workspace import Workspace
 
 
-class Organism(enum.Enum):
-    pfalciparum = enum.auto()
+# class Organism(enum.Enum):
+#     pfalciparum = enum.auto()
+#     agambiae = enum.auto()
 
 
-# Autocomplete is currently not working for enums, see https://github.com/pallets/click/issues/3015
-def complete_organism(ctx: click.Context, param, incomplete):
-    """Complete organism names based on the Organism enum."""
-    return [
-        click.shell_completion.CompletionItem(organism.name)
-        for organism in Organism
-        if organism.name.casefold().startswith(incomplete.casefold())
-    ]
+# # Autocomplete is currently not working for enums, see https://github.com/pallets/click/issues/3015
+# def complete_organism(ctx: click.Context, param, incomplete):
+#     """Complete organism names based on the Organism enum."""
+#     return [
+#         click.shell_completion.CompletionItem(organism.name)
+#         for organism in Organism
+#         if organism.name.casefold().startswith(incomplete.casefold())
+#     ]
+
+
+@dataclass
+class Organism:
+    name: str
+    reference: str
+    default_bed: str
+    call: bool = True
+
+
+_organisms = [
+    Organism("pfalciparum", "Pf3D7", "nomadsMVP"),
+    Organism("agambiae", "AgPEST", "nomadsIR"),
+]
+ORGANISM_COLLECTION = {organism.name: organism for organism in _organisms}
 
 
 @click.argument(
     "organism",
-    type=click.Choice(Organism, case_sensitive=False),
+    type=click.Choice(ORGANISM_COLLECTION, case_sensitive=False),
     required=True,
-    shell_complete=complete_organism,
+    # shell_complete=complete_organism,
 )
 @click.option(
     "-w",
@@ -48,52 +65,50 @@ def start(organism, workspace_path) -> None:
     Currently supported organisms:
 
       - Plasmodium falciparum (pfalciparum)
+      - Anopheles gambiae (agambaie)
     """
 
     click.echo(f"Workspace will be created at: {workspace_path}")
     workspace = Workspace.create_from_directory(workspace_path)
 
-    if organism == Organism.pfalciparum:
-        setup_pfalciparum(workspace)
-    else:
-        RuntimeError(
-            "Organism is not available."
-        )  # I am pretty sure it is impossible to enter this code block
+    if organism not in ORGANISM_COLLECTION:  # this should be handled by click.
+        raise RuntimeError(
+            f"Organism {organism} is not available. Choose from {', '.join(ORGANISM_COLLECTION)}."
+        )
+
+    setup_organism(workspace=workspace, organism=ORGANISM_COLLECTION[organism])
 
     click.echo(
-        f"You can now enter your workspace with `cd {workspace_path}` and run `nomadic realtime <experiment_name>` to start real-time analysis."
+        f"You can now enter your workspace with `cd {workspace_path}`"
+        " and run `nomadic realtime <experiment_name>` to start real-time analysis."
     )
 
 
-def setup_pfalciparum(workspace):
-    click.echo("Setting up workspace for Plasmodium falciparum.")
-
-    reference_name = "Pf3D7"
-
-    # To speed up initial run, only import here when needed
+def setup_organism(
+    workspace: Workspace,
+    organism: Organism,
+) -> None:
+    """
+    Setup a workspace for a specific organism
+    """
     from nomadic.download.main import main as download_reference
 
-    download_reference(reference_name)
-
-    copy_bed_files(workspace, organism_name=Organism.pfalciparum.name)
-
+    download_reference(organism.reference)
+    copy_bed_files(workspace, organism_name=organism.name)
     copy_example_metadata(workspace)
 
-    default_bed = "nomadsMVP"
-    call = True
-
-    click.echo(f"Setting reference genome: {reference_name}")
-    click.echo(f"Setting default BED file: {default_bed}")
-    click.echo(f"Setting default variant calling: {call}")
+    click.echo(f"Setting reference genome: {organism.reference}")
+    click.echo(f"Setting default BED file: {organism.default_bed}")
+    click.echo(f"Setting default variant calling: {organism.call}")
 
     defaults = {
-        "reference_name": reference_name,
-        "region_bed": default_bed,
-        "call": call,
+        "reference_name": organism.reference,
+        "region_bed": organism.default_bed,
+        "call": organism.call,
     }
-
     write_config(
-        {"defaults": defaults}, os.path.join(workspace.path, default_config_path)
+        config={"defaults": defaults},
+        config_path=os.path.join(workspace.path, default_config_path),
     )
 
 
