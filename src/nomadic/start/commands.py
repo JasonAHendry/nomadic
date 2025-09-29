@@ -10,19 +10,14 @@ from nomadic.util.config import default_config_path, write_config
 from nomadic.util.workspace import Workspace
 
 
-# class Organism(enum.Enum):
-#     pfalciparum = enum.auto()
-#     agambiae = enum.auto()
-
-
-# # Autocomplete is currently not working for enums, see https://github.com/pallets/click/issues/3015
-# def complete_organism(ctx: click.Context, param, incomplete):
-#     """Complete organism names based on the Organism enum."""
-#     return [
-#         click.shell_completion.CompletionItem(organism.name)
-#         for organism in Organism
-#         if organism.name.casefold().startswith(incomplete.casefold())
-#     ]
+# --------------------------------------------------------------------------------
+# Define workspaces for different organisms
+#
+# To add an organism:
+# - Define an Organism inside _organism = [...]
+# - Ensure the reference genome is available: src/nomadic/download/references.py
+# - Add BED(s) to src/nomadic/start/data/beds/<organism_name>/*.bed
+# --------------------------------------------------------------------------------
 
 
 @dataclass
@@ -40,48 +35,10 @@ _organisms = [
 ORGANISM_COLLECTION = {organism.name: organism for organism in _organisms}
 
 
-@click.argument(
-    "organism",
-    type=click.Choice(ORGANISM_COLLECTION, case_sensitive=False),
-    required=True,
-    # shell_complete=complete_organism,
-)
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="nomadic",
-    type=click.Path(exists=False),
-    show_default=True,
-    help="Path to workspace.",
-)
-@click.command(short_help="Start a workspace.")
-def start(organism, workspace_path) -> None:
-    """
-    Get started with nomadic.
-
-    This command will help you set up a new workspace for a specific organism.
-
-    Currently supported organisms:
-
-      - Plasmodium falciparum (pfalciparum)
-      - Anopheles gambiae (agambaie)
-    """
-
-    click.echo(f"Workspace will be created at: {workspace_path}")
-    workspace = Workspace.create_from_directory(workspace_path)
-
-    if organism not in ORGANISM_COLLECTION:  # this should be handled by click.
-        raise RuntimeError(
-            f"Organism {organism} is not available. Choose from {', '.join(ORGANISM_COLLECTION)}."
-        )
-
-    setup_organism(workspace=workspace, organism=ORGANISM_COLLECTION[organism])
-
-    click.echo(
-        f"You can now enter your workspace with `cd {workspace_path}`"
-        " and run `nomadic realtime <experiment_name>` to start real-time analysis."
-    )
+# --------------------------------------------------------------------------------
+# Workspace creation (downloading / copying files)
+#
+# --------------------------------------------------------------------------------
 
 
 def setup_organism(
@@ -131,3 +88,70 @@ def copy_bed_files(workspace: Workspace, *, organism_name):
         dest_path = os.path.join(workspace.get_beds_dir(), bed_file.name)
         with open(dest_path, "w") as text_file:
             text_file.write(data)
+
+
+# --------------------------------------------------------------------------------
+# Main command
+#
+#
+# --------------------------------------------------------------------------------
+
+
+@click.argument(
+    "organism",
+    type=click.Choice(ORGANISM_COLLECTION, case_sensitive=False),
+    required=True,
+    # shell_complete=complete_organism,
+)
+@click.option(
+    "-w",
+    "--workspace",
+    "workspace_path",
+    default="nomadic",
+    type=click.Path(exists=False),
+    show_default=True,
+    help="Path to workspace.",
+)
+@click.command(short_help="Start a workspace.")
+def start(organism, workspace_path) -> None:
+    """
+    Get started with nomadic.
+
+    This command will help you set up a new workspace for a specific organism.
+
+    \b
+    Currently supported organisms:
+    - Plasmodium falciparum (pfalciparum)
+    - Anopheles gambiae (agambiae)
+
+    """
+
+    click.echo(f"Workspace will be created at: {workspace_path}")
+    workspace = Workspace.create_from_directory(workspace_path)
+
+    if organism not in ORGANISM_COLLECTION:  # this should be handled by click.
+        raise RuntimeError(
+            f"Organism {organism} is not available. Choose from {', '.join(ORGANISM_COLLECTION)}."
+        )
+
+    setup_organism(workspace=workspace, organism=ORGANISM_COLLECTION[organism])
+
+    click.echo(
+        f"You can now enter your workspace with `cd {workspace_path}`"
+        " and run `nomadic realtime <experiment_name>` to start real-time analysis."
+    )
+
+
+# class Organism(enum.Enum):
+#     pfalciparum = enum.auto()
+#     agambiae = enum.auto()
+
+
+# # Autocomplete is currently not working for enums, see https://github.com/pallets/click/issues/3015
+# def complete_organism(ctx: click.Context, param, incomplete):
+#     """Complete organism names based on the Organism enum."""
+#     return [
+#         click.shell_completion.CompletionItem(organism.name)
+#         for organism in Organism
+#         if organism.name.casefold().startswith(incomplete.casefold())
+#     ]
