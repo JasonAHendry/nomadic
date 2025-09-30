@@ -454,8 +454,8 @@ class CallVariantsRTDelve(AnalysisStepRT):
     MIN_DEPTH = 40
     MIN_QUAL = 20
     STRAND_BIAS_ODDS_RATIO = 7
-    TRUNCATE_REGIONS = 25
     MODEL_PARAMS = [8, 8, 0.01]
+    COMPUTE_BAQ = True
 
     def __init__(
         self,
@@ -517,14 +517,15 @@ class CallVariantsRTDelve(AnalysisStepRT):
 
         cmd_filter_input = f"samtools view {shlex.quote(input_bam)} -e '![SA]' -b -o {shlex.quote(filtered_bam_path)}"
 
+        compute_baq = "--compute-baq" if self.COMPUTE_BAQ else ""
+
         cmd_call = (
             "delve call"
             f" --model-params {','.join([str(v) for v in self.MODEL_PARAMS])}"
             f" --min-cov {self.MIN_DEPTH}"
             f" --min-BQ {self.MIN_QUAL}"
             f" --max-cov {self.MAX_DEPTH}"
-            " --compute-baq"
-            f" --truncate-regions {self.TRUNCATE_REGIONS}"
+            f" {compute_baq}"
             f" -s {shlex.quote(self.barcode_name)}"
             f" -R {shlex.quote(self.bed_path)}"
             f" -f {shlex.quote(self.reference.fasta_path)}"

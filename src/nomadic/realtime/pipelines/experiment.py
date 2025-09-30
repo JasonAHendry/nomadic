@@ -167,7 +167,7 @@ class ExperimentPipelineRT(ABC):
         unfiltered_vcf = f"{vcf_dir}/summary.variants.vcf.gz"
         bcftools.merge(vcfs, output_vcf=unfiltered_vcf)
 
-        # Filter biallelic sites
+        # Filter variant sites
         filtered_vcf = unfiltered_vcf.replace(".vcf.gz", ".filtered.vcf.gz")
         cmd = (
             "bcftools view"
