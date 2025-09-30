@@ -60,7 +60,6 @@ def setup_organism(
         "reference_name": organism.reference,
         "region_bed": organism.default_bed,
         "caller": organism.caller,
-
     }
     write_config(
         config={"defaults": defaults},
