@@ -26,7 +26,7 @@ def main(
     metadata_csv: str,
     region_bed: str,
     reference_name: str,
-    call: bool,
+    caller: str,
     verbose: bool,
 ) -> None:
     """
@@ -45,7 +45,8 @@ def main(
     log.info(f"  Regions (.bed): {region_bed}")
     log.info(f"  Reference genome: {reference_name}")
     REFERENCE_COLLECTION[reference_name].confirm_downloaded()
-    log.info(f"  Performing variant calling: {call}")
+    if caller:
+        log.info(f"  Performing variant calling using: {caller}")
     log.info("Processing...")
 
     # PREPARE TO RUN
@@ -68,7 +69,7 @@ def main(
         reference_name=reference_name,
         n_barcodes=len(metadata.barcodes) - 1,
         n_regions=regions.n_regions,
-        call=call,
+        caller=caller,
     )
     start_time = None
     if previous_settings is None:
@@ -84,7 +85,7 @@ def main(
 
     # INITIALISE WATCHERS
     factory = PipelineFactory(
-        expt_name, metadata, regions, expt_dirs, fastq_dir, call, reference_name
+        expt_name, metadata, regions, expt_dirs, fastq_dir, caller, reference_name
     )
 
     watchers = factory.get_watchers()
