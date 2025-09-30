@@ -23,12 +23,12 @@ class Organism:
     name: str
     reference: str
     default_bed: str
-    call: bool = True
+    caller: str
 
 
 _organisms = [
-    Organism("pfalciparum", "Pf3D7", "nomadsMVP"),
-    Organism("agambiae", "AgPEST", "nomadsIR"),
+    Organism("pfalciparum", "Pf3D7", "nomadsMVP", "delve"),
+    Organism("agambiae", "AgPEST", "nomadsIR", "bcftools"),
 ]
 ORGANISM_COLLECTION = {organism.name: organism for organism in _organisms}
 
@@ -54,12 +54,12 @@ def setup_organism(
 
     click.echo(f"Setting reference genome: {organism.reference}")
     click.echo(f"Setting default BED file: {organism.default_bed}")
-    click.echo(f"Setting default variant calling: {organism.call}")
+    click.echo(f"Setting default variant caller: {organism.caller}")
 
     defaults = {
         "reference_name": organism.reference,
         "region_bed": organism.default_bed,
-        "call": organism.call,
+        "caller": organism.caller,
     }
     write_config(
         config={"defaults": defaults},
