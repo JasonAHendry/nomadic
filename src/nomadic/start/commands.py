@@ -1,17 +1,15 @@
-# import enum
 import os
 from importlib.resources import files
 from dataclasses import dataclass
 
 import click
-# import click.shell_completion
 
 from nomadic.util.config import default_config_path, write_config
 from nomadic.util.workspace import Workspace
 
 
 # --------------------------------------------------------------------------------
-# Define workspaces for different organisms
+# Workspace definitions for different organisms
 #
 # To add an organism:
 # - Define an Organism inside _organism = [...]
@@ -101,7 +99,6 @@ def copy_bed_files(workspace: Workspace, *, organism_name):
     "organism",
     type=click.Choice(ORGANISM_COLLECTION, case_sensitive=False),
     required=True,
-    # shell_complete=complete_organism,
 )
 @click.option(
     "-w",
@@ -140,18 +137,3 @@ def start(organism, workspace_path) -> None:
         f"You can now enter your workspace with `cd {workspace_path}`"
         " and run `nomadic realtime <experiment_name>` to start real-time analysis."
     )
-
-
-# class Organism(enum.Enum):
-#     pfalciparum = enum.auto()
-#     agambiae = enum.auto()
-
-
-# # Autocomplete is currently not working for enums, see https://github.com/pallets/click/issues/3015
-# def complete_organism(ctx: click.Context, param, incomplete):
-#     """Complete organism names based on the Organism enum."""
-#     return [
-#         click.shell_completion.CompletionItem(organism.name)
-#         for organism in Organism
-#         if organism.name.casefold().startswith(incomplete.casefold())
-#     ]
