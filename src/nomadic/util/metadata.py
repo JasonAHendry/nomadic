@@ -87,6 +87,7 @@ class MetadataTableParser:
     """
 
     REQUIRED_COLUMNS = ["barcode", "sample_id"]
+    UNIQUE_COLUMNS = ["barcode"]
 
     def __init__(self, metadata_csv: str, include_unclassified: bool = True):
         """
@@ -133,7 +134,7 @@ class MetadataTableParser:
 
         """
 
-        for c in self.REQUIRED_COLUMNS:
+        for c in self.UNIQUE_COLUMNS:
             all_entries = self.df[c].tolist()
             observed_entries = []
             for entry in all_entries:
