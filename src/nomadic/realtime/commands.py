@@ -91,6 +91,12 @@ from nomadic.util.cli import (
     type=click.Choice(["bcftools", "delve"]),
 )
 @click.option(
+    "--overwrite",
+    is_flag=True,
+    default=False,
+    help="Overwrite existing output directory if it exists.",
+)
+@click.option(
     "--resume",
     is_flag=True,
     default=False,
@@ -119,6 +125,7 @@ def realtime(
     reference_name,
     call,
     caller,
+    overwrite,
     resume,
     dashboard,
     verbose,
@@ -134,19 +141,22 @@ def realtime(
 
     validate_reference(reference_name)
 
-    if os.path.exists(output) and not resume:
-        choice = click.prompt(
-            f"Output directory {output} already exists. Do you want to resume (y) a previous experiment run? If not, you can restart (r) the run, which will delete the existing output directory.",
-            type=click.Choice(["y", "n", "r"], case_sensitive=False),
-        )
-        if choice == "n":
-            raise click.Abort()
-        elif choice == "r":
-            click.confirm(
-                f"Are you sure you want to delete the existing output directory {output} and restart the experiment? This will delete all existing results in that directory.",
-                abort=True,
-            )
+    if os.path.exists(output):
+        if overwrite:
             rmtree(output)
+        elif not resume:
+            choice = click.prompt(
+                f"Output directory {output} already exists. Do you want to resume (y) a previous experiment run? If not, you can restart (r) the run, which will delete the existing output directory.",
+                type=click.Choice(["y", "n", "r"], case_sensitive=False),
+            )
+            if choice == "n":
+                raise click.Abort()
+            elif choice == "r":
+                click.confirm(
+                    f"Are you sure you want to delete the existing output directory {output} and restart the experiment? This will delete all existing results in that directory.",
+                    abort=True,
+                )
+                rmtree(output)
 
     if not caller and call:
         caller = "bcftools"

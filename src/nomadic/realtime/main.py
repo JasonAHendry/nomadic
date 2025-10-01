@@ -129,7 +129,7 @@ def main(
                     log.info("No barcodes updated. Waiting before scannning again.")
                     time.sleep(WAIT_INTERVAL)
                 else:
-                    log.info("No data found for barcodes.")
+                    log.info("No new data found for barcodes.")
                     break
     except KeyboardInterrupt:
         log.info("")

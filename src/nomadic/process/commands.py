@@ -91,6 +91,12 @@ from nomadic.realtime.commands import (
     help="Overwrite existing output directory if it exists.",
 )
 @click.option(
+    "--resume",
+    is_flag=True,
+    default=False,
+    help="Resume processing a previous experiment if the output directory already exists. This is necessary to pick of processing of an experiment that was aborted.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -107,6 +113,7 @@ def process(
     reference_name,
     caller,
     overwrite,
+    resume,
     verbose,
 ):
     """
@@ -119,12 +126,12 @@ def process(
     fastq_dir = get_fastqdir_path(experiment_name, fastq_dir)
 
     if os.path.exists(output):
-        if not overwrite:
+        if overwrite:
+            rmtree(output)
+        elif not resume:
             raise click.BadParameter(
                 message=f"Output directory '{output}' already exists. Please choose a different output directory with -o/--output, or delete the existing directory if you want to overwrite it.",
             )
-        else:
-            rmtree(output)
 
     from ..realtime.main import main
 
