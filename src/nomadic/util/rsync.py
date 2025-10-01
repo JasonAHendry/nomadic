@@ -39,17 +39,13 @@ def selective_rsync(
     elif verbose:
         rsync_components.append("-v")
 
-    # delete only works if recursive is True
-    if recursive:
-        if delete:
-            rsync_components.append("--delete")
-    else:
+    # Add in other supplied details
+    if delete:
+        rsync_components.append("--delete")
+    if not recursive:
         rsync_components.extend(["--exclude", "*/"])
-
     if checksum:
         rsync_components.append("--checksum")
-
-    # Add in specific exclusions if given
     if exclusions:
         for exclusion in exclusions:
             rsync_components.extend(["--exclude", exclusion])
@@ -61,18 +57,14 @@ def selective_rsync(
     rsync_feedback = [
         f"{f.name}" if isinstance(f, Path) else f for f in rsync_components
     ]
-    # TODO: Ensure logging is working properly
-    log.debug(f"{' '.join(rsync_feedback)}")
+    print(f"{' '.join(rsync_feedback)}")
 
-    try:
-        # Format the rsync command properly for bash to run it
-        rsync_command = [
-            f"{f.resolve()}/" if isinstance(f, Path) else f for f in rsync_components
-        ]
-        result = subprocess.run(rsync_command, text=True, check=True)
-        if result.stdout:
-            log.debug(f"stdout: {result.stdout}")
-        if result.stderr:
-            log.warning(f"stderr: {result.stderr}")
-    except Exception as e:
-        log.error(f"An unexpected error occurred: {e}")
+    # Format the rsync command properly for bash to run it
+    rsync_command = [
+        f"{f.resolve()}/" if isinstance(f, Path) else f for f in rsync_components
+    ]
+    result = subprocess.run(rsync_command, text=True, check=True)
+    if result.stdout:
+        print(f"stdout: {result.stdout}")
+    if result.stderr:
+        print(f"stderr: {result.stderr}")
