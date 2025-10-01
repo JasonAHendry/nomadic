@@ -29,6 +29,9 @@ def main(
     caller: str,
     verbose: bool,
     with_dashboard: bool = True,
+    # This is a bit hacky, but at the moment realtime and processing almost the same
+    # so we can use the same main function for both. In the future they may diverge more
+    # and we should split them up.
     realtime: bool = True,
 ) -> None:
     """
