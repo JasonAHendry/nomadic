@@ -11,6 +11,7 @@ from nomadic.util.workspace import (
     check_if_workspace,
     looks_like_a_bed_filepath,
 )
+from nomadic.util.exceptions import MetadataFormatError
 
 
 def complete_experiment_name(ctx: click.Context, param, incomplete):
@@ -223,14 +224,20 @@ def realtime(
 
     from .main import main
 
-    main(
-        experiment_name,
-        output,
-        workspace_path,
-        fastq_dir,
-        metadata_csv,
-        region_bed,
-        reference_name,
-        caller,
-        verbose,
-    )
+    try:
+        main(
+            experiment_name,
+            output,
+            workspace_path,
+            fastq_dir,
+            metadata_csv,
+            region_bed,
+            reference_name,
+            caller,
+            verbose,
+        )
+    except MetadataFormatError as e:
+        raise click.BadParameter(
+            param_hint="-m/--metadata_csv",
+            message=str(e),
+        ) from e

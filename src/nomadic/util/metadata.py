@@ -32,7 +32,7 @@ def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";", "\t"]):
     return used[0]
 
 
-def check_barcode_format(barcode: str, try_to_fix: bool = True) -> str:
+def correct_barcode_format(barcode: str, try_to_fix: bool = True) -> str:
     """
     Check that the format of a barcode is as expected, and optionally
     try and fix if it is not
@@ -82,12 +82,28 @@ def check_barcode_format(barcode: str, try_to_fix: bool = True) -> str:
 class MetadataTableParser:
     """
     Parse the `metadata_csv` table, and make sure that it is formatted
-    correctly
+    correctly. If not formatted correctly, try and fix it if possible.
 
     """
 
     REQUIRED_COLUMNS = ["barcode", "sample_id"]
     UNIQUE_COLUMNS = ["barcode"]
+
+    # If the required columns are not found, try these alternative names, case insensitive
+    ALTERNATIVE_NAMES = {
+        "barcode": ["barcodes"],
+        "sample_id": [
+            "sample",
+            "sampleid",
+            "sample-id",
+            "sample_id",
+            "sampleids",
+            "sample-ids",
+            "sample_ids",
+            "sample id",
+            "sample ids",
+        ],
+    }
 
     def __init__(self, metadata_csv: str, include_unclassified: bool = True):
         """
@@ -98,9 +114,9 @@ class MetadataTableParser:
         self.csv = metadata_csv
         self.df = pd.read_csv(self.csv, delimiter=get_csv_delimiter(self.csv))
 
-        self._check_for_columns()
+        self._correct_columns()
         self._check_entries_unique()
-        self._check_all_barcodes()
+        self._correct_all_barcodes()
 
         self.barcodes = self.df["barcode"].tolist()
         self.required_metadata = self.df[self.REQUIRED_COLUMNS].set_index("barcode")
@@ -116,15 +132,35 @@ class MetadataTableParser:
             return None
         return metadata.loc[barcode].get("sample_id", None)
 
-    def _check_for_columns(self):
+    def _correct_columns(self):
         """
-        Check the correct columns are present
+        Check the correct columns are present and if not try to find them under different names
 
         """
 
-        for c in self.REQUIRED_COLUMNS:
-            if c not in self.df.columns:
-                raise MetadataFormatError(f"Metadata must contain column called {c}!")
+        normalized_column_names = [c.strip().lower() for c in self.df.columns]
+
+        for required_column in self.REQUIRED_COLUMNS:
+            if required_column not in self.df.columns:
+                for alt in [
+                    required_column,
+                    *self.ALTERNATIVE_NAMES.get(required_column, []),
+                ]:
+                    if alt in normalized_column_names:
+                        column_name = self.df.columns[
+                            normalized_column_names.index(alt)
+                        ]
+                        warnings.warn(
+                            f"Using column '{column_name}' as '{required_column}' in metadata CSV."
+                        )
+                        self.df.rename(
+                            columns={column_name: required_column}, inplace=True
+                        )
+                        break
+                else:
+                    raise MetadataFormatError(
+                        f"Metadata must contain column called {required_column}!"
+                    )
 
     def _check_entries_unique(self):
         """
@@ -144,5 +180,5 @@ class MetadataTableParser:
                     )
                 observed_entries.append(entry)
 
-    def _check_all_barcodes(self) -> List[str]:
-        self.df["barcode"] = [check_barcode_format(b) for b in self.df["barcode"]]
+    def _correct_all_barcodes(self) -> List[str]:
+        self.df["barcode"] = [correct_barcode_format(b) for b in self.df["barcode"]]
