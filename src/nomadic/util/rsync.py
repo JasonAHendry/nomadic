@@ -1,9 +1,7 @@
-import logging
 import subprocess
 from pathlib import Path
 
-script_dir = Path(__file__).parent.resolve()
-log = logging.getLogger(script_dir.stem)
+import click
 
 
 def selective_rsync(
@@ -28,36 +26,34 @@ def selective_rsync(
         verbose(bool): Whether to output verbose rsync information
         progressbar(bool): Whether to show a progress bar
     """
-    # Base command with compress (z), recursive (r)) and timestamp (t) options
+    # Base command with recursive (r) and timestamp (t) options
     # r is needed to select all entries in the folder even if the rsync is not recursive
     # a folder exclusion is then added
-    rsync_components = ["rsync", "-zrt"]
+    rsync_components = ["rsync", "-rt"]
 
-    # Progressbar or verbose (can't have both)
+    # Add variables
     if progressbar:
         rsync_components.append("--info=progress2")
-    elif verbose:
+    if verbose:
         rsync_components.append("-v")
-
-    # Add in other supplied details
     if delete:
         rsync_components.append("--delete")
     if not recursive:
         rsync_components.extend(["--exclude", "*/"])
     if checksum:
         rsync_components.append("--checksum")
-    if exclusions:
+    if exclusions is not None:
         for exclusion in exclusions:
             rsync_components.extend(["--exclude", exclusion])
 
     # Complete the list:
     rsync_components.extend([source_dir, target_dir])
 
-    # Give user feedback on the rsync command being run
-    rsync_feedback = [
-        f"{f.name}" if isinstance(f, Path) else f for f in rsync_components
-    ]
-    print(f"{' '.join(rsync_feedback)}")
+    if verbose:
+        rsync_feedback = [
+            f"{f.name}" if isinstance(f, Path) else f for f in rsync_components
+        ]
+        click.echo(f"{' '.join(rsync_feedback)}")
 
     # Format the rsync command properly for bash to run it
     rsync_command = [
@@ -65,6 +61,6 @@ def selective_rsync(
     ]
     result = subprocess.run(rsync_command, text=True, check=True)
     if result.stdout:
-        print(f"stdout: {result.stdout}")
+        click.echo(f"stdout: {result.stdout}")
     if result.stderr:
-        print(f"stderr: {result.stderr}")
+        click.echo(f"stderr: {result.stderr}")
