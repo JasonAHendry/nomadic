@@ -2,6 +2,7 @@ from pathlib import Path
 
 import click
 
+from nomadic.util import minknow
 from nomadic.util.dirs import produce_dir
 from nomadic.util.rsync import selective_rsync
 from nomadic.util.settings import load_settings
@@ -20,15 +21,6 @@ from nomadic.util.workspace import check_if_workspace
     help="Path to backup folder",
 )
 @click.option(
-    "-m",
-    "--minknow_dir",
-    "minknow_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default="/var/lib/minknow/data",
-    help="Path to minknow output directory",
-)
-@click.option(
     "-w",
     "--workspace",
     "workspace_path",
@@ -37,7 +29,7 @@ from nomadic.util.workspace import check_if_workspace
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     help="Path to the nomadic workspace you want to back up",
 )
-def backup(backup_dir: Path, minknow_dir: Path, workspace_path: Path):
+def backup(backup_dir: Path, workspace_path: Path):
     """
     Backup nomadic workspace and associated minknow data to another location.
     """
@@ -57,28 +49,34 @@ def backup(backup_dir: Path, minknow_dir: Path, workspace_path: Path):
     )
     click.echo("Done.")
 
-    click.echo(
-        f"Backing up minknow data from {minknow_dir} and merging into {backup_dir} for experiments:"
-    )
     exp_dirs = [f.name for f in (workspace_path / "results").iterdir() if f.is_dir()]
-
     for folder in exp_dirs:
         click.echo(folder)
         json_file = workspace_path / "results" / folder / "metadata" / "settings.json"
         settings = load_settings(json_file)
-        if hasattr(settings, "minknow_dir"):
+
+        if settings.minknow_dir is not None:
             minknow_dir = Path(settings.minknow_dir).resolve()
+        elif settings.fastq_dir is not None:
+            # this could be the minknow or the fastq_pass dir so first resolve
+            minknow_dir, _ = minknow.resolve_minknow_fastq_dirs(
+                Path(settings.fastq_dir), experiment_name=folder
+            )
         else:
-            minknow_dir = Path(settings.fastq_dir).resolve().parent.parent.parent
+            click.BadParameter(
+                message=f"Unable to determine the minknow directory for experiment {folder}, skipping backup of minknow data for this experiment.",
+            )
+        source_dir = minknow_dir / folder
         target_dir = backup_dir / "results" / folder / "minknow"
+
         if not minknow_dir.exists():
-            click.echo(f"   ERROR: {minknow_dir} does not exist, unable to backup...")
+            click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
             continue
         if not target_dir.exists():
             produce_dir(target_dir)
-        click.echo(f"   {minknow_dir} to {target_dir}")
+        click.echo(f"   {source_dir} to {target_dir}")
         selective_rsync(
-            source_dir=minknow_dir,
+            source_dir=source_dir,
             target_dir=target_dir,
             recursive=True,
             progressbar=True,

@@ -4,9 +4,9 @@ from datetime import datetime
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.factory import PipelineFactory
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.settings import (
     ExperimentSettings,
@@ -23,6 +23,7 @@ def main(
     output: str,
     workspace: str,
     fastq_dir: str,
+    minknow_dir: str,
     metadata_csv: str,
     region_bed: str,
     reference_name: str,
@@ -63,6 +64,7 @@ def main(
         name=expt_name,
         start_date=datetime.now().replace(microsecond=0),
         fastq_dir=fastq_dir,
+        minknow_dir=minknow_dir,
         metadata_csv=metadata_csv,
         region_bed=region_bed,
         reference_name=reference_name,

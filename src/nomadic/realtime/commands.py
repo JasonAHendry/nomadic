@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import click
 import click.shell_completion
@@ -95,12 +96,12 @@ def load_defaults_from_config(ctx: click.Context, param, value):
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
 @click.option(
-    "-f",
-    "--fastq_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    "-k",
+    "--minknow_dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default=True,
-    help="Path to `fastq_pass` output directory of minknow (e.g. `/var/lib/minknow/data/<experiment_name>/.../.../fastq_pass`), or to the general output directory of minknow (e.g. `/var/lib/minknow/data`)",
+    help="Path to the minknow output directory, supplying a 'fastq_pass` directory is deprecated",
 )
 @click.option(
     "-m",
@@ -148,7 +149,7 @@ def realtime(
     experiment_name,
     output,
     workspace_path,
-    fastq_dir,
+    minknow_dir,
     metadata_csv,
     region_bed,
     reference_name,
@@ -190,9 +191,9 @@ def realtime(
                 message=f"Region BED file not found at {region_bed}.",
             )
 
-    if not minknow.is_fastq_dir(fastq_dir):
-        # should be base path of minknow data, build fastq glob with experiment name.
-        fastq_dir = minknow.fastq_dir_glob(fastq_dir, experiment_name)
+    minknow_dir, fastq_dir = minknow.resolve_minknow_fastq_dirs(
+        minknow_dir, experiment_name
+    )
 
     if reference_name is None:
         raise click.BadParameter(
@@ -218,6 +219,7 @@ def realtime(
         output,
         workspace_path,
         fastq_dir,
+        str(minknow_dir.absolute()),
         metadata_csv,
         region_bed,
         reference_name,
