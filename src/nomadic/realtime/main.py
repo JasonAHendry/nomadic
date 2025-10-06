@@ -28,10 +28,14 @@ def main(
     reference_name: str,
     caller: str,
     verbose: bool,
+    with_dashboard: bool = True,
+    # This is a bit hacky, but at the moment realtime and processing almost the same
+    # so we can use the same main function for both. In the future they may diverge more
+    # and we should split them up.
+    realtime: bool = True,
 ) -> None:
     """
-    Run nomadic in realtime
-
+    Run nomadic processing, either in real-time or as a one-off run.
     """
 
     # PARSE INPUT
@@ -90,10 +94,11 @@ def main(
 
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
-    dashboard = factory.get_dashboard(start_time=start_time)
-    dashboard.run(in_thread=True)
+    if with_dashboard:
+        dashboard = factory.get_dashboard(start_time=start_time)
+        dashboard.run(in_thread=True)
 
-    webbrowser.open("http://127.0.0.1:8050")
+        webbrowser.open("http://127.0.0.1:8050")
 
     # CATCH UP FROM WORK LOG IF WE RESUME
     catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
@@ -119,9 +124,16 @@ def main(
                 log.info(f"Have updated {n_updated} barcodes.")
                 log.info("Running experiment pipeline...")
                 expt_pipeline.run()
+                if not realtime:
+                    log.info("Finished processing data.")
+                    break
             else:
-                log.info("No barcodes updated. Waiting before scannning again.")
-                time.sleep(WAIT_INTERVAL)
+                if realtime:
+                    log.info("No barcodes updated. Waiting before scannning again.")
+                    time.sleep(WAIT_INTERVAL)
+                else:
+                    log.info("No new data found for barcodes.")
+                    break
     except KeyboardInterrupt:
         log.info("")
         log.info("Program has been interrupted by user. Exiting.")
