@@ -122,6 +122,7 @@ class MetadataTableParser:
         self.required_metadata = self.df[self.REQUIRED_COLUMNS].set_index("barcode")
 
         if include_unclassified:
+            self.required_metadata.loc["unclassified"] = ["unclassified"]
             self.barcodes.append("unclassified")
 
     def get_sample_id(self, barcode: str) -> Optional[str]:
