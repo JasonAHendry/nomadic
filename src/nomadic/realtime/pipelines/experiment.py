@@ -1,19 +1,19 @@
-import os
 import json
-import pandas as pd
-import warnings
-import subprocess
-from abc import ABC, abstractmethod
+import os
 import shlex
+import subprocess
+import warnings
+from abc import ABC, abstractmethod
 
-from nomadic.download.references import Reference, PlasmodiumFalciparum3D7
+import pandas as pd
+
+from nomadic.download.references import PlasmodiumFalciparum3D7, Reference
+from nomadic.util.dirs import produce_dir
 from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import produce_dir
 from nomadic.util.regions import RegionBEDParser
-from nomadic.util.wrappers import bcftools
 from nomadic.util.vcf import VariantAnnotator
-
+from nomadic.util.wrappers import bcftools
 
 # --------------------------------------------------------------------------------
 # Interface for experiment pipelines
@@ -193,7 +193,7 @@ class ExperimentPipelineRT(ABC):
 
         df = pd.read_csv(temp_path)
         df = df.join(self.metadata.required_metadata, on="barcode")
-        df.to_csv(csv_path)
+        df.to_csv(csv_path, index=False)
 
         # Clean-up
         os.remove(temp_path)
