@@ -46,8 +46,10 @@ def backup(backup_dir: Path, workspace_path: Path, include_minknow: bool):
             param_hint="-w/--workspace",
             message=f"'{workspace_path.resolve()}' is not a workspace.",
         )
+    workspace_name = workspace_path.resolve().name
+    click.echo(f"Backing up nomadic workspace ({workspace_name}) to {backup_dir}")
+    backup_dir = backup_dir / workspace_name
 
-    click.echo(f"Backing up nomadic workspace from {workspace_path} to {backup_dir}")
     selective_rsync(
         source_dir=workspace_path,
         target_dir=backup_dir,
@@ -60,9 +62,7 @@ def backup(backup_dir: Path, workspace_path: Path, include_minknow: bool):
         click.echo("Skipping minknow data backup as requested.")
         return
 
-    click.echo(
-        f"Backing up minknow data from {minknow_dir} and merging into {backup_dir} for experiments:"
-    )
+    click.echo("Merging minknow data into experiments:")
     exp_dirs = [f.name for f in (workspace_path / "results").iterdir() if f.is_dir()]
     for folder in exp_dirs:
         click.echo(folder)
