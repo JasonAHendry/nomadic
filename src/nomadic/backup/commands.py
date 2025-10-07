@@ -29,12 +29,19 @@ from nomadic.util.workspace import check_if_workspace
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     help="Path to the nomadic workspace you want to back up",
 )
-def backup(backup_dir: Path, workspace_path: Path):
+@click.option(
+    "--include-minknow/--exclude-minknow",
+    "include_minknow",
+    default=True,
+    show_default=True,
+    help="Include/exclude minknow data in the backup",
+)
+def backup(backup_dir: Path, workspace_path: Path, include_minknow: bool):
     """
     Backup nomadic workspace and associated minknow data to another location.
     """
 
-    if not check_if_workspace(workspace_path):
+    if not check_if_workspace(str(workspace_path)):
         raise click.BadParameter(
             param_hint="-w/--workspace",
             message=f"'{workspace_path.resolve()}' is not a workspace.",
@@ -49,6 +56,13 @@ def backup(backup_dir: Path, workspace_path: Path):
     )
     click.echo("Done.")
 
+    if not include_minknow:
+        click.echo("Skipping minknow data backup as requested.")
+        return
+
+    click.echo(
+        f"Backing up minknow data from {minknow_dir} and merging into {backup_dir} for experiments:"
+    )
     exp_dirs = [f.name for f in (workspace_path / "results").iterdir() if f.is_dir()]
     for folder in exp_dirs:
         click.echo(folder)
