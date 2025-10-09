@@ -12,7 +12,6 @@ from nomadic.realtime.commands import (
     get_region_path,
     get_workspace,
 )
-from nomadic.util import minknow
 from nomadic.util.cli import (
     complete_bed_file,
     complete_experiment_name,
