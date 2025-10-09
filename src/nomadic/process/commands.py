@@ -7,6 +7,7 @@ import click
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.commands import (
     get_metadata_path,
+    get_minknow_fastq_dirs,
     get_output_path,
     get_region_path,
     get_workspace,
@@ -50,12 +51,18 @@ from nomadic.util.cli import (
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
 @click.option(
-    "-f",
-    "--fastq_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    "-k",
+    "--minknow_dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default=True,
-    help="Path to `fastq_pass` output directory of minknow (e.g. `/var/lib/minknow/data/<experiment_name>/.../.../fastq_pass`), or to the general output directory of minknow (e.g. `/var/lib/minknow/data`)",
+    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
+)
+@click.option(
+    "-f",
+    "--fastq_dir",
+    type=click.Path(file_okay=False, dir_okay=True),
+    help="Path or glob to the fastq files. This should only be used when the full minknow dir can not be provided, as some features likes backup will not work. Prefer using --minknow_dir. If --fastq_dir is provided, --minknow_dir is ignored.",
 )
 @click.option(
     "-m",
@@ -108,6 +115,7 @@ def process(
     experiment_name,
     output,
     workspace_path,
+    minknow_dir,
     fastq_dir,
     metadata_csv,
     region_bed,
@@ -124,7 +132,9 @@ def process(
     output = get_output_path(experiment_name, output, workspace)
     metadata_csv = get_metadata_path(experiment_name, metadata_csv, workspace)
     region_bed = get_region_path(region_bed, workspace)
-    _, fastq_dir = minknow.resolve_minknow_fastq_dirs(fastq_dir, experiment_name)
+    minknow_dir, fastq_dir = get_minknow_fastq_dirs(
+        experiment_name, minknow_dir, fastq_dir
+    )
 
     if os.path.exists(output):
         if overwrite:
@@ -143,7 +153,7 @@ def process(
         output,
         workspace_path,
         fastq_dir,
-        "",  # TODO
+        minknow_dir,
         metadata_csv,
         region_bed,
         reference_name,

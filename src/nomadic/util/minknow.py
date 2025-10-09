@@ -44,6 +44,11 @@ def is_minknow_base_dir(path: Path) -> bool:
     return any(d.name in expected_folders for d in path.glob("*") if d.is_dir())
 
 
+def is_minknow_experiment_dir(path: Path) -> bool:
+    expected_folders = {"pod5", "fastq_pass", "fastq_fail"}
+    return any(d.name in expected_folders for d in path.glob("*/*/*") if d.is_dir())
+
+
 def resolve_minknow_fastq_dirs(path: Path, experiment_name: str) -> Tuple[Path, str]:
     """
     This function looks to see if the supplied path resembles a minknow data folder or a
