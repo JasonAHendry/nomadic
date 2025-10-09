@@ -1,4 +1,5 @@
 from pathlib import Path
+from collections import defaultdict
 
 import click
 
@@ -64,6 +65,35 @@ def backup(
     workspace_name = workspace.get_name()
     backup_dir = backup_dir / workspace_name
 
+    failure_reasons = defaultdict(list)
+
+    backup_nomadic(backup_dir, workspace_path, workspace_name)
+
+    if not include_minknow:
+        click.echo("Skipping minknow data backup as requested.")
+    else:
+        backup_minknow_data(
+            backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
+        )
+
+    all_backed_up, status_by_exp = calc_backup_status(
+        backup_dir, workspace, include_minknow=include_minknow
+    )
+    # Print summary:
+    print_summary(all_backed_up, status_by_exp, failure_reasons)
+
+
+def print_summary(all_backed_up, status_by_exp, failure_reasons):
+    click.echo("")
+    click.echo("--- Summary ---")
+    click.echo("")
+    for exp, statuses in status_by_exp.items():
+        print_exp_summary(exp, statuses=statuses, reasons=failure_reasons.get(exp))
+    if all_backed_up:
+        click.echo(click.style("All experiments backed up successfully!", fg="green"))
+
+
+def backup_nomadic(backup_dir, workspace_path, workspace_name):
     click.echo(f"Backing up nomadic workspace ({workspace_name}) to {backup_dir}")
 
     selective_rsync(
@@ -74,10 +104,10 @@ def backup(
     )
     click.echo("Done.")
 
-    if not include_minknow:
-        click.echo("Skipping minknow data backup as requested.")
-        return
 
+def backup_minknow_data(
+    backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
+):
     click.echo("Merging minknow data into experiments:")
 
     for exp in workspace.get_experiment_names():
@@ -101,8 +131,10 @@ def backup(
 
         if not source_dir.exists():
             click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
+            failure_reasons[exp].append("no minknow data found")
             continue
         if not minknow.is_minknow_experiment_dir(source_dir):
+            failure_reasons[exp].append("invalid minknow data data")
             click.echo(
                 f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to backup..."
             )
@@ -117,4 +149,37 @@ def backup(
             progressbar=True,
         )
 
-    click.echo("Backup complete.")
+
+def calc_backup_status(backup_dir: Path, workspace: Workspace, include_minknow):
+    all_backed_up = True
+    status_by_exp = defaultdict(list)
+    for exp in workspace.get_experiment_names():
+        exp_dir = backup_dir / "results" / exp
+        nomadic_backed_up = exp_dir.exists()
+        status_by_exp[exp].append(nomadic_backed_up)
+        if not nomadic_backed_up:
+            all_backed_up = False
+        if include_minknow:
+            minknow_backed_up = (exp_dir / "minknow").exists()
+            status_by_exp[exp].append(minknow_backed_up)
+            if not minknow_backed_up:
+                all_backed_up = False
+    return all_backed_up, status_by_exp
+
+
+def print_exp_summary(exp, *, statuses, reasons):
+    if len(statuses) > 0:
+        if statuses[0]:
+            click.echo(click.style("✓", fg="green"), nl=False)
+        else:
+            click.echo(click.style("✗", fg="red"), nl=False)
+    if len(statuses) > 1:
+        if statuses[1]:
+            click.echo(click.style("✓", fg="green"), nl=False)
+        else:
+            click.echo(click.style("✗", fg="red"), nl=False)
+    click.echo(click.style(f" {exp} "), nl=False)
+    if reasons is not None:
+        click.echo(click.style(",".join(reasons), fg="red"), nl=True)
+    else:
+        click.echo()
