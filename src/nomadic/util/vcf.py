@@ -44,7 +44,7 @@ class Consequence:
             return
 
         AAs = "ARNDCEQGHILKMFPSTWYV"
-        stop = "\*"
+        stop = r"\*"
         match = re.match(
             f"([0-9]+)([{AAs}|{stop}])(?:>[0-9]+([{AAs}|{stop}]))?", self.aa_change
         )
@@ -75,10 +75,12 @@ class Consequence:
         if csq_string == ".":  # intergenic
             return cls(".", ".", ".", ".")
 
-        if csq_string.startswith("@"):  # compound variety, recorded elsewhere
-            return cls(".", ".", ".", f"compound{csq_string}")
-
         consequences = csq_string.split(",")
+
+        if any(c.startswith("@") for c in consequences):
+            # This means a change for this aa was already recorded elsewhere
+            # it might result in the same change, and we can not handle multiple same changes
+            return cls(".", ".", ".", ".")
         if len(consequences) > 1:
             warnings.warn(
                 f"Found multiple consequences of variant: {csq_string}! Keeping only first."
@@ -107,12 +109,14 @@ class VariantAnnotator:
         input_vcf: str,
         bed_path: str,
         reference: Reference,
+        caller: str,
         output_vcf: str = None,
     ) -> None:
         # Inputs
         self.input_vcf = input_vcf
         self.bed_path = bed_path
         self.reference = reference  # The GFF path needs to be GFF3 compliant
+        self.caller = caller
 
         # Output
         self.output_vcf = output_vcf
@@ -127,7 +131,12 @@ class VariantAnnotator:
         if output_vcf:
             cmd += f" -Oz -o {shlex.quote(output_vcf)}"
         cmd += f" {shlex.quote(input_vcf)}"
-        cmd += " -- -t FORMAT/WSAF=1-FORMAT/AD/FORMAT/DP"
+        if self.caller == "delve":
+            cmd += " -- -t FORMAT/WSAF=FORMAT/MVAF"
+        elif self.caller == "bcftools":
+            cmd += " -- -t FORMAT/WSAF=1-FORMAT/AD/FORMAT/DP"
+        else:
+            raise RuntimeError(f"Unknown caller: {self.caller}")
 
         return cmd
 
@@ -194,7 +203,13 @@ class VariantAnnotator:
             "consequence": "BCSQ",
             "amplicon": "AMP_ID",
         }
-        called = {"gt": "GT", "gq": "GQ", "dp": "DP", "wsaf": "WSAF{0}"}
+
+        if self.caller == "delve":
+            called = {"gt": "GT", "dp": "DP", "wsaf": "WSAF"}
+        elif self.caller == "bcftools":
+            called = {"gt": "GT", "gq": "GQ", "dp": "DP", "wsaf": "WSAF{0}"}
+        else:
+            raise RuntimeError(f"Unknown caller: {self.caller}")
 
         # Write header
         sep = "\t"
@@ -258,14 +273,11 @@ class VariantAnnotator:
 
         """
 
-        warnings.warn(
-            "Converting VCF to CSV can lead to errors if multiallelic SNPs are called!"
-        )
-
         if output_csv is None:
             output_csv = self.output_vcf.replace(".vcf.gz", ".csv")
 
         temp_tsv = output_csv.replace(".csv", ".temp.tsv")
+        # using tsv file to deal with commas in fields like consequence and multi-allelic alt
         self._convert_to_tsv(temp_tsv)
         self._parse_consequences(
             input_tsv=temp_tsv, output_file=output_csv, output_sep=","

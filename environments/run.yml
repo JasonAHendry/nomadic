@@ -7,6 +7,7 @@ dependencies:
   - minimap2
   - samtools >=1.20
   - bcftools >=1.20
+  - delve-bio =0.2.*
   - htslib
   - bedtools
   - dash

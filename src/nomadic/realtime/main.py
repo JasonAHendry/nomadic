@@ -27,12 +27,16 @@ def main(
     metadata_csv: str,
     region_bed: str,
     reference_name: str,
-    call: bool,
+    caller: str,
     verbose: bool,
+    with_dashboard: bool = True,
+    # This is a bit hacky, but at the moment realtime and processing almost the same
+    # so we can use the same main function for both. In the future they may diverge more
+    # and we should split them up.
+    realtime: bool = True,
 ) -> None:
     """
-    Run nomadic in realtime
-
+    Run nomadic processing, either in real-time or as a one-off run.
     """
 
     # PARSE INPUT
@@ -46,7 +50,8 @@ def main(
     log.info(f"  Regions (.bed): {region_bed}")
     log.info(f"  Reference genome: {reference_name}")
     REFERENCE_COLLECTION[reference_name].confirm_downloaded()
-    log.info(f"  Performing variant calling: {call}")
+    if caller:
+        log.info(f"  Performing variant calling using: {caller}")
     log.info("Processing...")
 
     # PREPARE TO RUN
@@ -70,7 +75,7 @@ def main(
         reference_name=reference_name,
         n_barcodes=len(metadata.barcodes) - 1,
         n_regions=regions.n_regions,
-        call=call,
+        caller=caller,
     )
     start_time = None
     if previous_settings is None:
@@ -86,15 +91,16 @@ def main(
 
     # INITIALISE WATCHERS
     factory = PipelineFactory(
-        expt_name, metadata, regions, expt_dirs, fastq_dir, call, reference_name
+        expt_name, metadata, regions, expt_dirs, fastq_dir, caller, reference_name
     )
 
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
-    dashboard = factory.get_dashboard(start_time=start_time)
-    dashboard.run(in_thread=True)
+    if with_dashboard:
+        dashboard = factory.get_dashboard(start_time=start_time)
+        dashboard.run(in_thread=True)
 
-    webbrowser.open("http://127.0.0.1:8050")
+        webbrowser.open("http://127.0.0.1:8050")
 
     # CATCH UP FROM WORK LOG IF WE RESUME
     catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
@@ -120,9 +126,16 @@ def main(
                 log.info(f"Have updated {n_updated} barcodes.")
                 log.info("Running experiment pipeline...")
                 expt_pipeline.run()
+                if not realtime:
+                    log.info("Finished processing data.")
+                    break
             else:
-                log.info("No barcodes updated. Waiting before scannning again.")
-                time.sleep(WAIT_INTERVAL)
+                if realtime:
+                    log.info("No barcodes updated. Waiting before scannning again.")
+                    time.sleep(WAIT_INTERVAL)
+                else:
+                    log.info("No new data found for barcodes.")
+                    break
     except KeyboardInterrupt:
         log.info("")
         log.info("Program has been interrupted by user. Exiting.")
