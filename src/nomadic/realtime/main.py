@@ -1,6 +1,8 @@
 import time
 import webbrowser
 from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.factory import PipelineFactory
@@ -23,7 +25,7 @@ def main(
     output: str,
     workspace: str,
     fastq_dir: str,
-    minknow_dir: str,
+    minknow_dir: Optional[Path],
     metadata_csv: str,
     region_bed: str,
     reference_name: str,
@@ -45,6 +47,7 @@ def main(
     log.info(f"  Experiment Name: {expt_name}")
     log.info(f"  Workspace: {workspace}")
     log.info(f"  Output dir: {output}")
+    log.info(f"  Minknow dir: {minknow_dir}")
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
     log.info(f"  Metadata (.csv): {metadata_csv}")
     log.info(f"  Regions (.bed): {region_bed}")
@@ -65,11 +68,14 @@ def main(
 
     # LOAD/STORE EXPERIMENT SETTINGS
     previous_settings = load_settings(expt_dirs.get_settings_file())
+    minknow_dir_settings = (
+        str(minknow_dir.resolve()) if minknow_dir is not None else None
+    )
     experiment_settings = ExperimentSettings(
         name=expt_name,
         start_date=datetime.now().replace(microsecond=0),
         fastq_dir=fastq_dir,
-        minknow_dir=minknow_dir,
+        minknow_dir=minknow_dir_settings,
         metadata_csv=metadata_csv,
         region_bed=region_bed,
         reference_name=reference_name,

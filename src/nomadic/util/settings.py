@@ -16,7 +16,7 @@ class ExperimentSettings(NamedTuple):
     reference_name: str
     n_barcodes: int
     n_regions: int
-    minknow_dir: str = None
+    minknow_dir: Optional[str] = None
 
 
 def parse_date(date_str: str) -> datetime:

@@ -35,46 +35,36 @@ def is_fastq_dir(path: Path) -> bool:
     return path.is_dir() and path.name == "fastq_pass"
 
 
-def create_fastq_dir_glob(minknow_dir: Path, experiment_name: str) -> str:
-    return str(minknow_dir / experiment_name / "*" / "*" / "fastq_pass")
+def create_fastq_dir_glob(minknow_dir: Path) -> str:
+    return str(minknow_dir / "*" / "*" / "fastq_pass")
 
 
-def is_minknow_dir(path: Path) -> bool:
+def is_minknow_base_dir(path: Path) -> bool:
     expected_folders = {"persistence", "reads", "queued_reads", "intermediates"}
-    if any(d.name in expected_folders for d in path.glob("*") if d.is_dir()):
-        return True
-    else:
-        return False
+    return any(d.name in expected_folders for d in path.glob("*") if d.is_dir())
 
 
-def extract_minknow_dir_from_fastq_dir(fastq_dir: Path) -> Path:
-    minknow_dir = fastq_dir.parents[3]
-    if is_minknow_dir(minknow_dir):
-        return minknow_dir
-    else:
-        click.BadParameter(
-            "Unable to determine the parent MinKNOW directory from the provided fastq directory."
-        )
-
-
-def resolve_minknow_fastq_dirs(
-    path: Path, experiment_name: str
-) -> Optional[Tuple[Path, Path]]:
+def resolve_minknow_fastq_dirs(path: Path, experiment_name: str) -> Tuple[Path, str]:
     """
     This function looks to see if the supplied path resembles a minknow data folder or a
     specific fastq_pass folder from a specific experiment
     """
-    if is_minknow_dir(path):
-        # should be base path of minknow data, build fastq glob with experiment name.
-        fastq_dir_glob = create_fastq_dir_glob(path, experiment_name)
-        fastq_dir = resolve_fastq_dir(fastq_dir_glob)
-        minknow_dir = path
-    elif is_fastq_dir(path):
-        fastq_dir = path
-        # determine the minknow dir from the fastq dir
-        minknow_dir = extract_minknow_dir_from_fastq_dir(path)
-    else:
+    if not path.exists():
         raise click.BadParameter(
-            message=f"{path} does not look like a valid MinKNOW output directory or a valid `fastq_pass` directory.",
+            param_hint="--minknow_dir",
+            message=f"{path} does not exist.",
         )
+
+    if is_minknow_base_dir(path):
+        minknow_dir = path / experiment_name
+    elif not is_minknow_base_dir(path.parent):
+        raise click.BadParameter(
+            param_hint="--minknow_dir",
+            message=f"{path} does not look like a valid MinKNOW output directory.",
+        )
+    else:
+        minknow_dir = path
+
+    fastq_dir = create_fastq_dir_glob(minknow_dir)
+
     return minknow_dir, fastq_dir

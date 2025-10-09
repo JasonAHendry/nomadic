@@ -52,10 +52,16 @@ from nomadic.util.cli import (
 @click.option(
     "-k",
     "--minknow_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default=True,
-    help="Path to the minknow output directory, supplying a 'fastq_pass` directory is deprecated",
+    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
+)
+@click.option(
+    "-f",
+    "--fastq_dir",
+    type=click.Path(file_okay=False, dir_okay=True),
+    help="Path or glob to the fastq files. This should only be used when the full minknow dir can not be provided, as some features likes backup will not work. Prefer using --minknow_dir. If --fastq_dir is provided, --minknow_dir is ignored.",
 )
 @click.option(
     "-m",
@@ -121,6 +127,7 @@ def realtime(
     output,
     workspace_path,
     minknow_dir,
+    fastq_dir,
     metadata_csv,
     region_bed,
     reference_name,
@@ -138,8 +145,8 @@ def realtime(
     output = get_output_path(experiment_name, output, workspace)
     metadata_csv = get_metadata_path(experiment_name, metadata_csv, workspace)
     region_bed = get_region_path(region_bed, workspace)
-    minknow_dir, fastq_dir = minknow.resolve_minknow_fastq_dirs(
-        minknow_dir, experiment_name
+    minknow_dir, fastq_dir = get_minknow_fastq_dirs(
+        experiment_name, minknow_dir, fastq_dir
     )
 
     validate_reference(reference_name)
@@ -171,8 +178,8 @@ def realtime(
             experiment_name,
             output,
             workspace_path,
-            str(fastq_dir),
-            str(minknow_dir.absolute()),
+            fastq_dir,
+            minknow_dir,
             metadata_csv,
             region_bed,
             reference_name,
@@ -186,6 +193,14 @@ def realtime(
             param_hint="-m/--metadata_csv",
             message=str(e),
         ) from e
+
+
+def get_minknow_fastq_dirs(experiment_name, minknow_dir, fastq_dir):
+    if fastq_dir is None:
+        return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
+    else:
+        # If fastq_dir is manually given, we assume there is no minknow dir
+        return None, fastq_dir
 
 
 def validate_reference(reference_name):
