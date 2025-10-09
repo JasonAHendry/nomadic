@@ -50,6 +50,11 @@ Install the package locally in development mode
 pip install -e .
 ```
 
+When new dependencies are added later, you will have to update your environment. For this, run in your activated environment:
+```
+conda env update -f environments/dev.yml
+```
+
 ## Testing
 I have created a script to simulate a small nanopore sequencing run, that allows you to test `nomadic realtime` without having an actual sequencing experiment running. To try this, first run: 
 
