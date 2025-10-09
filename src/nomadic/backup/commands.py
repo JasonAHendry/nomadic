@@ -6,7 +6,7 @@ from nomadic.util import minknow
 from nomadic.util.dirs import produce_dir
 from nomadic.util.rsync import selective_rsync
 from nomadic.util.settings import load_settings
-from nomadic.util.workspace import check_if_workspace
+from nomadic.util.workspace import check_if_workspace, Workspace
 
 
 @click.command(
@@ -30,13 +30,27 @@ from nomadic.util.workspace import check_if_workspace
     help="Path to the nomadic workspace you want to back up",
 )
 @click.option(
+    "-k",
+    "--minknow_dir",
+    "minknow_base_dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+    default="/var/lib/minknow/data",
+    show_default=True,
+    help="Path to the base minknow output directory.",
+)
+@click.option(
     "--include-minknow/--exclude-minknow",
     "include_minknow",
     default=True,
     show_default=True,
     help="Include/exclude minknow data in the backup",
 )
-def backup(backup_dir: Path, workspace_path: Path, include_minknow: bool):
+def backup(
+    backup_dir: Path,
+    workspace_path: Path,
+    include_minknow: bool,
+    minknow_base_dir: Path,
+):
     """
     Backup nomadic workspace and associated minknow data to another location.
     """
@@ -46,9 +60,11 @@ def backup(backup_dir: Path, workspace_path: Path, include_minknow: bool):
             param_hint="-w/--workspace",
             message=f"'{workspace_path.resolve()}' is not a workspace.",
         )
-    workspace_name = workspace_path.resolve().name
-    click.echo(f"Backing up nomadic workspace ({workspace_name}) to {backup_dir}")
+    workspace = Workspace(str(workspace_path))
+    workspace_name = workspace.get_name()
     backup_dir = backup_dir / workspace_name
+
+    click.echo(f"Backing up nomadic workspace ({workspace_name}) to {backup_dir}")
 
     selective_rsync(
         source_dir=workspace_path,
@@ -63,28 +79,33 @@ def backup(backup_dir: Path, workspace_path: Path, include_minknow: bool):
         return
 
     click.echo("Merging minknow data into experiments:")
-    exp_dirs = [f.name for f in (workspace_path / "results").iterdir() if f.is_dir()]
-    for folder in exp_dirs:
-        click.echo(folder)
-        json_file = workspace_path / "results" / folder / "metadata" / "settings.json"
-        settings = load_settings(json_file)
 
-        if settings.minknow_dir is not None:
-            minknow_dir = Path(settings.minknow_dir).resolve()
-        elif settings.fastq_dir is not None:
-            # this could be the minknow or the fastq_pass dir so first resolve
-            minknow_dir, _ = minknow.resolve_minknow_fastq_dirs(
-                Path(settings.fastq_dir), experiment_name=folder
+    for exp in workspace.get_experiment_names():
+        click.echo(exp)
+        json_file = workspace_path / "results" / exp / "metadata" / "settings.json"
+        settings = load_settings(str(json_file))
+
+        if settings is None:
+            click.echo("Unable to find settings file, trying to find via minknow_dir")
+            minknow_dir = minknow_base_dir / exp
+        elif settings.minknow_dir is None:
+            click.echo(
+                "Minknow dir not stored in settings, trying to find via minknow_dir"
             )
+            minknow_dir = minknow_base_dir / exp
         else:
-            click.BadParameter(
-                message=f"Unable to determine the minknow directory for experiment {folder}, skipping backup of minknow data for this experiment.",
-            )
-        source_dir = minknow_dir / folder
-        target_dir = backup_dir / "results" / folder / "minknow"
+            minknow_dir = Path(settings.minknow_dir)
 
-        if not minknow_dir.exists():
+        source_dir = minknow_dir
+        target_dir = backup_dir / "results" / exp / "minknow"
+
+        if not source_dir.exists():
             click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
+            continue
+        if not minknow.is_minknow_experiment_dir(source_dir):
+            click.echo(
+                f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to backup..."
+            )
             continue
         if not target_dir.exists():
             produce_dir(target_dir)
