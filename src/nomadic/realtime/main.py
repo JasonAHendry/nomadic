@@ -1,5 +1,4 @@
 import time
-import webbrowser
 from datetime import datetime
 
 from nomadic.download.references import REFERENCE_COLLECTION
@@ -97,8 +96,6 @@ def main(
     if with_dashboard:
         dashboard = factory.get_dashboard(start_time=start_time)
         dashboard.run(in_thread=True)
-
-        webbrowser.open("http://127.0.0.1:8050")
 
     # CATCH UP FROM WORK LOG IF WE RESUME
     catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
