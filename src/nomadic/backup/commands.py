@@ -88,6 +88,7 @@ def backup_nomadic(backup_dir, workspace_path, workspace_name):
         target_dir=backup_dir,
         recursive=True,
         progressbar=True,
+        exclusions=["**/.incremental/", "**/intermediate", ".work.log"],
     )
     click.echo("Done.")
 
