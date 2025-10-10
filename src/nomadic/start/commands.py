@@ -98,7 +98,7 @@ def copy_bed_files(workspace: Workspace, *, organism_name):
 @click.argument(
     "organism",
     type=click.Choice(ORGANISM_COLLECTION, case_sensitive=False),
-    required=True,
+    required=False,
 )
 @click.option(
     "-w",
@@ -123,6 +123,11 @@ def start(organism, workspace_path) -> None:
     - Anopheles gambiae (agambiae)
 
     """
+    if organism is None:
+        organism = click.prompt(
+            "Please choose an organism",
+            type=click.Choice(ORGANISM_COLLECTION, case_sensitive=False),
+        )
 
     click.echo(f"Workspace will be created at: {workspace_path}")
     workspace = Workspace.create_from_directory(workspace_path)
