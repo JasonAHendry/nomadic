@@ -77,7 +77,7 @@ def backup(
     all_backed_up, status_by_exp = backup_status(
         backup_dir, workspace, include_minknow=include_minknow
     )
-    print_summary(all_backed_up, status_by_exp, failure_reasons)
+    print_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
 
 
 def backup_nomadic(backup_dir, workspace_path, workspace_name):
@@ -102,8 +102,8 @@ def backup_minknow_data(
 ):
     click.echo("Merging minknow data into experiments:")
 
-    for exp in workspace.get_experiment_names():
-        click.echo(exp)
+    for i, exp in enumerate(workspace.get_experiment_names()):
+        click.echo(f"{exp} ({i+1}/{len(workspace.get_experiment_names())})")
         json_file = workspace_path / "results" / exp / "metadata" / "settings.json"
         settings = load_settings(str(json_file))
 
@@ -167,14 +167,22 @@ def backup_status(backup_dir: Path, workspace: Workspace, include_minknow: bool)
     return all_backed_up, status_by_exp
 
 
-def print_summary(all_backed_up, status_by_exp, failure_reasons):
+def print_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow):
     click.echo("")
     click.echo("--- Summary ---")
     click.echo("")
+    n_nomadic, n_minknow = 0, 0
     for exp, statuses in status_by_exp.items():
         print_experiment_summary(
             exp, statuses=statuses, reasons=failure_reasons.get(exp)
         )
+        if len(statuses) > 0 and statuses[0]:
+            n_nomadic += 1
+        if len(statuses) > 1 and statuses[1]:
+            n_minknow += 1
+    click.echo(f"nomadic: {n_nomadic}/{len(status_by_exp)}")
+    if include_minknow:
+        click.echo(f"minknow: {n_minknow}/{len(status_by_exp)}")
     if all_backed_up:
         click.echo(click.style("All experiments backed up successfully!", fg="green"))
     click.echo("")
