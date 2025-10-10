@@ -104,10 +104,11 @@ def copy_bed_files(workspace: Workspace, *, organism_name):
     "-w",
     "--workspace",
     "workspace_path",
-    default="nomadic",
     type=click.Path(exists=False),
     show_default=True,
+    required=True,
     help="Path to workspace.",
+    prompt="Please provide a name for your new workspace",
 )
 @click.command(short_help="Start a workspace.")
 def start(organism, workspace_path) -> None:
