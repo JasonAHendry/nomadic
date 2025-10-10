@@ -10,16 +10,14 @@ from nomadic.util.settings import load_settings
 from nomadic.util.workspace import check_if_workspace, Workspace
 
 
-@click.command(
-    short_help="Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive"
-)
+@click.command(short_help="Backup a workspace.")
 @click.option(
     "-b",
     "--backup_dir",
     "backup_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     required=True,
-    help="Path to backup folder",
+    help="Path to root backup folder. The backup will go into backup_dir/<workspace_name>.",
 )
 @click.option(
     "-w",
@@ -28,7 +26,7 @@ from nomadic.util.workspace import check_if_workspace, Workspace
     default="./",
     show_default="current directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    help="Path to the nomadic workspace you want to back up",
+    help="Path to the nomadic workspace you want to back up.",
 )
 @click.option(
     "-k",
@@ -37,14 +35,14 @@ from nomadic.util.workspace import check_if_workspace, Workspace
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default=True,
-    help="Path to the base minknow output directory.",
+    help="Path to the base minknow output directory. Only needed if the files were moved.",
 )
 @click.option(
     "--include-minknow/--exclude-minknow",
     "include_minknow",
     default=True,
     show_default=True,
-    help="Include/exclude minknow data in the backup",
+    help="Include/exclude minknow data in the backup.",
 )
 def backup(
     backup_dir: Path,
@@ -53,7 +51,7 @@ def backup(
     minknow_base_dir: Path,
 ):
     """
-    Backup nomadic workspace and associated minknow data to another location.
+    Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive.
     """
 
     if not check_if_workspace(str(workspace_path)):
@@ -69,28 +67,17 @@ def backup(
 
     backup_nomadic(backup_dir, workspace_path, workspace_name)
 
-    if not include_minknow:
-        click.echo("Skipping minknow data backup as requested.")
-    else:
+    if include_minknow:
         backup_minknow_data(
             backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
         )
+    else:
+        click.echo("Skipping minknow data backup as requested.")
 
-    all_backed_up, status_by_exp = calc_backup_status(
+    all_backed_up, status_by_exp = backup_status(
         backup_dir, workspace, include_minknow=include_minknow
     )
-    # Print summary:
     print_summary(all_backed_up, status_by_exp, failure_reasons)
-
-
-def print_summary(all_backed_up, status_by_exp, failure_reasons):
-    click.echo("")
-    click.echo("--- Summary ---")
-    click.echo("")
-    for exp, statuses in status_by_exp.items():
-        print_exp_summary(exp, statuses=statuses, reasons=failure_reasons.get(exp))
-    if all_backed_up:
-        click.echo(click.style("All experiments backed up successfully!", fg="green"))
 
 
 def backup_nomadic(backup_dir, workspace_path, workspace_name):
@@ -106,7 +93,11 @@ def backup_nomadic(backup_dir, workspace_path, workspace_name):
 
 
 def backup_minknow_data(
-    backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
+    backup_dir: Path,
+    workspace_path: Path,
+    minknow_base_dir: Path,
+    workspace: Workspace,
+    failure_reasons: dict[str, list[str]],
 ):
     click.echo("Merging minknow data into experiments:")
 
@@ -116,11 +107,13 @@ def backup_minknow_data(
         settings = load_settings(str(json_file))
 
         if settings is None:
-            click.echo("Unable to find settings file, trying to find via minknow_dir")
+            click.echo(
+                "Unable to find settings file, trying to find via minknow_dir..."
+            )
             minknow_dir = minknow_base_dir / exp
         elif settings.minknow_dir is None:
             click.echo(
-                "Minknow dir not stored in settings, trying to find via minknow_dir"
+                "Minknow dir not stored in settings.json, trying to find via minknow_dir..."
             )
             minknow_dir = minknow_base_dir / exp
         else:
@@ -134,7 +127,7 @@ def backup_minknow_data(
             failure_reasons[exp].append("no minknow data found")
             continue
         if not minknow.is_minknow_experiment_dir(source_dir):
-            failure_reasons[exp].append("invalid minknow data data")
+            failure_reasons[exp].append("invalid minknow data")
             click.echo(
                 f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to backup..."
             )
@@ -150,7 +143,13 @@ def backup_minknow_data(
         )
 
 
-def calc_backup_status(backup_dir: Path, workspace: Workspace, include_minknow):
+def backup_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
+    """
+    Calculate backup status for all experiments in the workspace.
+
+    This uses a very simple heruitic of checking if the result dir is there and relies
+    on rsync working correctly. It is just a sanity check.
+    """
     all_backed_up = True
     status_by_exp = defaultdict(list)
     for exp in workspace.get_experiment_names():
@@ -167,7 +166,24 @@ def calc_backup_status(backup_dir: Path, workspace: Workspace, include_minknow):
     return all_backed_up, status_by_exp
 
 
-def print_exp_summary(exp, *, statuses, reasons):
+def print_summary(all_backed_up, status_by_exp, failure_reasons):
+    click.echo("")
+    click.echo("--- Summary ---")
+    click.echo("")
+    for exp, statuses in status_by_exp.items():
+        print_experiment_summary(
+            exp, statuses=statuses, reasons=failure_reasons.get(exp)
+        )
+    if all_backed_up:
+        click.echo(click.style("All experiments backed up successfully!", fg="green"))
+    click.echo("")
+    click.echo("----------------")
+
+
+def print_experiment_summary(exp, *, statuses, reasons):
+    """
+    Prints the backup status line for a single experiment
+    """
     if len(statuses) > 0:
         if statuses[0]:
             click.echo(click.style("✓", fg="green"), nl=False)
