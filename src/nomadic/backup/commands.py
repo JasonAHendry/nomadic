@@ -103,8 +103,8 @@ def backup_minknow_data(
     click.echo("Merging minknow data into experiments:")
 
     for i, exp in enumerate(workspace.get_experiment_names()):
-        click.echo(f"{exp} ({i+1}/{len(workspace.get_experiment_names())})")
-        json_file = workspace_path / "results" / exp / "metadata" / "settings.json"
+        click.echo(f"{exp} ({i + 1}/{len(workspace.get_experiment_names())})")
+        json_file = settings_filepath(workspace_path, exp)
         settings = load_settings(str(json_file))
 
         if settings is None:
@@ -121,7 +121,7 @@ def backup_minknow_data(
             minknow_dir = Path(settings.minknow_dir)
 
         source_dir = minknow_dir
-        target_dir = backup_dir / "results" / exp / "minknow"
+        target_dir = minknow_target_dir(backup_dir, exp)
 
         if not source_dir.exists():
             click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
@@ -154,13 +154,13 @@ def backup_status(backup_dir: Path, workspace: Workspace, include_minknow: bool)
     all_backed_up = True
     status_by_exp = defaultdict(list)
     for exp in workspace.get_experiment_names():
-        exp_dir = backup_dir / "results" / exp
+        exp_dir = nomadic_target_dir(backup_dir, exp)
         nomadic_backed_up = exp_dir.exists()
         status_by_exp[exp].append(nomadic_backed_up)
         if not nomadic_backed_up:
             all_backed_up = False
         if include_minknow:
-            minknow_backed_up = (exp_dir / "minknow").exists()
+            minknow_backed_up = minknow_target_dir(backup_dir, exp).exists()
             status_by_exp[exp].append(minknow_backed_up)
             if not minknow_backed_up:
                 all_backed_up = False
@@ -208,3 +208,16 @@ def print_experiment_summary(exp, *, statuses, reasons):
         click.echo(click.style(",".join(reasons), fg="red"), nl=True)
     else:
         click.echo()
+
+
+def minknow_target_dir(backup_dir, exp):
+    return backup_dir / "minknow" / exp
+
+
+def nomadic_target_dir(backup_dir, exp):
+    return backup_dir / "results" / exp
+
+
+def settings_filepath(workspace_path, exp):
+    json_file = workspace_path / "results" / exp / "metadata" / "settings.json"
+    return json_file
