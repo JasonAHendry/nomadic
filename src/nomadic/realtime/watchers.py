@@ -1,9 +1,10 @@
-import os
 import enum
-from typing import NamedTuple, Optional
 import hashlib
+import os
+from typing import NamedTuple, Optional
 
 from nomadic.util import minknow
+
 from .pipelines.barcode import BarcodePipelineRT
 
 
@@ -74,7 +75,7 @@ class BarcodeWatcher:
     def _fastq_barcode_dir(self) -> Optional[str]:
         if "*" in self.fastq_dir:
             # is the glob to find the fastq_dir
-            fastq_dir = minknow.fastq_dir(fastq_dir_glob=self.fastq_dir)
+            fastq_dir = minknow.resolve_fastq_dir(fastq_dir_glob=self.fastq_dir)
         else:
             fastq_dir = self.fastq_dir
 

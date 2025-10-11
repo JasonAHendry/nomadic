@@ -446,9 +446,111 @@ class RegionDepthProfileRT(AnalysisStepRT):
 # Variant calling and annnotation
 #
 # --------------------------------------------------------------------------------
+class CallVariantsRTDelve(AnalysisStepRT):
+    step_name = "vcfs"
+
+    # Settings
+    MAX_DEPTH = 5000
+    MIN_DEPTH = 40
+    MIN_QUAL = 20
+    STRAND_BIAS_ODDS_RATIO = 7
+    MODEL_PARAMS = [8, 8, 0.01]
+    COMPUTE_BAQ = True
+
+    def __init__(
+        self,
+        barcode_name: str,
+        expt_dirs: ExperimentDirectories,
+        bed_path: str,
+        ref_name: str = "Pf3D7",
+    ):
+        """Initialise output directory and define file names"""
+
+        super().__init__(barcode_name, expt_dirs)
+
+        self.bed_path = bed_path
+        self.reference = REFERENCE_COLLECTION[ref_name]
+
+        self.output_dir = produce_dir(self.barcode_dir, self.step_name)
+        self.output_vcf = (
+            f"{self.output_dir}/{self.barcode_name}.{self.reference.name}.vcf.gz"
+        )
+
+    def _get_lowcomplexity_filter_command(self) -> str:
+        bed_mask_path = self.expt_dirs.regions_bed.replace(
+            ".bed", ".lowcomplexity_mask.bed"
+        )
+        if not os.path.exists(bed_mask_path):
+            print("Creating low-complexity mask for amplicons...")
+            cmd = [
+                "bedtools",
+                "intersect",
+                "-a",
+                self.reference.fasta_mask_path,
+                "-b",
+                self.expt_dirs.regions_bed,
+                "-wa",
+            ]
+            with open(bed_mask_path, "w") as file:
+                subprocess.run(cmd, check=True, stdout=file)
+            print("Done.")
+
+        # Masking command
+        cmd = (
+            "bcftools filter"
+            " --mode +"
+            " --soft-filter LowComplexity"
+            " --set-GTs ."
+            f" --mask-file {shlex.quote(bed_mask_path)}"
+        )
+
+        return cmd
+
+    def run(self, input_bam: str) -> str:
+        """
+        Run variant calling with delve
+
+        """
+        log.info("Calling variants with delve...")
+
+        filtered_bam_path = input_bam.replace(".bam", ".filtered.bam")
+
+        cmd_filter_input = f"samtools view {shlex.quote(input_bam)} -e '![SA]' -b -o {shlex.quote(filtered_bam_path)}"
+
+        compute_baq = "--compute-baq" if self.COMPUTE_BAQ else ""
+
+        cmd_call = (
+            "delve call"
+            f" --model-params {','.join([str(v) for v in self.MODEL_PARAMS])}"
+            f" --min-cov {self.MIN_DEPTH}"
+            f" --min-BQ {self.MIN_QUAL}"
+            f" --max-cov {self.MAX_DEPTH}"
+            f" {compute_baq}"
+            f" -s {shlex.quote(self.barcode_name)}"
+            f" -R {shlex.quote(self.bed_path)}"
+            f" -f {shlex.quote(self.reference.fasta_path)}"
+            " --set-failed-GTs ."
+            f" {shlex.quote(filtered_bam_path)}"
+        )
+
+        cmd_lowcomplexity_filter = self._get_lowcomplexity_filter_command()
+        cmd_sort_index = f"bcftools sort - -Oz -W -o {shlex.quote(self.output_vcf)}"
+
+        cmd = f"{cmd_call} | {cmd_lowcomplexity_filter} | {cmd_sort_index}"
+
+        subprocess.run(cmd_filter_input, check=True, shell=True)
+        samtools_index(filtered_bam_path)
+        subprocess.run(cmd, check=True, shell=True)
+
+        os.remove(filtered_bam_path)
+
+        return self.output_vcf
+
+    def merge(self):
+        pass
 
 
-class CallVariantsRT(AnalysisStepRT):
+class CallVariantsRTBcftools(AnalysisStepRT):
     """
     Call variants in real-time using `bcftools call`
 
@@ -574,6 +676,7 @@ class CallVariantsRT(AnalysisStepRT):
         `-P` : Prior on mutation rate
 
         """
+        log.info("Calling variants with bcftools...")
 
         cmd_pileup = (
             "bcftools mpileup -B -I -Q12 --max-BQ 30 -h 100"

@@ -9,13 +9,14 @@ from typing import NamedTuple, Optional
 class ExperimentSettings(NamedTuple):
     name: str
     start_date: datetime
-    call: bool
+    caller: str
     fastq_dir: str
     metadata_csv: str
     region_bed: str
     reference_name: str
     n_barcodes: int
     n_regions: int
+    minknow_dir: Optional[str] = None
 
 
 def parse_date(date_str: str) -> datetime:
@@ -37,6 +38,10 @@ def verify_compatible_settings(
         raise IncompatibleSettingsError("experiment name")
     if old_settings.fastq_dir != new_settings.fastq_dir:
         raise IncompatibleSettingsError("fastq dir")
+    if (old_settings.minknow_dir != new_settings.minknow_dir) and (
+        old_settings.minknow_dir is not None
+    ):
+        raise IncompatibleSettingsError("minknow dir")
     if old_settings.metadata_csv != new_settings.metadata_csv:
         raise IncompatibleSettingsError("metadata csv file")
     if old_settings.region_bed != new_settings.region_bed:
@@ -71,4 +76,7 @@ def load_settings(path: str) -> Optional[ExperimentSettings]:
     with open(path, "r") as file:
         data = json.load(file)
         data["start_date"] = parse_date(data["start_date"])
+        if "call" in data:  # for backwards compatibility
+            data["caller"] = "bcftools"
+            del data["call"]
         return ExperimentSettings(**data)

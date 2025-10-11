@@ -1,19 +1,19 @@
-import os
 import json
-import pandas as pd
-import warnings
-import subprocess
-from abc import ABC, abstractmethod
+import os
 import shlex
+import subprocess
+import warnings
+from abc import ABC, abstractmethod
 
-from nomadic.download.references import Reference, PlasmodiumFalciparum3D7
+import pandas as pd
+
+from nomadic.download.references import PlasmodiumFalciparum3D7, Reference
+from nomadic.util.dirs import produce_dir
 from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.dirs import produce_dir
 from nomadic.util.regions import RegionBEDParser
-from nomadic.util.wrappers import bcftools
 from nomadic.util.vcf import VariantAnnotator
-
+from nomadic.util.wrappers import bcftools
 
 # --------------------------------------------------------------------------------
 # Interface for experiment pipelines
@@ -141,7 +141,7 @@ class ExperimentPipelineRT(ABC):
         df_path = self.expt_dirs.get_summary_files().depth_profiles
         depth_df.to_csv(df_path, index=False)
 
-    def _run_variant(self):
+    def _run_variant(self, caller: str):
         """
         Summarise variant calling results across all barcodes
 
@@ -167,14 +167,13 @@ class ExperimentPipelineRT(ABC):
         unfiltered_vcf = f"{vcf_dir}/summary.variants.vcf.gz"
         bcftools.merge(vcfs, output_vcf=unfiltered_vcf)
 
-        # Filter biallelic sites
+        # Filter variant sites
         filtered_vcf = unfiltered_vcf.replace(".vcf.gz", ".filtered.vcf.gz")
         cmd = (
             "bcftools view"
             " --apply-filters PASS"
             " --types='snps'"
             " --min-alleles 2"
-            " --max-alleles 2"
             f" -Oz -o {shlex.quote(filtered_vcf)} {shlex.quote(unfiltered_vcf)}"
         )
         subprocess.run(cmd, check=True, shell=True)
@@ -184,6 +183,7 @@ class ExperimentPipelineRT(ABC):
             input_vcf=filtered_vcf,
             bed_path=self.regions.path,
             reference=self.reference,
+            caller=caller,
             output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
         )
         annotator.run()
@@ -193,7 +193,7 @@ class ExperimentPipelineRT(ABC):
 
         df = pd.read_csv(temp_path)
         df = df.join(self.metadata.required_metadata, on="barcode")
-        df.to_csv(csv_path)
+        df.to_csv(csv_path, index=False)
 
         # Clean-up
         os.remove(temp_path)
@@ -238,9 +238,20 @@ class ExptCallingPipelineRT(ExperimentPipelineRT):
 
     """
 
+    def __init__(
+        self,
+        metadata: MetadataTableParser,
+        expt_dirs: ExperimentDirectories,
+        regions: RegionBEDParser,
+        caller: str,
+        reference: Reference = PlasmodiumFalciparum3D7(),
+    ):
+        self.caller = caller
+        super().__init__(metadata, expt_dirs, regions, reference)
+
     def run(self):
         self._run_fastq()
         self._run_qcbams()
         self._run_bedcov()
         self._run_depth()
-        self._run_variant()
+        self._run_variant(self.caller)

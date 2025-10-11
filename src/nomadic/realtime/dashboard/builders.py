@@ -1,5 +1,6 @@
 import logging
 import threading
+import webbrowser
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
 from datetime import datetime
@@ -88,7 +89,7 @@ class RealtimeDashboardBuilder(ABC):
 
         return dcc.Interval(id=name, interval=speed, n_intervals=0)
 
-    def run(self, in_thread: bool = False, **kwargs):
+    def run(self, in_thread: bool = False, auto_open: bool = True, **kwargs):
         """
         Run the dashboard
 
@@ -104,6 +105,11 @@ class RealtimeDashboardBuilder(ABC):
             component.callback(app)
 
         app.layout = html.Div(id="overall", children=self.layout)
+
+        if auto_open:
+            threading.Timer(
+                1, webbrowser.open, kwargs=dict(url="http://127.0.0.1:8050")
+            ).start()
 
         if in_thread:
             dashboard_thread = threading.Thread(

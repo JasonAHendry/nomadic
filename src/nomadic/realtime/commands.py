@@ -1,67 +1,22 @@
 import os
+from pathlib import Path
+from shutil import rmtree
 
 import click
-import click.shell_completion
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util import minknow
-from nomadic.util.config import default_config_path, load_config
 from nomadic.util.workspace import (
     Workspace,
     check_if_workspace,
     looks_like_a_bed_filepath,
 )
-
-
-def complete_experiment_name(ctx: click.Context, param, incomplete):
-    """Complete experiment names based on existing metadatafiles in the workspace."""
-    workspace_path = ctx.params.get("workspace_path", "./")
-    metadata_path = Workspace(workspace_path).get_metadata_dir()
-    if os.path.exists(metadata_path):
-        experiments = [
-            f.removesuffix(".csv")
-            for f in os.listdir(metadata_path)
-            if f.endswith(".csv")
-        ]
-        return [
-            click.shell_completion.CompletionItem(experiment)
-            for experiment in experiments
-            if experiment.startswith(incomplete)
-        ]
-    return []
-
-
-def complete_bed_file(ctx: click.Context, param, incomplete):
-    """Complete bed file options based on existing BED files in the workspace."""
-    workspace_path = ctx.params.get("workspace_path", "./")
-    workspace = Workspace(workspace_path)
-    result = []
-    if os.path.exists(workspace.get_beds_dir()):
-        panels = workspace.get_panel_names()
-        result = [
-            click.shell_completion.CompletionItem(panel)
-            for panel in panels
-            if panel.startswith(incomplete)
-        ]
-    if not result:
-        return [click.shell_completion.CompletionItem(incomplete, type="file")]
-    return result
-
-
-def load_defaults_from_config(ctx: click.Context, param, value):
-    """Load configuration from the default config file if it exists."""
-    config_path = os.path.join(
-        ctx.params.get("workspace_path", "./"), default_config_path
-    )
-    if os.path.isfile(config_path):
-        defaults = load_config(config_path).get("defaults", None)
-        if defaults is not None:
-            if not ctx.resilient_parsing:
-                # Don't print defaults if parsing is resilient, as this is used for shell completion
-                click.echo(f"Loaded defaults from {config_path}")
-            ctx.default_map = defaults
-            ctx.show_default = True
-    return value
+from nomadic.util.exceptions import MetadataFormatError
+from nomadic.util.cli import (
+    complete_experiment_name,
+    complete_bed_file,
+    load_defaults_from_config,
+)
 
 
 @click.command(
@@ -95,12 +50,18 @@ def load_defaults_from_config(ctx: click.Context, param, value):
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
 @click.option(
-    "-f",
-    "--fastq_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    "-k",
+    "--minknow_dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default=True,
-    help="Path to `fastq_pass` output directory of minknow (e.g. `/var/lib/minknow/data/<experiment_name>/.../.../fastq_pass`), or to the general output directory of minknow (e.g. `/var/lib/minknow/data`)",
+    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
+)
+@click.option(
+    "-f",
+    "--fastq_dir",
+    type=click.Path(file_okay=False, dir_okay=True),
+    help="Path or glob to the fastq files. This should only be used when the full minknow dir can not be provided, as some features likes backup will not work. Prefer using --minknow_dir. If --fastq_dir is provided, --minknow_dir is ignored.",
 )
 @click.option(
     "-m",
@@ -124,11 +85,23 @@ def load_defaults_from_config(ctx: click.Context, param, value):
     help="Choose a reference genome to be used in real-time analysis.",
 )
 @click.option(
-    "-c",
     "--call",
     is_flag=True,
     default=False,
-    help="Perform preliminary variant calling of biallelic SNPs in real-time.",
+    help="Perform preliminary variant calling of biallelic SNPs in real-time. (Deprecated, use --caller instead)",
+)
+@click.option(
+    "-c",
+    "--caller",
+    help="Call biallelic SNPs in real-time with the indicated variant caller. If this flag is omitted, no variant calling is performed.",
+    default=None,
+    type=click.Choice(["bcftools", "delve"]),
+)
+@click.option(
+    "--overwrite",
+    is_flag=True,
+    default=False,
+    help="Overwrite existing output directory if it exists.",
 )
 @click.option(
     "--resume",
@@ -136,6 +109,11 @@ def load_defaults_from_config(ctx: click.Context, param, value):
     default=False,
     help="Resume a previous experiment run if the output directory already exists. Only use if you want to force resuming an already started experiment. "
     "Not needed in interactive mode as this will be prompted",
+)
+@click.option(
+    "--dashboard/--no-dashboard",
+    default=True,
+    help="Whether to start the web dashboard to monitor the run.",
 )
 @click.option(
     "-v",
@@ -148,35 +126,97 @@ def realtime(
     experiment_name,
     output,
     workspace_path,
+    minknow_dir,
     fastq_dir,
     metadata_csv,
     region_bed,
     reference_name,
     call,
+    caller,
+    overwrite,
     resume,
+    dashboard,
     verbose,
 ):
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
     """
-    if not check_if_workspace(workspace_path):
+    workspace = get_workspace(workspace_path)
+    output = get_output_path(experiment_name, output, workspace)
+    metadata_csv = get_metadata_path(experiment_name, metadata_csv, workspace)
+    region_bed = get_region_path(region_bed, workspace)
+    minknow_dir, fastq_dir = get_minknow_fastq_dirs(
+        experiment_name, minknow_dir, fastq_dir
+    )
+
+    validate_reference(reference_name)
+
+    if os.path.exists(output):
+        if overwrite:
+            rmtree(output)
+        elif not resume:
+            choice = click.prompt(
+                f"Output directory {output} already exists. Do you want to resume (y) a previous experiment run? If not, you can restart (r) the run, which will delete the existing output directory.",
+                type=click.Choice(["y", "n", "r"], case_sensitive=False),
+            )
+            if choice == "n":
+                raise click.Abort()
+            elif choice == "r":
+                click.confirm(
+                    f"Are you sure you want to delete the existing output directory {output} and restart the experiment? This will delete all existing results in that directory.",
+                    abort=True,
+                )
+                rmtree(output)
+
+    if not caller and call:
+        caller = "bcftools"
+
+    from .main import main
+
+    try:
+        main(
+            experiment_name,
+            output,
+            workspace_path,
+            fastq_dir,
+            minknow_dir,
+            metadata_csv,
+            region_bed,
+            reference_name,
+            caller,
+            verbose,
+            with_dashboard=dashboard,
+            realtime=True,
+        )
+    except MetadataFormatError as e:
         raise click.BadParameter(
-            param_hint="-w/--workspace",
-            message=f"Workspace '{workspace_path}' does not exist or is not a workspace. Please use nomadic start to create a new workspace, or navigate to your workspace",
+            param_hint="-m/--metadata_csv",
+            message=str(e),
+        ) from e
+
+
+def get_minknow_fastq_dirs(experiment_name, minknow_dir, fastq_dir):
+    if fastq_dir is None:
+        return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
+    else:
+        # If fastq_dir is manually given, we assume there is no minknow dir
+        return None, fastq_dir
+
+
+def validate_reference(reference_name):
+    if reference_name is None:
+        raise click.BadParameter(
+            param_hint="-r/--reference_name",
+            message="Reference genome must be specified. Use -r/--reference_name to select a reference genome.",
+        )
+    elif reference_name not in REFERENCE_COLLECTION:
+        raise click.BadParameter(
+            param_hint="-r/--reference_name",
+            message=f"Reference genome '{reference_name}' is not available. Available references: {', '.join(REFERENCE_COLLECTION.keys())}.",
         )
 
-    workspace = Workspace(workspace_path)
 
-    if output is None:
-        output = workspace.get_output_dir(experiment_name)
-
-    if not metadata_csv:
-        metadata_csv = workspace.get_metadata_csv(experiment_name)
-        if not os.path.isfile(metadata_csv):
-            raise click.BadParameter(
-                message=f"Metadata CSV file not found at {metadata_csv}. Did you create your metadata file in `{workspace.get_metadata_dir()}` and does the name match `{experiment_name}`?",
-            )
-
+def get_region_path(region_bed, workspace):
     if not os.path.isfile(region_bed):
         if not looks_like_a_bed_filepath(region_bed):
             # Assume it's a panel name
@@ -190,37 +230,32 @@ def realtime(
                 message=f"Region BED file not found at {region_bed}.",
             )
 
-    if not minknow.is_fastq_dir(fastq_dir):
-        # should be base path of minknow data, build fastq glob with experiment name.
-        fastq_dir = minknow.fastq_dir_glob(fastq_dir, experiment_name)
+    return region_bed
 
-    if reference_name is None:
+
+def get_metadata_path(experiment_name, metadata_csv, workspace):
+    if not metadata_csv:
+        metadata_csv = workspace.get_metadata_csv(experiment_name)
+        if not os.path.isfile(metadata_csv):
+            raise click.BadParameter(
+                message=f"Metadata CSV file not found at {metadata_csv}. Did you create your metadata file in `{workspace.get_metadata_dir()}` and does the name match `{experiment_name}`?",
+            )
+
+    return metadata_csv
+
+
+def get_output_path(experiment_name, output, workspace):
+    if output is None:
+        output = workspace.get_output_dir(experiment_name)
+    return output
+
+
+def get_workspace(workspace_path):
+    if not check_if_workspace(workspace_path):
         raise click.BadParameter(
-            param_hint="-r/--reference_name",
-            message="Reference genome must be specified. Use -r/--reference_name to select a reference genome.",
-        )
-    elif reference_name not in REFERENCE_COLLECTION:
-        raise click.BadParameter(
-            param_hint="-r/--reference_name",
-            message=f"Reference genome '{reference_name}' is not available. Available references: {', '.join(REFERENCE_COLLECTION.keys())}.",
+            param_hint="-w/--workspace",
+            message=f"Workspace '{workspace_path}' does not exist or is not a workspace. Please use nomadic start to create a new workspace, or navigate to your workspace",
         )
 
-    if os.path.exists(output) and not resume:
-        click.confirm(
-            f"Output directory {output} already exists. Do you want to resume a previous experiment run? If starting a new experiment, please restart with a different experiment name or output directory.",
-            abort=True,
-        )
-
-    from .main import main
-
-    main(
-        experiment_name,
-        output,
-        workspace_path,
-        fastq_dir,
-        metadata_csv,
-        region_bed,
-        reference_name,
-        call,
-        verbose,
-    )
+    workspace = Workspace(workspace_path)
+    return workspace

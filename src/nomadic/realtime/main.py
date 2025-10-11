@@ -1,12 +1,13 @@
 import time
-import webbrowser
 from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.factory import PipelineFactory
+from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.settings import (
     ExperimentSettings,
@@ -23,15 +24,20 @@ def main(
     output: str,
     workspace: str,
     fastq_dir: str,
+    minknow_dir: Optional[Path],
     metadata_csv: str,
     region_bed: str,
     reference_name: str,
-    call: bool,
+    caller: str,
     verbose: bool,
+    with_dashboard: bool = True,
+    # This is a bit hacky, but at the moment realtime and processing almost the same
+    # so we can use the same main function for both. In the future they may diverge more
+    # and we should split them up.
+    realtime: bool = True,
 ) -> None:
     """
-    Run nomadic in realtime
-
+    Run nomadic processing, either in real-time or as a one-off run.
     """
 
     # PARSE INPUT
@@ -40,12 +46,14 @@ def main(
     log.info(f"  Experiment Name: {expt_name}")
     log.info(f"  Workspace: {workspace}")
     log.info(f"  Output dir: {output}")
+    log.info(f"  Minknow dir: {minknow_dir}")
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
     log.info(f"  Metadata (.csv): {metadata_csv}")
     log.info(f"  Regions (.bed): {region_bed}")
     log.info(f"  Reference genome: {reference_name}")
     REFERENCE_COLLECTION[reference_name].confirm_downloaded()
-    log.info(f"  Performing variant calling: {call}")
+    if caller:
+        log.info(f"  Performing variant calling using: {caller}")
     log.info("Processing...")
 
     # PREPARE TO RUN
@@ -59,16 +67,20 @@ def main(
 
     # LOAD/STORE EXPERIMENT SETTINGS
     previous_settings = load_settings(expt_dirs.get_settings_file())
+    minknow_dir_settings = (
+        str(minknow_dir.resolve()) if minknow_dir is not None else None
+    )
     experiment_settings = ExperimentSettings(
         name=expt_name,
         start_date=datetime.now().replace(microsecond=0),
         fastq_dir=fastq_dir,
+        minknow_dir=minknow_dir_settings,
         metadata_csv=metadata_csv,
         region_bed=region_bed,
         reference_name=reference_name,
         n_barcodes=len(metadata.barcodes) - 1,
         n_regions=regions.n_regions,
-        call=call,
+        caller=caller,
     )
     start_time = None
     if previous_settings is None:
@@ -84,15 +96,14 @@ def main(
 
     # INITIALISE WATCHERS
     factory = PipelineFactory(
-        expt_name, metadata, regions, expt_dirs, fastq_dir, call, reference_name
+        expt_name, metadata, regions, expt_dirs, fastq_dir, caller, reference_name
     )
 
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
-    dashboard = factory.get_dashboard(start_time=start_time)
-    dashboard.run(in_thread=True)
-
-    webbrowser.open("http://127.0.0.1:8050")
+    if with_dashboard:
+        dashboard = factory.get_dashboard(start_time=start_time)
+        dashboard.run(in_thread=True)
 
     # CATCH UP FROM WORK LOG IF WE RESUME
     catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
@@ -118,9 +129,16 @@ def main(
                 log.info(f"Have updated {n_updated} barcodes.")
                 log.info("Running experiment pipeline...")
                 expt_pipeline.run()
+                if not realtime:
+                    log.info("Finished processing data.")
+                    break
             else:
-                log.info("No barcodes updated. Waiting before scannning again.")
-                time.sleep(WAIT_INTERVAL)
+                if realtime:
+                    log.info("No barcodes updated. Waiting before scannning again.")
+                    time.sleep(WAIT_INTERVAL)
+                else:
+                    log.info("No new data found for barcodes.")
+                    break
     except KeyboardInterrupt:
         log.info("")
         log.info("Program has been interrupted by user. Exiting.")
