@@ -1,5 +1,6 @@
 import os
 import click
+from pathlib import Path
 
 from nomadic.util.dirs import produce_dir
 
@@ -54,6 +55,12 @@ class Workspace:
     def __repr__(self):
         return f"Workspace(path={self.path})"
 
+    def get_name(self):
+        """
+        Get the name of the workspace (the last part of the path).
+        """
+        return Path(self.path).resolve().name
+
     def get_results_dir(self):
         """
         Get the results directory of the workspace.
@@ -98,4 +105,17 @@ class Workspace:
             file.removesuffix(".amplicons.bed")
             for file in os.listdir(self.get_beds_dir())
             if file.endswith(".bed")
+        ]
+
+    def get_experiment_names(self):
+        """
+        Get a list of available experiment names in the workspace.
+        """
+        if not os.path.exists(self.get_results_dir()):
+            return []
+
+        return [
+            name
+            for name in os.listdir(self.get_results_dir())
+            if os.path.isdir(os.path.join(self.get_results_dir(), name))
         ]

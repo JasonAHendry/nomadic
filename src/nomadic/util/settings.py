@@ -16,6 +16,7 @@ class ExperimentSettings(NamedTuple):
     reference_name: str
     n_barcodes: int
     n_regions: int
+    minknow_dir: Optional[str] = None
 
 
 def parse_date(date_str: str) -> datetime:
@@ -37,6 +38,10 @@ def verify_compatible_settings(
         raise IncompatibleSettingsError("experiment name")
     if old_settings.fastq_dir != new_settings.fastq_dir:
         raise IncompatibleSettingsError("fastq dir")
+    if (old_settings.minknow_dir != new_settings.minknow_dir) and (
+        old_settings.minknow_dir is not None
+    ):
+        raise IncompatibleSettingsError("minknow dir")
     if old_settings.metadata_csv != new_settings.metadata_csv:
         raise IncompatibleSettingsError("metadata csv file")
     if old_settings.region_bed != new_settings.region_bed:

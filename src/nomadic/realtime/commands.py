@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from shutil import rmtree
 
 import click
@@ -49,12 +50,18 @@ from nomadic.util.cli import (
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
 @click.option(
-    "-f",
-    "--fastq_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    "-k",
+    "--minknow_dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default=True,
-    help="Path to `fastq_pass` output directory of minknow (e.g. `/var/lib/minknow/data/<experiment_name>/.../.../fastq_pass`), or to the general output directory of minknow (e.g. `/var/lib/minknow/data`)",
+    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
+)
+@click.option(
+    "-f",
+    "--fastq_dir",
+    type=click.Path(file_okay=False, dir_okay=True),
+    help="Path or glob to the fastq files. This should only be used when the full minknow dir can not be provided, as some features likes backup will not work. Prefer using --minknow_dir. If --fastq_dir is provided, --minknow_dir is ignored.",
 )
 @click.option(
     "-m",
@@ -119,6 +126,7 @@ def realtime(
     experiment_name,
     output,
     workspace_path,
+    minknow_dir,
     fastq_dir,
     metadata_csv,
     region_bed,
@@ -137,7 +145,9 @@ def realtime(
     output = get_output_path(experiment_name, output, workspace)
     metadata_csv = get_metadata_path(experiment_name, metadata_csv, workspace)
     region_bed = get_region_path(region_bed, workspace)
-    fastq_dir = get_fastqdir_path(experiment_name, fastq_dir)
+    minknow_dir, fastq_dir = get_minknow_fastq_dirs(
+        experiment_name, minknow_dir, fastq_dir
+    )
 
     validate_reference(reference_name)
 
@@ -169,6 +179,7 @@ def realtime(
             output,
             workspace_path,
             fastq_dir,
+            minknow_dir,
             metadata_csv,
             region_bed,
             reference_name,
@@ -184,6 +195,14 @@ def realtime(
         ) from e
 
 
+def get_minknow_fastq_dirs(experiment_name, minknow_dir, fastq_dir):
+    if fastq_dir is None:
+        return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
+    else:
+        # If fastq_dir is manually given, we assume there is no minknow dir
+        return None, fastq_dir
+
+
 def validate_reference(reference_name):
     if reference_name is None:
         raise click.BadParameter(
@@ -195,13 +214,6 @@ def validate_reference(reference_name):
             param_hint="-r/--reference_name",
             message=f"Reference genome '{reference_name}' is not available. Available references: {', '.join(REFERENCE_COLLECTION.keys())}.",
         )
-
-
-def get_fastqdir_path(experiment_name, fastq_dir):
-    if not minknow.is_fastq_dir(fastq_dir):
-        # should be base path of minknow data, build fastq glob with experiment name.
-        fastq_dir = minknow.fastq_dir_glob(fastq_dir, experiment_name)
-    return fastq_dir
 
 
 def get_region_path(region_bed, workspace):
