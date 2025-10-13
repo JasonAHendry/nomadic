@@ -1,10 +1,11 @@
+import os
+import shutil
+from pathlib import Path
+from typing import NamedTuple
+
 from nomadic.util.dirs import produce_dir
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
-
-import os
-import shutil
-from typing import NamedTuple
 
 
 class SummaryFiles(NamedTuple):
@@ -97,38 +98,7 @@ class ExperimentDirectories:
         return os.path.join(self.metadata_dir, "settings.json")
 
     def get_summary_files(self) -> SummaryFiles:
-        if os.path.exists(
-            f"{self.approach_dir}/{legacy_summary_files.fastqs_processed}"
-        ):
-            # Use legacy summary files if the old format exists
-            return SummaryFiles(
-                fastqs_processed=os.path.join(
-                    self.approach_dir, legacy_summary_files.fastqs_processed
-                ),
-                read_mapping=os.path.join(
-                    self.approach_dir, legacy_summary_files.read_mapping
-                ),
-                region_coverage=os.path.join(
-                    self.approach_dir, legacy_summary_files.region_coverage
-                ),
-                depth_profiles=os.path.join(
-                    self.approach_dir, legacy_summary_files.depth_profiles
-                ),
-                variants=os.path.join(self.approach_dir, legacy_summary_files.variants),
-            )
-        return SummaryFiles(
-            fastqs_processed=os.path.join(
-                self.approach_dir, summary_files.fastqs_processed
-            ),
-            read_mapping=os.path.join(self.approach_dir, summary_files.read_mapping),
-            region_coverage=os.path.join(
-                self.approach_dir, summary_files.region_coverage
-            ),
-            depth_profiles=os.path.join(
-                self.approach_dir, summary_files.depth_profiles
-            ),
-            variants=os.path.join(self.approach_dir, summary_files.variants),
-        )
+        return get_summary_files(Path(self.approach_dir))
 
     def _setup_metadata_dir(
         self, metadata: MetadataTableParser, regions: RegionBEDParser
@@ -146,3 +116,25 @@ class ExperimentDirectories:
             self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
             if not os.path.exists(self.regions_bed):
                 shutil.copy(regions.path, self.regions_bed)
+
+
+def get_summary_files(exp_path: Path) -> SummaryFiles:
+    if not exp_path.exists():
+        raise FileNotFoundError(f"Experiment path does not exist: {exp_path}")
+    if (exp_path / legacy_summary_files.fastqs_processed).exists():
+        # Use legacy summary files if the old format exists
+        return SummaryFiles(
+            fastqs_processed=str(exp_path / legacy_summary_files.fastqs_processed),
+            read_mapping=str(exp_path / legacy_summary_files.read_mapping),
+            region_coverage=str(exp_path / legacy_summary_files.region_coverage),
+            depth_profiles=str(exp_path / legacy_summary_files.depth_profiles),
+            variants=str(exp_path / legacy_summary_files.variants),
+        )
+    else:
+        return SummaryFiles(
+            fastqs_processed=str(exp_path / summary_files.fastqs_processed),
+            read_mapping=str(exp_path / summary_files.read_mapping),
+            region_coverage=str(exp_path / summary_files.region_coverage),
+            depth_profiles=str(exp_path / summary_files.depth_profiles),
+            variants=str(exp_path / summary_files.variants),
+        )

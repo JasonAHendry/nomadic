@@ -1,20 +1,25 @@
-import os
 import glob
-import pandas as pd
+import os
 import webbrowser
-
-from statsmodels.stats.proportion import proportion_confint
-from typing import NamedTuple
 from enum import StrEnum, auto
-from nomadic.util.logging_config import LoggingFascade
-from nomadic.util.experiment import summary_files, legacy_summary_files
+from pathlib import Path
+
+import pandas as pd
+from statsmodels.stats.proportion import proportion_confint
+
 from nomadic.dashboard.main import (
     find_metadata,
     find_regions,
 )
-from nomadic.util.dirs import produce_dir
-from nomadic.util.metadata import ExtendedMetadataTableParser
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
+from nomadic.util.dirs import produce_dir
+from nomadic.util.experiment import (
+    get_summary_files,
+    legacy_summary_files,
+    summary_files,
+)
+from nomadic.util.logging_config import LoggingFascade
+from nomadic.util.metadata import ExtendedMetadataTableParser
 
 
 def get_metadata_csv(expt_dir: str) -> str:
@@ -71,7 +76,7 @@ def check_complete_experiment(expt_dir: str) -> None:
         raise FileNotFoundError(f"Could not find VCF directory in {expt_dir}.")
 
 
-def check_regions_consistent(expt_dirs: list[str]) -> None:
+def check_regions_consistent(expt_dirs: tuple[str]) -> None:
     """
     Check that the regions are consistent across all experiment directories
 
@@ -122,11 +127,13 @@ def get_region_coverage_dataframe(
     bed_dfs = []
     for expt_dir in expt_dirs:
         # TODO: allow for legacy or modern names
-        bed_csv = f"{expt_dir}/summary.bedcov.csv"
+        bed_csv = get_summary_files(Path(expt_dir)).region_coverage
 
         bed_df = pd.read_csv(bed_csv)
         bed_df.insert(0, "expt_name", os.path.basename(expt_dir))
         bed_df.query("barcode != 'unclassified'", inplace=True)
+        if "sample_id" in bed_df.columns:
+            bed_df.drop(columns=["sample_id"], inplace=True)
 
         # TODO: Do checks
         bed_df = pd.merge(
@@ -268,7 +275,7 @@ def load_variant_summary_csv(
     """
 
     # Settings
-    NUMERIC_COLUMNS = ["gq", "dp", "wsaf"]
+    NUMERIC_COLUMNS = ["dp", "wsaf"]
     UNPHASED_GT_TO_INT = {"./.": -1, "0/0": 0, "0/1": 1, "1/1": 2}
 
     # Load
