@@ -412,7 +412,12 @@ def compute_variant_prevalence(variants_df: str) -> pd.DataFrame:
 # --------------------------------------------------------------------------------
 
 
-def main(expt_dirs: str, summary_name: str) -> None:
+def main(
+    *,
+    expt_dirs: tuple[str],
+    summary_name: str,
+    meta_data_path: Path,
+) -> None:
     """
     Define the main function for the summary analysis
 
@@ -435,6 +440,7 @@ def main(expt_dirs: str, summary_name: str) -> None:
     log = LoggingFascade(logger_name="nomadic")
     log.info("Input parameters:")
     log.info(f"  Summary Name: {summary_name}")
+    log.info(f"  Master metadata: {meta_data_path}")
     log.info(f"  Found {len(expt_dirs)} experiment directories.")
     for expt_dir in expt_dirs:
         check_complete_experiment(expt_dir)
