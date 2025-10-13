@@ -132,6 +132,52 @@ class ThroughputSummary(SummaryDashboardComponent):
         """
 
 
+class SamplesPie(SummaryDashboardComponent):
+    """
+    Make a pie chart that shows read mapping statistics
+
+    """
+
+    def __init__(
+        self,
+        summary_name: str,
+        samples_csv: str,
+        component_id: str,
+    ):
+        self.samples_csv = samples_csv
+        self.df = pd.read_csv(samples_csv)
+        self.df = self.df.groupby("status").count()["sample_id"]
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+        fig = go.Figure(
+            data=[
+                go.Pie(
+                    values=self.df.values,
+                    labels=self.df.index,
+                    sort=False,
+                    hole=0.3,
+                )
+            ]
+        )
+
+        MAR = 20
+        fig.update_layout(showlegend=False, margin=dict(t=MAR, l=MAR, r=MAR, b=MAR))
+
+        return dcc.Graph(id=self.component_id, figure=fig)
+
+    def callback(self, app: Dash) -> None:
+        """
+        Define the update callback for the pie chart
+
+        """
+
+
 class QualityControl(SummaryDashboardComponent):
     STATISTICS = [
         "mean_cov_field",

@@ -126,7 +126,6 @@ def get_region_coverage_dataframe(
     # Load coverage data
     bed_dfs = []
     for expt_dir in expt_dirs:
-        # TODO: allow for legacy or modern names
         bed_csv = get_summary_files(Path(expt_dir)).region_coverage
 
         bed_df = pd.read_csv(bed_csv)
@@ -211,12 +210,13 @@ def _add_qc_status_no_duplicates(df: pd.DataFrame) -> list[str]:
         status = []
         if row["sample_type"] in ["pos", "neg"]:
             status.append(QcStatus.CONTROL)
-        if row["fail_contam"]:
-            status.append(QcStatus.CONTAM)
-        if row["fail_lowcov"]:
-            status.append(QcStatus.LOWCOV)
-        if not status:
-            status.append(QcStatus.PASS)
+        else:
+            if row["fail_contam"]:
+                status.append(QcStatus.CONTAM)
+            if row["fail_lowcov"]:
+                status.append(QcStatus.LOWCOV)
+            if not status:
+                status.append(QcStatus.PASS)
         status_strs.append(";".join(status))
     df["status"] = status_strs
 
@@ -257,7 +257,7 @@ def add_quality_control_status_column(df: pd.DataFrame) -> None:
 
     """
     _add_qc_status_no_duplicates(df)
-    _mark_duplicates(df)
+    # _mark_duplicates(df)
 
 
 # --------------------------------------------------------------------------------
@@ -424,6 +424,7 @@ def main(
     expt_dirs: tuple[str],
     summary_name: str,
     meta_data_path: Path,
+    dashboard: bool = True,
 ) -> None:
     """
     Define the main function for the summary analysis
@@ -438,7 +439,6 @@ def main(
       in the shared metadata; for example parasitemia
 
     """
-
     output_dir = produce_dir(
         "summaries", summary_name
     )  # should I ensure we are in a workspace?
@@ -473,8 +473,14 @@ def main(
     )
     fixed_columns = ["expt_name", "barcode", "sample_id", "sample_type"]
     shared_columns.difference_update(fixed_columns)
-    shared_columns = fixed_columns + list(shared_columns)
+    # for now we use the master metadata file
+    # shared_columns = fixed_columns + list(shared_columns)
+    shared_columns = fixed_columns
     metadata = pd.concat([df[shared_columns] for df in dfs])
+    master_metadata = pd.read_csv(meta_data_path)
+    metadata = pd.merge(
+        left=metadata, right=master_metadata, on=["sample_id"], how="left"
+    )
     metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
 
     # Check regions are consistent
@@ -512,6 +518,54 @@ def main(
     log.info(coverage_df["status"].value_counts())
     coverage_df.to_csv(f"{output_dir}/summary.coverage.csv", index=False)
 
+    REPLICATE_PASSING_THRESHOLD = 0.8
+    replicates_qc_df = (
+        coverage_df.query("sample_type == 'field'")
+        .groupby(["expt_name", "barcode", "sample_id"])
+        .agg(
+            n_amplicons=pd.NamedAgg("name", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+            n_fail_contam=pd.NamedAgg("fail_contam", "sum"),
+            n_fail_lowcov=pd.NamedAgg("fail_lowcov", "sum"),
+        )
+        .reset_index()
+    )
+    replicates_qc_df["passing"] = (
+        replicates_qc_df["n_passing"] / replicates_qc_df["n_amplicons"]
+        >= REPLICATE_PASSING_THRESHOLD
+    )
+    replicates_qc_df.to_csv(f"{output_dir}/summary.replicates_qc.csv", index=False)
+
+    samples_summary_df = (
+        replicates_qc_df.groupby(["sample_id"])
+        .agg(
+            n_replicates=pd.NamedAgg("barcode", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+        )
+        .reset_index()
+    )
+    samples_summary_df = (
+        samples_summary_df.merge(
+            master_metadata[["sample_id"]], how="right", on="sample_id"
+        )
+        .fillna({"n_replicates": 0, "n_passing": 0})
+        .astype({"n_replicates": int, "n_passing": int})
+    )
+    samples_summary_df["status"] = samples_summary_df.apply(
+        lambda row: "passing"
+        if row["n_passing"] > 0
+        else "failing"
+        if row["n_replicates"] > 0
+        else "missing",
+        axis=1,
+    )
+    samples_summary_df.sort_values(
+        by=["n_passing", "n_replicates", "sample_id"],
+        inplace=True,
+        ascending=[False, False, True],
+    )
+    samples_summary_df.to_csv(f"{output_dir}/summary.samples_qc.csv", index=False)
+
     final_df = (
         coverage_df.query("sample_type == 'field'")
         .groupby(["expt_name", "name"])
@@ -526,7 +580,7 @@ def main(
         )
         .reset_index()
     )
-    final_df.to_csv(f"{output_dir}/summary.quality_control.csv", index=False)
+    final_df.to_csv(f"{output_dir}/summary.experiments_qc.csv", index=False)
 
     # --------------------------------------------------------------------------------
     # Let's move onto to variant calling results
@@ -565,20 +619,21 @@ def main(
     #
     # --------------------------------------------------------------------------------
 
-    print("  Variant calling: False")
-    dashboard = BasicSummaryDashboard(
-        summary_name,
-        throughput_csv=f"{output_dir}/summary.throughput.csv",
-        coverage_csv=f"{output_dir}/summary.quality_control.csv",
-        prevalence_csv=f"{output_dir}/summary.variants.prevalence.csv",
-    )
-    print("Done.")
+    if dashboard:
+        dashboard = BasicSummaryDashboard(
+            summary_name,
+            throughput_csv=f"{output_dir}/summary.throughput.csv",
+            samples_csv=f"{output_dir}/summary.samples_qc.csv",
+            coverage_csv=f"{output_dir}/summary.experiments_qc.csv",
+            prevalence_csv=f"{output_dir}/summary.variants.prevalence.csv",
+        )
+        print("Done.")
 
-    print("")
-    print("Launching dashboard (press CNTRL+C to exit):")
-    print("")
-    webbrowser.open("http://127.0.0.1:8050")
-    dashboard.run(debug=True)
+        print("")
+        print("Launching dashboard (press CNTRL+C to exit):")
+        print("")
+        webbrowser.open("http://127.0.0.1:8050")
+        dashboard.run(debug=True)
 
     # CHECKPOINT 2:
     # summary.quality_control.by_amplicon.csv

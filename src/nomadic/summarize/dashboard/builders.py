@@ -7,6 +7,7 @@ from typing import Optional
 
 # from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
+    SamplesPie,
     ThroughputSummary,
     QualityControl,
     PrevalenceBarplot,
@@ -106,7 +107,32 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.expt_summary)
         self.layout.append(banner)
 
-    def _add_quality_control(self, coverage_csv: str) -> None:
+    def _add_samples(self, samples_csv: str) -> None:
+        """
+        Add a panel that shows progress of samples
+
+        """
+        self.samples = SamplesPie(
+            summary_name=self.summary_name,
+            component_id="samples-summary",
+            samples_csv=samples_csv,
+        )
+        quality_row = html.Div(
+            className="quality-row",
+            children=[
+                html.H3("Samples Statistics", style=dict(marginTop="0px")),
+                html.Div(
+                    className="samples-plots",
+                    children=[self.samples.get_layout()],
+                ),
+            ],
+        )
+
+        # Add components and layout
+        self.components.append(self.samples)
+        self.layout.append(quality_row)
+
+    def _add_experiment_qc(self, coverage_csv: str) -> None:
         """
         Add a panel that shows quality control results
 
@@ -128,7 +154,7 @@ class SummaryDashboardBuilder(ABC):
         quality_row = html.Div(
             className="quality-row",
             children=[
-                html.H3("Quality Control Statistics", style=dict(marginTop="0px")),
+                html.H3("Experiment QC Statistics", style=dict(marginTop="0px")),
                 dropdown,
                 html.Div(
                     className="quality-plots",
@@ -188,6 +214,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self,
         summary_name: str,
         throughput_csv: str,
+        samples_csv: str,
         coverage_csv: str,
         prevalence_csv: str,
     ):
@@ -198,6 +225,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
 
         super().__init__(summary_name, self.CSS_STYLE)
         self.throughput_csv = throughput_csv
+        self.samples_csv = samples_csv
         self.coverage_csv = coverage_csv
         self.prevalence_csv = prevalence_csv
 
@@ -207,7 +235,8 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
 
         """
         self._add_throughput_banner(self.throughput_csv)
-        self._add_quality_control(self.coverage_csv)
+        self._add_samples(self.samples_csv)
+        self._add_experiment_qc(self.coverage_csv)
         self._add_prevalence_row(self.prevalence_csv)
         # self._add_mapping_row(self.read_mapping_csv)
         # self._add_region_coverage_row(self.region_coverage_csv, self.regions)

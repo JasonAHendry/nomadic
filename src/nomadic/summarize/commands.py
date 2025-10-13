@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import click
+import dash
 
 from nomadic.util.workspace import Workspace, check_if_workspace
 
@@ -32,11 +33,17 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     show_default="<workspace>/metadata/<summary_name>.csv",
 )
 @click.option("-n", "--summary_name", type=str, help="Name of summary")
+@click.option(
+    "--dashboard/--no-dashboard",
+    default=True,
+    help="Whether to start the web dashboard to monitor the run.",
+)
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
     workspace_path: str,
     metadata_csv: Path,
+    dashboard: bool,
 ):
     """
     Summarize a set of experiments to evaluate quality control and
@@ -71,4 +78,5 @@ def summarize(
         expt_dirs=experiment_dirs,
         summary_name=summary_name,
         meta_data_path=metadata_csv,
+        dashboard=dashboard,
     )
