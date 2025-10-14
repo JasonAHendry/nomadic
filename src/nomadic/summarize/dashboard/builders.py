@@ -5,6 +5,8 @@ from dash import Dash, html, dcc
 from datetime import datetime
 from typing import Optional
 
+from i18n import t
+
 # from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
     PrevalenceHeatmap,
@@ -140,7 +142,9 @@ class SummaryDashboardBuilder(ABC):
         """
         dropdown = dcc.Dropdown(
             id="quality-dropdown",
-            options=QualityControl.STATISTICS,
+            options=[
+                    {"label": t(option), "value": option, "title": t(f"{option}_tooltip")}
+                    for option in QualityControl.STATISTICS],
             value=QualityControl.STATISTICS[1],
             style=dict(width="300px"),
         )

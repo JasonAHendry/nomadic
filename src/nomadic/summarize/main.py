@@ -1,5 +1,6 @@
 import glob
 import os
+from warnings import warn
 import webbrowser
 from enum import StrEnum, auto
 from pathlib import Path
@@ -167,6 +168,11 @@ def get_region_coverage_dataframe(
 
     return coverage_df
 
+def calc_unknown_samples(inventory_metadata: pd.DataFrame, master_metadata):
+    field_samples = inventory_metadata.query("sample_type == 'field'")
+    unknown_samples = field_samples.loc[~field_samples["sample_id"].isin(master_metadata["sample_id"]), "sample_id"].to_list()
+    return unknown_samples
+
 
 def calc_quality_control_columns(
     df: pd.DataFrame, *, min_coverage: int = 50, max_contam: float = 0.1
@@ -227,7 +233,7 @@ def _mark_duplicates(df: pd.DataFrame) -> None:
             return status
         return f"{status};{QcStatus.DUPLICATE}"
 
-    for (_, _), data in df.groupby(["sample_id", "name"]):
+    for (_, _), data in df.query("sample_type == 'field'").groupby(["sample_id", "name"]):
         # Select an index to keep, i.e. the best sample that should
         # marked as duplicate
         passing = data["status"] == "pass"
@@ -257,7 +263,7 @@ def add_quality_control_status_column(df: pd.DataFrame) -> None:
 
     """
     _add_qc_status_no_duplicates(df)
-    # _mark_duplicates(df)
+    _mark_duplicates(df)
 
 
 # --------------------------------------------------------------------------------
@@ -510,7 +516,7 @@ def main(
     """
     output_dir = produce_dir(
         "summaries", summary_name
-    )  # should I ensure we are in a workspace?
+    ) # TODO allow to change output dir
 
     # PARSE EXPERIMENT DIRECTORIES
     log = LoggingFascade(logger_name="nomadic")
@@ -545,12 +551,17 @@ def main(
     # for now we use the master metadata file
     # shared_columns = fixed_columns + list(shared_columns)
     shared_columns = fixed_columns
-    metadata = pd.concat([df[shared_columns] for df in dfs])
+    inventory_metadata = pd.concat([df[shared_columns] for df in dfs])
     master_metadata = pd.read_csv(meta_data_path)
-    metadata = pd.merge(
-        left=metadata, right=master_metadata, on=["sample_id"], how="left"
-    )
-    metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
+    # inventory_metadata = pd.merge(
+    #     left=inventory_metadata, right=master_metadata, on=["sample_id"], how="left"
+    # )
+    unknown_samples = calc_unknown_samples(inventory_metadata, master_metadata)
+    if unknown_samples:
+        warn(f"Samples in experiments that are not in master metadata: {unknown_samples}")
+
+    inventory_metadata = inventory_metadata[~inventory_metadata["sample_id"].isin(unknown_samples)]
+    inventory_metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
 
     # Check regions are consistent
     check_regions_consistent(expt_dirs)
@@ -559,7 +570,7 @@ def main(
     # Throughput data
     # TODO: Need to make a real decision about how to handle duplicated sample IDs
     log.info("Overall sequencing throughput:")
-    throughput_df = compute_throughput(metadata)
+    throughput_df = compute_throughput(inventory_metadata)
     log.info(f"  Positive controls: {throughput_df.loc['pos', 'All']}")
     log.info(f"  Negative controls: {throughput_df.loc['neg', 'All']}")
     log.info(f"  Field samples (total): {throughput_df.loc['field', 'All']}")
@@ -567,7 +578,7 @@ def main(
     throughput_df.to_csv(f"{output_dir}/summary.throughput.csv", index=True)
 
     # Now let's evaluate coverage
-    coverage_df = get_region_coverage_dataframe(expt_dirs, metadata)
+    coverage_df = get_region_coverage_dataframe(expt_dirs, inventory_metadata)
     MIN_COV = 50
     MAX_CONTAM = 0.1
     calc_quality_control_columns(

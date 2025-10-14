@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from pyparsing import annotations
 import seaborn as sns
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
@@ -15,6 +16,7 @@ from matplotlib.colors import rgb2hex
 
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
+from i18n import t
 
 # --------------------------------------------------------------------------------
 # Interface for a single real-time dashboard component
@@ -146,6 +148,7 @@ class SamplesPie(SummaryDashboardComponent):
     ):
         self.samples_csv = samples_csv
         self.df = pd.read_csv(samples_csv)
+        self.n = len(self.df)
         self.df = self.df.groupby("status").count()["sample_id"]
         super().__init__(summary_name, component_id)
 
@@ -162,12 +165,13 @@ class SamplesPie(SummaryDashboardComponent):
                     labels=self.df.index,
                     sort=False,
                     hole=0.3,
+                    textinfo="label+percent+value"
                 )
             ]
         )
 
         MAR = 20
-        fig.update_layout(showlegend=False, margin=dict(t=MAR, l=MAR, r=MAR, b=MAR))
+        fig.update_layout(showlegend=False, margin=dict(t=MAR, l=MAR, r=MAR, b=MAR), annotations=[dict(text=f"N={self.n}", font_size=20, showarrow=False, xanchor="center")])
 
         return dcc.Graph(id=self.component_id, figure=fig)
 
@@ -238,6 +242,7 @@ class QualityControl(SummaryDashboardComponent):
             fig.update_layout(
                 width=1200,
                 height=600,
+                xaxis_title="Amplicons",
                 yaxis_title="Experiments",
                 hovermode="y unified",
                 paper_bgcolor="white",  # Sets the background color of the paper
