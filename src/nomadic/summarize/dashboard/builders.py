@@ -7,6 +7,7 @@ from typing import Optional
 
 # from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
+    PrevalenceHeatmap,
     SamplesPie,
     ThroughputSummary,
     QualityControl,
@@ -201,6 +202,40 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.prevalence_bars)
         self.layout.append(prevalence_row)
 
+    def _add_prevalence_by_region_row(self, prevalence_region_csv: str) -> None:
+        """
+        Add a panel that shows prevalence calls by region
+
+        """
+        dropdown = dcc.Dropdown(
+            id="gene-dropdown",
+            options=PrevalenceBarplot.GENE_SETS["Resistance"],
+            value=PrevalenceBarplot.GENE_SETS["Resistance"][0],
+            style=dict(width="300px"),
+        )
+
+        self.prevalence_heatmap = PrevalenceHeatmap(
+            summary_name=self.summary_name,
+            prevalence_region_csv=prevalence_region_csv,
+            component_id="prevalence-heatmap",
+            gene_dropdown_id="gene-dropdown",
+        )
+        prevalence_row = html.Div(
+            className="prevalence-region-row",
+            children=[
+                html.H3("Prevalence by region", style=dict(marginTop="0px")),
+                dropdown,
+                html.Div(
+                    className="prevalence-region-plots",
+                    children=[self.prevalence_heatmap.get_layout()],
+                ),
+            ],
+        )
+
+        # Add components and layout
+        self.components.append(self.prevalence_heatmap)
+        self.layout.append(prevalence_row)
+
 
 class BasicSummaryDashboard(SummaryDashboardBuilder):
     """
@@ -217,6 +252,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         samples_csv: str,
         coverage_csv: str,
         prevalence_csv: str,
+        prevalence_region_csv: str,
     ):
         """
         Initialise all of the dashboard components
@@ -228,6 +264,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.samples_csv = samples_csv
         self.coverage_csv = coverage_csv
         self.prevalence_csv = prevalence_csv
+        self.prevalence_region_csv = prevalence_region_csv
 
     def _gen_layout(self):
         """
@@ -238,6 +275,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_samples(self.samples_csv)
         self._add_experiment_qc(self.coverage_csv)
         self._add_prevalence_row(self.prevalence_csv)
+        self._add_prevalence_by_region_row(self.prevalence_region_csv)
         # self._add_mapping_row(self.read_mapping_csv)
         # self._add_region_coverage_row(self.region_coverage_csv, self.regions)
         # self._add_depth_row(self.depth_profiles_csv, self.regions)

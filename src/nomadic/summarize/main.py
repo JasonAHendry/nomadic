@@ -369,6 +369,30 @@ def load_and_concat_variants(expt_dirs: list[str]) -> pd.DataFrame:
     return pd.concat(full_variant_dfs)
 
 
+variants_group_columns = [
+    "gene",
+    "chrom",
+    "pos",
+    "ref",
+    "alt",
+    "aa_change",
+    "mut_type",
+    "mutation",
+]
+
+
+def filter_false_positives(variants_df):
+    group_counts = variants_df.groupby(variants_group_columns).agg(
+        n_mixed=pd.NamedAgg("gt_int", lambda x: sum(x == 1)),
+        n_mut=pd.NamedAgg("gt_int", lambda x: sum(x == 2)),
+        mean_wsaf=pd.NamedAgg("wsaf", "mean"),
+    )
+    df = variants_df.merge(group_counts, on=variants_group_columns, how="left")
+    df_filtered = df[~((df["n_mixed"] + df["n_mut"] == 1) & (df["mean_wsaf"] < 0.1))]
+    df_filtered = df_filtered.loc[~(df["n_mixed"] + df["n_mut"] == 0)]
+    return df_filtered.drop(columns=["n_mixed", "n_mut", "mean_wsaf"])
+
+
 def compute_variant_prevalence(variants_df: str) -> pd.DataFrame:
     """
     Compute the prevalence of each mutation in `variants_df`
@@ -380,8 +404,53 @@ def compute_variant_prevalence(variants_df: str) -> pd.DataFrame:
 
     prev_df = (
         variants_df.groupby(
-            ["gene", "chrom", "pos", "ref", "alt", "aa_change", "mut_type", "mutation"]
+            variants_group_columns,
         )
+        .agg(
+            n_samples=pd.NamedAgg("gt_int", len),
+            n_passed=pd.NamedAgg("gt_int", lambda x: sum(x != -1)),
+            n_wt=pd.NamedAgg("gt_int", lambda x: sum(x == 0)),
+            n_mixed=pd.NamedAgg("gt_int", lambda x: sum(x == 1)),
+            n_mut=pd.NamedAgg("gt_int", lambda x: sum(x == 2)),
+        )
+        .reset_index()
+    )
+
+    # Compute frequencies
+    prev_df["per_wt"] = 100 * prev_df["n_wt"] / prev_df["n_passed"]
+    prev_df["per_mixed"] = 100 * prev_df["n_mixed"] / prev_df["n_passed"]
+    prev_df["per_mut"] = 100 * prev_df["n_mut"] / prev_df["n_passed"]
+
+    # Compute prevalence
+    prev_df["prevalence"] = prev_df["per_mixed"] + prev_df["per_mut"]
+
+    # Compute prevalence 95% confidence intervals
+    low, high = proportion_confint(
+        prev_df["n_mut"] + prev_df["n_mixed"],
+        prev_df["n_passed"],
+        alpha=0.05,
+        method="beta",
+    )
+    prev_df["prevalence_lowci"] = 100 * low
+    prev_df["prevalence_highci"] = 100 * high
+
+    return prev_df
+
+
+def compute_variant_prevalence_per(variants_df, master_df, field: str) -> pd.DataFrame:
+    """
+    Compute the prevalence of each mutation in `variants_df`
+
+    Assumes columns several columns exist; compute across all samples
+    in data;
+
+    """
+    variants_df = variants_df.merge(
+        master_df[["sample_id", field]], on="sample_id", how="left"
+    )
+
+    prev_df = (
+        variants_df.groupby([*variants_group_columns, field])
         .agg(
             n_samples=pd.NamedAgg("gt_int", len),
             n_passed=pd.NamedAgg("gt_int", lambda x: sum(x != -1)),
@@ -590,6 +659,8 @@ def main(
     log.info("Loading variants...")
     variant_df = load_and_concat_variants(expt_dirs)
 
+    if "sample_id" in variant_df.columns:
+        variant_df.drop(columns=["sample_id"], inplace=True)
     # Merge with the quality control results, then we can subset to the analysis set
     variant_df = pd.merge(
         left=coverage_df.rename({"name": "amplicon"}, axis=1)[
@@ -608,11 +679,26 @@ def main(
         .query("gene not in @remove_genes")
         .query("mutation not in @remove_mutations")
     )
+
+    # Filter out false positives
+    analysis_df = filter_false_positives(analysis_df)
     analysis_df.to_csv(f"{output_dir}/summary.variants.analysis_set.csv", index=False)
 
     # Then we will compute prevalence
     prev_df = compute_variant_prevalence(analysis_df)
     prev_df.to_csv(f"{output_dir}/summary.variants.prevalence.csv", index=False)
+
+    prev_df_region = compute_variant_prevalence_per(
+        analysis_df, master_metadata, "region"
+    )
+    prev_df_region.to_csv(
+        f"{output_dir}/summary.variants.prevalence-region.csv", index=False
+    )
+
+    prev_df_year = compute_variant_prevalence_per(analysis_df, master_metadata, "year")
+    prev_df_year.to_csv(
+        f"{output_dir}/summary.variants.prevalence-year.csv", index=False
+    )
 
     # --------------------------------------------------------------------------------
     # Dashboard
@@ -626,6 +712,7 @@ def main(
             samples_csv=f"{output_dir}/summary.samples_qc.csv",
             coverage_csv=f"{output_dir}/summary.experiments_qc.csv",
             prevalence_csv=f"{output_dir}/summary.variants.prevalence.csv",
+            prevalence_region_csv=f"{output_dir}/summary.variants.prevalence-region.csv",
         )
         print("Done.")
 

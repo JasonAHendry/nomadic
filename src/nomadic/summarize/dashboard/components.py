@@ -360,3 +360,90 @@ class PrevalenceBarplot(SummaryDashboardComponent):
             fig.update_traces(marker=dict(line=dict(color="black", width=1)))
 
             return fig
+
+
+class PrevalenceHeatmap(SummaryDashboardComponent):
+    """
+    Make a heatmap of prevalences
+
+    """
+
+    def __init__(
+        self,
+        summary_name: str,
+        prevalence_region_csv: str,
+        component_id: str,
+        gene_dropdown_id: str,
+    ):
+        self.gene_dropdown_id = gene_dropdown_id
+        self.df = pd.read_csv(prevalence_region_csv)
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """Layout is graph"""
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.gene_dropdown_id, "value"),
+        )
+        def _update(target_gene):
+            """Called every time an input changes"""
+
+            df = self.df.query("gene == @target_gene")
+            plot_df = pd.pivot_table(
+                index="aa_change",
+                columns="region",
+                values=["prevalence", "n_mixed", "n_mut", "n_passed"],
+                data=df,
+            )
+
+            # Hover statment
+            customdata = np.stack(
+                [plot_df["n_mixed"], plot_df["n_mut"], plot_df["n_passed"]], axis=-1
+            )
+            htemp = "<b>%{y} (%{x})</b><br>"
+            htemp += "<b>Prevalence:</b> %{z:.0f}%<br>"
+            htemp += "<b>Samples:</b> %{customdata[2]}<br>"
+            htemp += "<b>Mixed:</b> %{customdata[0]}<br>"
+            htemp += "<b>Clonal:</b> %{customdata[1]}<br>"
+
+            plot_data = [
+                go.Heatmap(
+                    x=plot_df["prevalence"].columns,
+                    y=plot_df["prevalence"].index,
+                    z=plot_df["prevalence"],
+                    texttemplate="%{z:.0f}%",
+                    customdata=customdata,
+                    zmin=0,
+                    zmax=100,
+                    xgap=1,
+                    ygap=1,
+                    colorscale="Spectral_r",
+                    colorbar=dict(title="", outlinecolor="black", outlinewidth=1),
+                    hoverongaps=False,
+                    hovertemplate=htemp,
+                    name="",
+                )
+            ]
+            MAR = 40
+            fig = go.Figure(plot_data)
+            fig.update_layout(
+                xaxis_title="Regions",
+                hovermode="y unified",
+                paper_bgcolor="white",  # Sets the background color of the paper
+                plot_bgcolor="white",
+                title=dict(text=target_gene),
+                margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
+                xaxis=dict(
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
+                ),
+                yaxis=dict(
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
+                ),
+                xaxis_showgrid=False,
+                yaxis_showgrid=False,
+                # height=n_mutations*SZ # TOOD: how to adjust dynamically
+            )
+            return fig
