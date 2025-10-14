@@ -44,11 +44,27 @@ from nomadic.util.workspace import check_if_workspace, Workspace
     show_default=True,
     help="Include/exclude minknow data in the backup.",
 )
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Increase logging verbosity, will show files that are copied.",
+)
+@click.option(
+    "-c",
+    "--checksum",
+    is_flag=True,
+    default=False,
+    help="Use checksum check instead of file size and modification time.",
+)
 def backup(
     backup_dir: Path,
     workspace_path: Path,
     include_minknow: bool,
     minknow_base_dir: Path,
+    verbose: bool,
+    checksum: bool,
 ):
     """
     Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive.
@@ -65,11 +81,19 @@ def backup(
 
     failure_reasons = defaultdict(list)
 
-    backup_nomadic(backup_dir, workspace_path, workspace_name)
+    backup_nomadic(
+        backup_dir, workspace_path, workspace_name, verbose=verbose, checksum=checksum
+    )
 
     if include_minknow:
         backup_minknow_data(
-            backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
+            backup_dir,
+            workspace_path,
+            minknow_base_dir,
+            workspace,
+            failure_reasons,
+            verbose=verbose,
+            checksum=checksum,
         )
     else:
         click.echo("Skipping minknow data backup as requested.")
@@ -80,7 +104,7 @@ def backup(
     print_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
 
 
-def backup_nomadic(backup_dir, workspace_path, workspace_name):
+def backup_nomadic(backup_dir, workspace_path, workspace_name, verbose, checksum):
     click.echo(f"Backing up nomadic workspace ({workspace_name}) to {backup_dir}")
 
     selective_rsync(
@@ -89,6 +113,8 @@ def backup_nomadic(backup_dir, workspace_path, workspace_name):
         recursive=True,
         progressbar=True,
         exclusions=["**/.incremental/", "**/intermediate", ".work.log"],
+        verbose=verbose,
+        checksum=checksum,
     )
     click.echo("Done.")
 
@@ -99,6 +125,8 @@ def backup_minknow_data(
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
+    verbose: bool,
+    checksum: bool,
 ):
     click.echo("Merging minknow data into experiments:")
 
@@ -141,6 +169,8 @@ def backup_minknow_data(
             target_dir=target_dir,
             recursive=True,
             progressbar=True,
+            verbose=verbose,
+            checksum=checksum,
         )
 
 

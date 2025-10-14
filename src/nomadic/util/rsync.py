@@ -29,7 +29,8 @@ def selective_rsync(
     # Base command with recursive (r) and timestamp (t) options
     # r is needed to select all entries in the folder even if the rsync is not recursive
     # a folder exclusion is then added
-    rsync_components = ["rsync", "-rt"]
+    # --modify-window is added to help working with fat32
+    rsync_components = ["rsync", "-rt", "--modify-window=2"]
 
     # Add variables
     if progressbar:
