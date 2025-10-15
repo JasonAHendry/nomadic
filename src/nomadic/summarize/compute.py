@@ -15,15 +15,10 @@ variants_group_columns = [
 
 
 def filter_false_positives(variants_df: pd.DataFrame):
-    group_counts = variants_df.groupby(variants_group_columns).agg(
-        n_mixed=pd.NamedAgg("gt_int", lambda x: sum(x == 1)),
-        n_mut=pd.NamedAgg("gt_int", lambda x: sum(x == 2)),
-        mean_wsaf=pd.NamedAgg("wsaf", "mean"),
-    )
-    df = variants_df.merge(group_counts, on=variants_group_columns, how="left")
-    df_filtered = df[~((df["n_mixed"] + df["n_mut"] == 1) & (df["mean_wsaf"] < 0.1))]
-    df_filtered = df_filtered.loc[~(df["n_mixed"] + df["n_mut"] == 0)]
-    return df_filtered.drop(columns=["n_mixed", "n_mut", "mean_wsaf"])
+    mut = variants_df[variants_df["gt_int"].isin([1,2])]
+    df = variants_df.merge(mut.groupby(variants_group_columns).agg(n_mut=pd.NamedAgg("gt_int", len), wsaf_max=pd.NamedAgg("wsaf", "max")), on=variants_group_columns)
+    df = df[~(df["n_mut"].le(1) & df["wsaf_max"].lt(0.1))].drop(columns=["n_mut", "wsaf_max"])
+    return df
 
 
 def compute_variant_prevalence(variants_df: str) -> pd.DataFrame:
