@@ -64,3 +64,16 @@ def selective_rsync(
         click.echo(f"stdout: {result.stdout}")
     if result.stderr:
         click.echo(f"stderr: {result.stderr}")
+
+
+def rsync_nomadic(target_dir, workspace_path, workspace_name):
+    click.echo(f"Synchronising nomadic workspace ({workspace_name}) to {target_dir}")
+
+    selective_rsync(
+        source_dir=workspace_path,
+        target_dir=target_dir,
+        recursive=True,
+        progressbar=True,
+        exclusions=["**/.incremental/", "**/intermediate", ".work.log"],
+    )
+    click.echo("Done.")

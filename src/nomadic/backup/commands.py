@@ -1,13 +1,13 @@
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 import click
 
 from nomadic.util import minknow
 from nomadic.util.dirs import produce_dir
-from nomadic.util.rsync import selective_rsync
-from nomadic.util.settings import load_settings
-from nomadic.util.workspace import check_if_workspace, Workspace
+from nomadic.util.rsync import rsync_nomadic, selective_rsync
+from nomadic.util.settings import load_settings, settings_filepath
+from nomadic.util.workspace import Workspace, check_if_workspace
 
 
 @click.command(short_help="Backup a workspace.")
@@ -65,10 +65,10 @@ def backup(
 
     failure_reasons = defaultdict(list)
 
-    backup_nomadic(backup_dir, workspace_path, workspace_name)
+    rsync_nomadic(backup_dir, workspace_path, workspace_name)
 
     if include_minknow:
-        backup_minknow_data(
+        rsync_minknow_data(
             backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
         )
     else:
@@ -80,21 +80,8 @@ def backup(
     print_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
 
 
-def backup_nomadic(backup_dir, workspace_path, workspace_name):
-    click.echo(f"Backing up nomadic workspace ({workspace_name}) to {backup_dir}")
-
-    selective_rsync(
-        source_dir=workspace_path,
-        target_dir=backup_dir,
-        recursive=True,
-        progressbar=True,
-        exclusions=["**/.incremental/", "**/intermediate", ".work.log"],
-    )
-    click.echo("Done.")
-
-
-def backup_minknow_data(
-    backup_dir: Path,
+def rsync_minknow_data(
+    target_dir: Path,
     workspace_path: Path,
     minknow_base_dir: Path,
     workspace: Workspace,
@@ -121,7 +108,7 @@ def backup_minknow_data(
             minknow_dir = Path(settings.minknow_dir)
 
         source_dir = minknow_dir
-        target_dir = minknow_target_dir(backup_dir, exp)
+        target_dir = minknow_target_dir(target_dir, exp)
 
         if not source_dir.exists():
             click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
@@ -148,7 +135,7 @@ def backup_status(backup_dir: Path, workspace: Workspace, include_minknow: bool)
     """
     Calculate backup status for all experiments in the workspace.
 
-    This uses a very simple heruitic of checking if the result dir is there and relies
+    This uses a very simple heuristic of checking if the result dir is there and relies
     on rsync working correctly. It is just a sanity check.
     """
     all_backed_up = True
@@ -216,8 +203,3 @@ def minknow_target_dir(backup_dir, exp):
 
 def nomadic_target_dir(backup_dir, exp):
     return backup_dir / "results" / exp
-
-
-def settings_filepath(workspace_path, exp):
-    json_file = workspace_path / "results" / exp / "metadata" / "settings.json"
-    return json_file
