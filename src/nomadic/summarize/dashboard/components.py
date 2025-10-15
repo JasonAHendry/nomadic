@@ -18,6 +18,10 @@ from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 from matplotlib.colors import rgb2hex
 
+from nomadic.summarize.compute import (
+    compute_variant_prevalence,
+    compute_variant_prevalence_per,
+)
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
 from i18n import t
@@ -364,19 +368,25 @@ class PrevalenceBarplot(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        prevalence_csv: str,
+        analysis_csv: str,
+        master_csv: str,
         component_id: str,
         radio_id: str,
+        radio_id_by: str,
     ) -> None:
         """
         Initialisation loads the coverage data and prepares for plotting;
 
         """
 
-        self.prevalence_csv = prevalence_csv
-        self.prev_df = pd.read_csv(prevalence_csv)
+        self.analysis_csv = analysis_csv
+        self.analysis_df = pd.read_csv(analysis_csv)
+
+        self.master__csv = master_csv
+        self.master_df = pd.read_csv(master_csv)
 
         self.radio_id = radio_id
+        self.radio_id_by = radio_id_by
         super().__init__(summary_name, component_id)
 
     def _define_layout(self):
@@ -384,51 +394,89 @@ class PrevalenceBarplot(SummaryDashboardComponent):
 
     def callback(self, app: Dash) -> None:
         @app.callback(
-            Output(self.component_id, "figure"), Input(self.radio_id, "value")
+            Output(self.component_id, "figure"),
+            Input(self.radio_id, "value"),
+            Input(self.radio_id_by, "value"),
         )
-        def _update(gene_set: str):
+        def _update(gene_set: str, by: str):
             """Called whenver the input changes"""
 
             genes = self.GENE_SETS[gene_set]
 
             # Limit to key genes
-            plot_df = self.prev_df.query("gene in @genes")
+            analysis_df = self.analysis_df.query("gene in @genes")
+            if by == "All":
+                plot_df = compute_variant_prevalence(analysis_df)
+            else:
+                plot_df = compute_variant_prevalence_per(
+                    analysis_df, self.master_df, by.split("_")
+                )
+                if "_" in by:
+                    # we need to create this column
+                    plot_df[by] = (
+                        plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
+                    )
             plot_df.sort_values(["gene", "chrom", "pos"], inplace=True)
 
-            # Prepare plotting data
-            customdata = np.stack(
-                [
-                    plot_df["n_samples"],
-                    plot_df["n_passed"],
-                    plot_df["n_mixed"] + plot_df["n_mut"],
-                ],
-                axis=-1,
-            )
+            data = []
+            htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
+
+            if by == "All":
+                # Prepare plotting data
+                customdata = np.stack(
+                    [
+                        plot_df["n_samples"],
+                        plot_df["n_passed"],
+                        plot_df["n_mixed"] + plot_df["n_mut"],
+                    ],
+                    axis=-1,
+                )
+                data.append(
+                    go.Bar(
+                        x=plot_df["mutation"],
+                        y=plot_df["prevalence"],
+                        customdata=customdata,
+                        hovertemplate=htemp,
+                        name="Prevalence",
+                        error_y=dict(
+                            type="data",
+                            array=plot_df["prevalence_highci"] - plot_df["prevalence"],
+                            arrayminus=plot_df["prevalence"]
+                            - plot_df["prevalence_lowci"],
+                        ),
+                    )
+                )
+            else:
+                for group in plot_df[by].unique():
+                    group_df = plot_df.query(f"{by} == @group")
+                    # Prepare plotting data
+                    customdata = np.stack(
+                        [
+                            group_df["n_samples"],
+                            group_df["n_passed"],
+                            group_df["n_mixed"] + group_df["n_mut"],
+                        ],
+                        axis=-1,
+                    )
+                    data.append(
+                        go.Bar(
+                            x=group_df["mutation"],
+                            y=group_df["prevalence"],
+                            customdata=customdata,
+                            hovertemplate=htemp,
+                            name=str(group),
+                            error_y=dict(
+                                type="data",
+                                array=plot_df["prevalence_highci"]
+                                - plot_df["prevalence"],
+                                arrayminus=plot_df["prevalence"]
+                                - plot_df["prevalence_lowci"],
+                            ),
+                        )
+                    )
 
             # Plotting
-            htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
-            plot_data = [
-                go.Bar(
-                    x=plot_df["mutation"],
-                    y=plot_df["prevalence"],
-                    customdata=customdata,
-                    hovertemplate=htemp,
-                    name="Prevalence",
-                    error_y=dict(
-                        type="data",
-                        array=plot_df["prevalence_highci"] - plot_df["prevalence"],
-                        arrayminus=plot_df["prevalence"] - plot_df["prevalence_lowci"],
-                    ),
-                ),
-                # go.Bar(
-                #     x=plot_df["mutation"],
-                #     y=plot_df["per_mixed"],
-                #     customdata=customdata,
-                #     hovertemplate=htemp,
-                #     name="Mixed",
-                # ),
-            ]
-            fig = go.Figure(plot_data)
+            fig = go.Figure(data)
             fig.update_layout(
                 yaxis_title="Prevalence (%)",
                 xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
@@ -442,7 +490,6 @@ class PrevalenceBarplot(SummaryDashboardComponent):
                     gridwidth=0.5,
                     griddash="dot",
                 ),
-                barmode="stack",
                 legend=dict(
                     orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
                 ),

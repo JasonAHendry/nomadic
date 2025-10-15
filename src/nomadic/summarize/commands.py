@@ -78,5 +78,5 @@ def summarize(
         expt_dirs=experiment_dirs,
         summary_name=summary_name,
         meta_data_path=metadata_csv,
-        dashboard=dashboard,
+        show_dashboard=dashboard,
     )

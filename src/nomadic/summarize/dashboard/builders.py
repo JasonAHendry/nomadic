@@ -179,7 +179,7 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.quality_control)
         self.layout.append(quality_row)
 
-    def _add_prevalence_row(self, prevalence_csv: str) -> None:
+    def _add_prevalence_row(self, analysis_csv: str, master_csv: str) -> None:
         """
         Add a panel that shows prevalence calls
 
@@ -188,20 +188,34 @@ class SummaryDashboardBuilder(ABC):
             id="prevalence-radio",
             options=list(PrevalenceBarplot.GENE_SETS.keys()),
             value=list(PrevalenceBarplot.GENE_SETS.keys())[0],
+            inputClassName="prevalence-radio-input",
+            labelClassName="prevalence-radio-label",
+        )
+        radio_by = dcc.RadioItems(
+            id="prevalence-radio-by",
+            options=["All", "region", "year", "region_year"],
+            value="All",
+            inputClassName="prevalence-radio-input",
+            labelClassName="prevalence-radio-label",
         )
 
         self.prevalence_bars = PrevalenceBarplot(
             self.summary_name,
             component_id="prevalence-bars",
             radio_id="prevalence-radio",
-            prevalence_csv=prevalence_csv,
+            radio_id_by="prevalence-radio-by",
+            analysis_csv=analysis_csv,
+            master_csv=master_csv,
         )
 
         prevalence_row = html.Div(
             className="prevalence-row",
             children=[
                 html.H3("Prevalence", style=dict(marginTop="0px")),
-                radio,
+                html.Div(
+                    className="prevalence-radio-row",
+                    children=[radio, radio_by],
+                ),
                 html.Div(
                     className="prevalence-plots",
                     children=[self.prevalence_bars.get_layout()],
@@ -263,7 +277,8 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         samples_csv: str,
         samples_amplicons_csv: str,
         coverage_csv: str,
-        prevalence_csv: str,
+        analysis_csv: str,
+        master_csv: str,
         prevalence_region_csv: str,
     ):
         """
@@ -276,7 +291,8 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.samples_csv = samples_csv
         self.samples_amplicons_csv = samples_amplicons_csv
         self.coverage_csv = coverage_csv
-        self.prevalence_csv = prevalence_csv
+        self.analysis_csv = analysis_csv
+        self.master_csv = master_csv
         self.prevalence_region_csv = prevalence_region_csv
 
     def _gen_layout(self):
@@ -287,7 +303,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_throughput_banner(self.throughput_csv)
         self._add_samples(self.samples_csv, self.samples_amplicons_csv)
         self._add_experiment_qc(self.coverage_csv)
-        self._add_prevalence_row(self.prevalence_csv)
+        self._add_prevalence_row(self.analysis_csv, self.master_csv)
         self._add_prevalence_by_region_row(self.prevalence_region_csv)
         # self._add_mapping_row(self.read_mapping_csv)
         # self._add_region_coverage_row(self.region_coverage_csv, self.regions)

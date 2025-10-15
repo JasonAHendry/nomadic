@@ -37,10 +37,8 @@ body {
     flex: 0.9;
 }
 
-
-/* Mapping Section ------------------------------------------------------------------ */
-
-.mapping-row {
+/* Samples Section ------------------------------------------------------------------ */
+.samples-row {
     padding: 20px;
     margin: 20px;
     border-color: var(--grey);
@@ -50,43 +48,17 @@ body {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.mapping-plots {
+.samples-plots {
     display: flex;
     flex-direction: row;
     gap: 20px;
 }
 
-#mapping-pie {
+#samples-pie {
     flex: 0.25;
 }
 
-#mapping-barplot {
-    flex: 0.75;
-}
-
-/* BED Coverage Section ------------------------------------------------------------------ */
-
-.bedcov-row {
-    padding: 20px;
-    margin: 20px;
-    border-color: var(--grey);
-    border-width: 2px;
-    border-style: solid;
-    border-radius: 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.bedcov-plots {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-}
-
-#bedcov-pie {
-    flex: 0.25;
-}
-
-#bedcov-strip {
+#samples-barplot {
     flex: 0.75;
 }
 
@@ -115,6 +87,36 @@ body {
 
 /* Prevalence Section ------------------------------------------------------------------ */
 
+.prevalence-radio-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.prevalence-radio-input {
+  display: none; /* hide the native radio */
+}
+
+.prevalence-radio-label {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid #4442b8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+/* Highlight when selected */
+.prevalence-radio-label:has(input:checked) {
+  background-color: #4442b8;
+  color: white;
+  border-color: #4442b8;
+}
+
+/* Optional hover effect */
+.prevalence-radio-label:hover {
+  background-color: #e8f5e9;
+}
+
 .prevalence-row {
     padding: 20px;
     margin: 20px;
@@ -134,6 +136,8 @@ body {
 #prevalence-bars {
     flex: 1.0;
 }
+
+
 
 /* Footer ------------------------------------------------------------------ */
 
