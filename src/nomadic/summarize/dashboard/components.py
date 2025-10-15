@@ -1,9 +1,13 @@
 # import datetime
 # import os
 from abc import ABC, abstractmethod
+from cProfile import label
+from calendar import c
+from turtle import title
 # from typing import Optional
 # import re
 
+from matplotlib.pyplot import colormaps
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -134,6 +138,13 @@ class ThroughputSummary(SummaryDashboardComponent):
         """
 
 
+SAMPLE_COLORS = {
+    "missing": "#636EFA",
+    "failing": "#EF553B",
+    "passing": "#00CC96",
+}
+
+
 class SamplesPie(SummaryDashboardComponent):
     """
     Make a pie chart that shows read mapping statistics
@@ -165,13 +176,22 @@ class SamplesPie(SummaryDashboardComponent):
                     labels=self.df.index,
                     sort=False,
                     hole=0.3,
-                    textinfo="label+percent+value"
+                    textinfo="label+percent+value",
+                    marker=dict(colors=[SAMPLE_COLORS[cat] for cat in self.df.index]),
                 )
             ]
         )
 
         MAR = 20
-        fig.update_layout(showlegend=False, margin=dict(t=MAR, l=MAR, r=MAR, b=MAR), annotations=[dict(text=f"N={self.n}", font_size=20, showarrow=False, xanchor="center")])
+        fig.update_layout(
+            showlegend=False,
+            margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
+            annotations=[
+                dict(
+                    text=f"N={self.n}", font_size=20, showarrow=False, xanchor="center"
+                )
+            ],
+        )
 
         return dcc.Graph(id=self.component_id, figure=fig)
 
@@ -180,6 +200,74 @@ class SamplesPie(SummaryDashboardComponent):
         Define the update callback for the pie chart
 
         """
+
+
+class AmpliconsBarplot(SummaryDashboardComponent):
+    """
+    Make a bar chart that shows the Amplicons Statistics
+
+    """
+
+    def __init__(
+        self,
+        summary_name: str,
+        component_id: str,
+        samples_amplicons_csv: str,
+    ):
+        df = pd.read_csv(samples_amplicons_csv)
+        # Store inputs
+        plot_df = pd.crosstab(df["name"], df["status"])
+        n_missing = (df["status"] == "missing").sum()
+        missing = [n_missing] * len(plot_df.index)
+        # Generate figure
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    x=plot_df.index,
+                    y=missing if column == "missing" else plot_df[column],
+                    texttemplate="%{y}",
+                    name=column,
+                    marker=dict(color=SAMPLE_COLORS[column]),
+                )
+                for column in ["passing", "failing", "missing"]
+            ]
+        )
+
+        # Format
+        fig.update_layout(
+            xaxis_title="Amplicons",
+            yaxis_title="Number of Samples",
+            barmode="stack",
+            xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+            yaxis=dict(
+                showline=True,
+                linewidth=1,
+                linecolor="black",
+                mirror=True,
+                showgrid=True,
+                gridcolor="lightgray",
+                gridwidth=0.5,
+                griddash="dot",
+            ),
+            plot_bgcolor="rgba(0,0,0,0)",
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        )
+        fig.update_traces(marker=dict(line=dict(color="black", width=1)))
+        self.fig = fig
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+
+        return dcc.Graph(id=self.component_id, figure=self.fig)
+
+    def callback(self, app: Dash) -> None:
+        pass
 
 
 class QualityControl(SummaryDashboardComponent):

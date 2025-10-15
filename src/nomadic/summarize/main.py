@@ -168,9 +168,12 @@ def get_region_coverage_dataframe(
 
     return coverage_df
 
+
 def calc_unknown_samples(inventory_metadata: pd.DataFrame, master_metadata):
     field_samples = inventory_metadata.query("sample_type == 'field'")
-    unknown_samples = field_samples.loc[~field_samples["sample_id"].isin(master_metadata["sample_id"]), "sample_id"].to_list()
+    unknown_samples = field_samples.loc[
+        ~field_samples["sample_id"].isin(master_metadata["sample_id"]), "sample_id"
+    ].to_list()
     return unknown_samples
 
 
@@ -233,7 +236,9 @@ def _mark_duplicates(df: pd.DataFrame) -> None:
             return status
         return f"{status};{QcStatus.DUPLICATE}"
 
-    for (_, _), data in df.query("sample_type == 'field'").groupby(["sample_id", "name"]):
+    for (_, _), data in df.query("sample_type == 'field'").groupby(
+        ["sample_id", "name"]
+    ):
         # Select an index to keep, i.e. the best sample that should
         # marked as duplicate
         passing = data["status"] == "pass"
@@ -516,7 +521,7 @@ def main(
     """
     output_dir = produce_dir(
         "summaries", summary_name
-    ) # TODO allow to change output dir
+    )  # TODO allow to change output dir
 
     # PARSE EXPERIMENT DIRECTORIES
     log = LoggingFascade(logger_name="nomadic")
@@ -558,9 +563,13 @@ def main(
     # )
     unknown_samples = calc_unknown_samples(inventory_metadata, master_metadata)
     if unknown_samples:
-        warn(f"Samples in experiments that are not in master metadata: {unknown_samples}")
+        warn(
+            f"Samples in experiments that are not in master metadata: {unknown_samples}"
+        )
 
-    inventory_metadata = inventory_metadata[~inventory_metadata["sample_id"].isin(unknown_samples)]
+    inventory_metadata = inventory_metadata[
+        ~inventory_metadata["sample_id"].isin(unknown_samples)
+    ]
     inventory_metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
 
     # Check regions are consistent
@@ -599,52 +608,18 @@ def main(
     coverage_df.to_csv(f"{output_dir}/summary.coverage.csv", index=False)
 
     REPLICATE_PASSING_THRESHOLD = 0.8
-    replicates_qc_df = (
-        coverage_df.query("sample_type == 'field'")
-        .groupby(["expt_name", "barcode", "sample_id"])
-        .agg(
-            n_amplicons=pd.NamedAgg("name", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-            n_fail_contam=pd.NamedAgg("fail_contam", "sum"),
-            n_fail_lowcov=pd.NamedAgg("fail_lowcov", "sum"),
-        )
-        .reset_index()
-    )
-    replicates_qc_df["passing"] = (
-        replicates_qc_df["n_passing"] / replicates_qc_df["n_amplicons"]
-        >= REPLICATE_PASSING_THRESHOLD
-    )
+    replicates_qc_df = replicates_qc(coverage_df, REPLICATE_PASSING_THRESHOLD)
     replicates_qc_df.to_csv(f"{output_dir}/summary.replicates_qc.csv", index=False)
 
-    samples_summary_df = (
-        replicates_qc_df.groupby(["sample_id"])
-        .agg(
-            n_replicates=pd.NamedAgg("barcode", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-        )
-        .reset_index()
-    )
-    samples_summary_df = (
-        samples_summary_df.merge(
-            master_metadata[["sample_id"]], how="right", on="sample_id"
-        )
-        .fillna({"n_replicates": 0, "n_passing": 0})
-        .astype({"n_replicates": int, "n_passing": int})
-    )
-    samples_summary_df["status"] = samples_summary_df.apply(
-        lambda row: "passing"
-        if row["n_passing"] > 0
-        else "failing"
-        if row["n_replicates"] > 0
-        else "missing",
-        axis=1,
-    )
-    samples_summary_df.sort_values(
-        by=["n_passing", "n_replicates", "sample_id"],
-        inplace=True,
-        ascending=[False, False, True],
-    )
+    samples_summary_df = calc_samples_summary(master_metadata, replicates_qc_df)
     samples_summary_df.to_csv(f"{output_dir}/summary.samples_qc.csv", index=False)
+
+    samples_by_amplicon_summary_df = calc_amplicons_summary(
+        master_metadata, replicates_amplicon_qc(coverage_df)
+    )
+    samples_by_amplicon_summary_df.to_csv(
+        f"{output_dir}/summary.samples_amplicons_qc.csv", index=False
+    )
 
     final_df = (
         coverage_df.query("sample_type == 'field'")
@@ -721,6 +696,7 @@ def main(
             summary_name,
             throughput_csv=f"{output_dir}/summary.throughput.csv",
             samples_csv=f"{output_dir}/summary.samples_qc.csv",
+            samples_amplicons_csv=f"{output_dir}/summary.samples_amplicons_qc.csv",
             coverage_csv=f"{output_dir}/summary.experiments_qc.csv",
             prevalence_csv=f"{output_dir}/summary.variants.prevalence.csv",
             prevalence_region_csv=f"{output_dir}/summary.variants.prevalence-region.csv",
@@ -730,8 +706,98 @@ def main(
         print("")
         print("Launching dashboard (press CNTRL+C to exit):")
         print("")
-        webbrowser.open("http://127.0.0.1:8050")
+        # webbrowser.open("http://127.0.0.1:8050")
         dashboard.run(debug=True)
+
+
+def calc_samples_summary(master_metadata, replicates_qc_df):
+    samples_summary_df = (
+        replicates_qc_df.groupby(["sample_id"])
+        .agg(
+            n_replicates=pd.NamedAgg("barcode", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+        )
+        .reset_index()
+    )
+    samples_summary_df = (
+        samples_summary_df.merge(
+            master_metadata[["sample_id"]], how="right", on="sample_id"
+        )
+        .fillna({"n_replicates": 0, "n_passing": 0})
+        .astype({"n_replicates": int, "n_passing": int})
+    )
+    samples_summary_df["status"] = samples_summary_df.apply(
+        lambda row: "passing"
+        if row["n_passing"] > 0
+        else "failing"
+        if row["n_replicates"] > 0
+        else "missing",
+        axis=1,
+    )
+    samples_summary_df.sort_values(
+        by=["n_passing", "n_replicates", "sample_id"],
+        inplace=True,
+        ascending=[False, False, True],
+    )
+
+    return samples_summary_df
+
+
+def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
+    samples_by_amplicons_summary_df = (
+        replicates_amplicon_qc_df.groupby(["sample_id", "name"])
+        .agg(
+            n_replicates=pd.NamedAgg("barcode", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+        )
+        .reset_index()
+    )
+    samples_by_amplicons_summary_df = (
+        samples_by_amplicons_summary_df.merge(
+            master_metadata[["sample_id"]], how="right", on="sample_id"
+        )
+        .fillna({"n_replicates": 0, "n_passing": 0})
+        .astype({"n_replicates": int, "n_passing": int})
+    )
+    samples_by_amplicons_summary_df["status"] = samples_by_amplicons_summary_df.apply(
+        lambda row: "passing"
+        if row["n_passing"] > 0
+        else "failing"
+        if row["n_replicates"] > 0
+        else "missing",
+        axis=1,
+    )
+    samples_by_amplicons_summary_df.sort_values(
+        by=["n_passing", "n_replicates", "sample_id"],
+        inplace=True,
+        ascending=[False, False, True],
+    )
+
+    return samples_by_amplicons_summary_df
+
+
+def replicates_qc(coverage_df, REPLICATE_PASSING_THRESHOLD):
+    replicates_qc_df = (
+        coverage_df.query("sample_type == 'field'")
+        .groupby(["expt_name", "barcode", "sample_id"])
+        .agg(
+            n_amplicons=pd.NamedAgg("name", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+            n_fail_contam=pd.NamedAgg("fail_contam", "sum"),
+            n_fail_lowcov=pd.NamedAgg("fail_lowcov", "sum"),
+        )
+        .reset_index()
+    )
+    replicates_qc_df["passing"] = (
+        replicates_qc_df["n_passing"] / replicates_qc_df["n_amplicons"]
+        >= REPLICATE_PASSING_THRESHOLD
+    )
+
+    return replicates_qc_df
+
+
+def replicates_amplicon_qc(coverage_df):
+    return coverage_df.query("sample_type == 'field'")
 
     # CHECKPOINT 2:
     # summary.quality_control.by_amplicon.csv

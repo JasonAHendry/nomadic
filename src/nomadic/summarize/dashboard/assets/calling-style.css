@@ -40,7 +40,7 @@ body {
 
 /* Mapping Section ------------------------------------------------------------------ */
 
-.mapping-row {
+.samples-row {
     padding: 20px;
     margin: 20px;
     border-color: var(--grey);
@@ -50,17 +50,17 @@ body {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.mapping-plots {
+.samples-plots {
     display: flex;
     flex-direction: row;
     gap: 20px;
 }
 
-#mapping-pie {
+#samples-pie {
     flex: 0.25;
 }
 
-#mapping-barplot {
+#samples-barplot {
     flex: 0.75;
 }
 
