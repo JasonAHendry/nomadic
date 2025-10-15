@@ -1,13 +1,15 @@
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 import click
 
-from nomadic.util import minknow
-from nomadic.util.dirs import produce_dir
-from nomadic.util.rsync import selective_rsync
-from nomadic.util.settings import load_settings
-from nomadic.util.workspace import check_if_workspace, Workspace
+from nomadic.util.rsync import (
+    print_rsync_summary,
+    rsync_minknow_data,
+    rsync_nomadic,
+    rsync_status,
+)
+from nomadic.util.workspace import Workspace, check_if_workspace
 
 
 @click.command(short_help="Backup a workspace.")
@@ -65,159 +67,16 @@ def backup(
 
     failure_reasons = defaultdict(list)
 
-    backup_nomadic(backup_dir, workspace_path, workspace_name)
+    rsync_nomadic(backup_dir, workspace_path, workspace_name)
 
     if include_minknow:
-        backup_minknow_data(
+        rsync_minknow_data(
             backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
         )
     else:
         click.echo("Skipping minknow data backup as requested.")
 
-    all_backed_up, status_by_exp = backup_status(
+    all_backed_up, status_by_exp = rsync_status(
         backup_dir, workspace, include_minknow=include_minknow
     )
-    print_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
-
-
-def backup_nomadic(backup_dir, workspace_path, workspace_name):
-    click.echo(f"Backing up nomadic workspace ({workspace_name}) to {backup_dir}")
-
-    selective_rsync(
-        source_dir=workspace_path,
-        target_dir=backup_dir,
-        recursive=True,
-        progressbar=True,
-        exclusions=["**/.incremental/", "**/intermediate", ".work.log"],
-    )
-    click.echo("Done.")
-
-
-def backup_minknow_data(
-    backup_dir: Path,
-    workspace_path: Path,
-    minknow_base_dir: Path,
-    workspace: Workspace,
-    failure_reasons: dict[str, list[str]],
-):
-    click.echo("Merging minknow data into experiments:")
-
-    for i, exp in enumerate(workspace.get_experiment_names()):
-        click.echo(f"{exp} ({i + 1}/{len(workspace.get_experiment_names())})")
-        json_file = settings_filepath(workspace_path, exp)
-        settings = load_settings(str(json_file))
-
-        if settings is None:
-            click.echo(
-                "Unable to find settings file, trying to find via minknow_dir..."
-            )
-            minknow_dir = minknow_base_dir / exp
-        elif settings.minknow_dir is None:
-            click.echo(
-                "Minknow dir not stored in settings.json, trying to find via minknow_dir..."
-            )
-            minknow_dir = minknow_base_dir / exp
-        else:
-            minknow_dir = Path(settings.minknow_dir)
-
-        source_dir = minknow_dir
-        target_dir = minknow_target_dir(backup_dir, exp)
-
-        if not source_dir.exists():
-            click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
-            failure_reasons[exp].append("no minknow data found")
-            continue
-        if not minknow.is_minknow_experiment_dir(source_dir):
-            failure_reasons[exp].append("invalid minknow data")
-            click.echo(
-                f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to backup..."
-            )
-            continue
-        if not target_dir.exists():
-            produce_dir(target_dir)
-        click.echo(f"   {source_dir} to {target_dir}")
-        selective_rsync(
-            source_dir=source_dir,
-            target_dir=target_dir,
-            recursive=True,
-            progressbar=True,
-        )
-
-
-def backup_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
-    """
-    Calculate backup status for all experiments in the workspace.
-
-    This uses a very simple heruitic of checking if the result dir is there and relies
-    on rsync working correctly. It is just a sanity check.
-    """
-    all_backed_up = True
-    status_by_exp = defaultdict(list)
-    for exp in workspace.get_experiment_names():
-        exp_dir = nomadic_target_dir(backup_dir, exp)
-        nomadic_backed_up = exp_dir.exists()
-        status_by_exp[exp].append(nomadic_backed_up)
-        if not nomadic_backed_up:
-            all_backed_up = False
-        if include_minknow:
-            minknow_backed_up = minknow_target_dir(backup_dir, exp).exists()
-            status_by_exp[exp].append(minknow_backed_up)
-            if not minknow_backed_up:
-                all_backed_up = False
-    return all_backed_up, status_by_exp
-
-
-def print_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow):
-    click.echo("")
-    click.echo("--- Summary ---")
-    click.echo("")
-    n_nomadic, n_minknow = 0, 0
-    for exp, statuses in status_by_exp.items():
-        print_experiment_summary(
-            exp, statuses=statuses, reasons=failure_reasons.get(exp)
-        )
-        if len(statuses) > 0 and statuses[0]:
-            n_nomadic += 1
-        if len(statuses) > 1 and statuses[1]:
-            n_minknow += 1
-    click.echo(f"nomadic: {n_nomadic}/{len(status_by_exp)}")
-    if include_minknow:
-        click.echo(f"minknow: {n_minknow}/{len(status_by_exp)}")
-    if all_backed_up:
-        click.echo(click.style("All experiments backed up successfully!", fg="green"))
-    click.echo("")
-    click.echo("----------------")
-
-
-def print_experiment_summary(exp, *, statuses, reasons):
-    """
-    Prints the backup status line for a single experiment
-    """
-    if len(statuses) > 0:
-        if statuses[0]:
-            click.echo(click.style("✓", fg="green"), nl=False)
-        else:
-            click.echo(click.style("✗", fg="red"), nl=False)
-    if len(statuses) > 1:
-        if statuses[1]:
-            click.echo(click.style("✓", fg="green"), nl=False)
-        else:
-            click.echo(click.style("✗", fg="red"), nl=False)
-    click.echo(click.style(f" {exp} "), nl=False)
-    if reasons is not None:
-        click.echo(click.style(",".join(reasons), fg="red"), nl=True)
-    else:
-        click.echo()
-
-
-def minknow_target_dir(backup_dir, exp):
-    return backup_dir / "minknow" / exp
-
-
-def nomadic_target_dir(backup_dir, exp):
-    return backup_dir / "results" / exp
-
-
-def settings_filepath(workspace_path, exp):
-    json_file = workspace_path / "results" / exp / "metadata" / "settings.json"
-    return json_file
+    print_rsync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)

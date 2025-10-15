@@ -1,7 +1,13 @@
 import subprocess
+from collections import defaultdict
 from pathlib import Path
 
 import click
+
+from nomadic.util import minknow
+from nomadic.util.dirs import produce_dir
+from nomadic.util.settings import load_settings, settings_filepath
+from nomadic.util.workspace import Workspace
 
 
 def selective_rsync(
@@ -64,3 +70,159 @@ def selective_rsync(
         click.echo(f"stdout: {result.stdout}")
     if result.stderr:
         click.echo(f"stderr: {result.stderr}")
+
+
+def rsync_nomadic(
+    target_dir: Path,
+    workspace_path: Path,
+    workspace_name: str,
+    additional_exclusions: list[str] = None,
+):
+    click.echo(f"Synchronising nomadic workspace ({workspace_name}) to {target_dir}")
+
+    exclusions = ["**/.incremental/", "**/intermediate", ".work.log"]
+
+    if exclusions is not None:
+        exclusions = exclusions + additional_exclusions
+
+    selective_rsync(
+        source_dir=workspace_path,
+        target_dir=target_dir,
+        recursive=True,
+        progressbar=True,
+        exclusions=exclusions,
+    )
+    click.echo("Done.")
+
+
+def rsync_minknow_data(
+    target_dir: Path,
+    workspace_path: Path,
+    minknow_base_dir: Path,
+    workspace: Workspace,
+    failure_reasons: dict[str, list[str]],
+    exclusions: list[str] = None,
+):
+    click.echo(f"Synchronising minknow data to {target_dir}")
+
+    for i, exp in enumerate(workspace.get_experiment_names()):
+        click.echo(f"{exp} ({i + 1}/{len(workspace.get_experiment_names())})")
+        json_file = settings_filepath(workspace_path, exp)
+        settings = load_settings(str(json_file))
+
+        if settings is None:
+            click.echo(
+                "Unable to find settings file, trying to find via minknow_dir..."
+            )
+            minknow_dir = minknow_base_dir / exp
+        elif settings.minknow_dir is None:
+            click.echo(
+                "Minknow dir not stored in settings.json, trying to find via minknow_dir..."
+            )
+            minknow_dir = minknow_base_dir / exp
+        else:
+            minknow_dir = Path(settings.minknow_dir)
+
+        source_dir = minknow_dir
+        target_dir = get_minknow_target_dir(target_dir, exp)
+
+        if not source_dir.exists():
+            click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
+            failure_reasons[exp].append("no minknow data found")
+            continue
+        if not minknow.is_minknow_experiment_dir(source_dir):
+            failure_reasons[exp].append("invalid minknow data")
+            click.echo(
+                f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to backup..."
+            )
+            continue
+        if not target_dir.exists():
+            produce_dir(target_dir)
+
+        if exclusions is None:
+            exclusions = []
+
+        click.echo(f"   {source_dir} to {target_dir}")
+        selective_rsync(
+            source_dir=source_dir,
+            target_dir=target_dir,
+            recursive=True,
+            progressbar=True,
+            exclusions=exclusions,
+        )
+
+
+def rsync_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
+    """
+    Calculate rsync status for all experiments in the workspace.
+
+    This uses a very simple heuristic of checking if the result dir is there and relies
+    on rsync working correctly. It is just a sanity check.
+    """
+    all_backed_up = True
+    status_by_exp = defaultdict(list)
+    for exp in workspace.get_experiment_names():
+        exp_dir = get_nomadic_target_dir(backup_dir, exp)
+        nomadic_backed_up = exp_dir.exists()
+        status_by_exp[exp].append(nomadic_backed_up)
+        if not nomadic_backed_up:
+            all_backed_up = False
+        if include_minknow:
+            minknow_backed_up = get_minknow_target_dir(backup_dir, exp).exists()
+            status_by_exp[exp].append(minknow_backed_up)
+            if not minknow_backed_up:
+                all_backed_up = False
+    return all_backed_up, status_by_exp
+
+
+def print_rsync_summary(all_synced_up, status_by_exp, failure_reasons, include_minknow):
+    click.echo("")
+    click.echo("--- Summary ---")
+    click.echo("")
+    n_nomadic, n_minknow = 0, 0
+    for exp, statuses in status_by_exp.items():
+        print_rsync_experiment_summary(
+            exp, statuses=statuses, reasons=failure_reasons.get(exp)
+        )
+        if len(statuses) > 0 and statuses[0]:
+            n_nomadic += 1
+        if len(statuses) > 1 and statuses[1]:
+            n_minknow += 1
+    click.echo(f"nomadic: {n_nomadic}/{len(status_by_exp)}")
+    if include_minknow:
+        click.echo(f"minknow: {n_minknow}/{len(status_by_exp)}")
+    if all_synced_up:
+        click.echo(
+            click.style("All experiments synchronised successfully!", fg="green")
+        )
+    click.echo("")
+    click.echo("----------------")
+
+
+def print_rsync_experiment_summary(exp, *, statuses, reasons):
+    """
+    Prints the rsync status line for a single experiment
+    """
+    if len(statuses) > 0:
+        if statuses[0]:
+            click.echo(click.style("✓", fg="green"), nl=False)
+        else:
+            click.echo(click.style("✗", fg="red"), nl=False)
+    if len(statuses) > 1:
+        if statuses[1]:
+            click.echo(click.style("✓", fg="green"), nl=False)
+        else:
+            click.echo(click.style("✗", fg="red"), nl=False)
+    click.echo(click.style(f" {exp} "), nl=False)
+    if reasons is not None:
+        click.echo(click.style(",".join(reasons), fg="red"), nl=True)
+    else:
+        click.echo()
+
+
+def get_minknow_target_dir(backup_dir, exp):
+    return backup_dir / "minknow" / exp
+
+
+def get_nomadic_target_dir(backup_dir, exp):
+    return backup_dir / "results" / exp
