@@ -67,11 +67,14 @@ def backup(
 
     failure_reasons = defaultdict(list)
 
-    copy_nomadic_workspace(backup_dir, workspace_path, workspace_name)
+    copy_nomadic_workspace(target_dir=backup_dir, workspace=workspace)
 
     if include_minknow:
         copy_minknow_data(
-            backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
+            target_base_dir=backup_dir,
+            minknow_base_dir=minknow_base_dir,
+            workspace=workspace,
+            failure_reasons=failure_reasons,
         )
     else:
         click.echo("Skipping minknow data backup as requested.")

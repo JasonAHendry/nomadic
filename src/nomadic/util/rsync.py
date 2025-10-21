@@ -97,13 +97,13 @@ def copy_nomadic_workspace(
 
 
 def copy_minknow_data(
-    target_dir: Path,
+    target_base_dir: Path,
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
     exclusions: list[str] = None,
 ):
-    click.echo(f"Copying minknow data to {target_dir}")
+    click.echo(f"Copying minknow data to {target_base_dir}")
     workspace_path = Path(workspace.path).resolve()
 
     for i, exp in enumerate(workspace.get_experiment_names()):
@@ -125,16 +125,16 @@ def copy_minknow_data(
             minknow_dir = Path(settings.minknow_dir)
 
         source_dir = minknow_dir
-        target_dir = get_minknow_target_dir(target_dir, exp)
+        target_dir = get_minknow_target_dir(target_base_dir, exp)
 
         if not source_dir.exists():
-            click.echo(f"   ERROR: {source_dir} does not exist, unable to backup...")
+            click.echo(f"   ERROR: {source_dir} does not exist, unable to copy...")
             failure_reasons[exp].append("no minknow data found")
             continue
         if not minknow.is_minknow_experiment_dir(source_dir):
             failure_reasons[exp].append("invalid minknow data")
             click.echo(
-                f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to backup..."
+                f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to copy..."
             )
             continue
         if not target_dir.exists():
@@ -193,9 +193,7 @@ def print_rsync_summary(all_synced_up, status_by_exp, failure_reasons, include_m
     if include_minknow:
         click.echo(f"minknow: {n_minknow}/{len(status_by_exp)}")
     if all_synced_up:
-        click.echo(
-            click.style("All experiments synchronised successfully!", fg="green")
-        )
+        click.echo(click.style("All experiments copied successfully!", fg="green"))
     click.echo("")
     click.echo("----------------")
 

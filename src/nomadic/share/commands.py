@@ -79,7 +79,7 @@ def share(
 
     if include_minknow:
         copy_minknow_data(
-            target_dir=shared_dir,
+            target_base_dir=shared_dir,
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
