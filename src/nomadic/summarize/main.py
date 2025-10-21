@@ -19,9 +19,8 @@ from nomadic.summarize.compute import (
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
 from nomadic.util.experiment import (
+    check_complete_experiment,
     get_summary_files,
-    legacy_summary_files,
-    summary_files,
 )
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import ExtendedMetadataTableParser
@@ -48,39 +47,6 @@ def get_metadata_csv(expt_dir: str) -> str:
 # Check complete experiment
 #
 # --------------------------------------------------------------------------------
-
-
-def check_complete_experiment(expt_dir: str) -> None:
-    """
-    Check if an experiment is complete; in reality, it would be nice, at this point, to load an object
-    that represents all the files I'd want to work with, e.g. the experiment directories class
-    """
-
-    if not os.path.isdir(expt_dir):
-        raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
-
-    # We can use this for now, but of course this is getting messy
-    _ = find_metadata(expt_dir)
-    _ = find_regions(expt_dir)
-
-    used_summary_files = None
-    for file_format in [summary_files, legacy_summary_files]:
-        if not os.path.exists(f"{expt_dir}/{file_format.fastqs_processed}"):
-            continue
-
-        used_summary_files = file_format
-        for file in used_summary_files:
-            if not os.path.exists(f"{expt_dir}/{file}"):
-                raise FileNotFoundError(f"Missing '{file}' file in {expt_dir}.")
-
-    if not used_summary_files:
-        raise FileNotFoundError(f"Could not find any summary files in {expt_dir}.")
-
-    # TODO: for now, using this for VCF
-    if not os.path.exists(f"{expt_dir}/vcfs"):
-        raise FileNotFoundError(f"Could not find VCF directory in {expt_dir}.")
-
-
 def check_regions_consistent(expt_dirs: tuple[str]) -> None:
     """
     Check that the regions are consistent across all experiment directories

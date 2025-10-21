@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import click
-import dash
 
 from nomadic.util.workspace import Workspace, check_if_workspace
 
@@ -47,7 +46,8 @@ def summarize(
 ):
     """
     Summarize a set of experiments to evaluate quality control and
-    mutation prevalence
+    mutation prevalence. You can either provide a list of folders of experiments,
+    or if none are provided, all experiments of this workspace will be used.
 
     """
     if not check_if_workspace(workspace_path):

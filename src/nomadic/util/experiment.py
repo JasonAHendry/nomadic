@@ -138,3 +138,80 @@ def get_summary_files(exp_path: Path) -> SummaryFiles:
             depth_profiles=str(exp_path / summary_files.depth_profiles),
             variants=str(exp_path / summary_files.variants),
         )
+
+
+def check_complete_experiment(expt_dir: str) -> None:
+    """
+    Check if an experiment is complete; in reality, it would be nice, at this point, to load an object
+    that represents all the files I'd want to work with, e.g. the experiment directories class
+    """
+
+    if not os.path.isdir(expt_dir):
+        raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
+
+    # We can use this for now, but of course this is getting messy
+    _ = find_metadata(expt_dir)
+    _ = find_regions(expt_dir)
+
+    used_summary_files = None
+    for file_format in [summary_files, legacy_summary_files]:
+        if not os.path.exists(f"{expt_dir}/{file_format.fastqs_processed}"):
+            continue
+
+        used_summary_files = file_format
+        for file in used_summary_files:
+            if not os.path.exists(f"{expt_dir}/{file}"):
+                raise FileNotFoundError(f"Missing '{file}' file in {expt_dir}.")
+
+    if not used_summary_files:
+        raise FileNotFoundError(f"Could not find any summary files in {expt_dir}.")
+
+    # TODO: for now, using this for VCF
+    if not os.path.exists(f"{expt_dir}/vcfs"):
+        raise FileNotFoundError(f"Could not find VCF directory in {expt_dir}.")
+
+
+def find_metadata(input_dir: str) -> MetadataTableParser:
+    """
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location
+
+    """
+
+    metadata_dir = os.path.join(input_dir, "metadata")
+    csvs = [
+        f"{metadata_dir}/{file}"
+        for file in os.listdir(metadata_dir)
+        if file.endswith(".csv")
+        and not file.startswith("._")  # ignore AppleDouble files
+    ]  # TODO: what about no-suffix files?
+
+    if len(csvs) != 1:  # Could alternatively load and LOOK
+        raise FileNotFoundError(
+            f"Expected one metadata CSV file (*.csv) at {metadata_dir}, but found {len(csvs)}."
+        )
+
+    return MetadataTableParser(csvs[0])
+
+
+def find_regions(input_dir: str) -> RegionBEDParser:
+    """
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location
+
+    TODO: Bad duplication from above, can write inner function
+    """
+
+    metadata_dir = os.path.join(input_dir, "metadata")
+    beds = [
+        f"{metadata_dir}/{file}"
+        for file in os.listdir(metadata_dir)
+        if file.endswith(".bed") and not file.endswith(".lowcomplexity_mask.bed")
+    ]  # TODO: what about no-suffix files?
+
+    if len(beds) != 1:  # Could alternatively load and LOOK
+        raise FileNotFoundError(
+            f"Expected one region BED file (*.bed) at {metadata_dir}, but found {len(beds)}."
+        )
+
+    return RegionBEDParser(beds[0])
