@@ -1,3 +1,4 @@
+import glob
 import os
 import shutil
 from pathlib import Path
@@ -176,22 +177,27 @@ def find_metadata(input_dir: str) -> MetadataTableParser:
     Given an experiment directory, search for the metadata CSV file in thee
     expected location
 
+    TODO this function is probably not needed anymore, could combine it with get_metadata_csv
     """
 
-    metadata_dir = os.path.join(input_dir, "metadata")
-    csvs = [
-        f"{metadata_dir}/{file}"
-        for file in os.listdir(metadata_dir)
-        if file.endswith(".csv")
-        and not file.startswith("._")  # ignore AppleDouble files
-    ]  # TODO: what about no-suffix files?
+    csv = get_metadata_csv(expt_dir=input_dir)
+    return MetadataTableParser(csv)
 
-    if len(csvs) != 1:  # Could alternatively load and LOOK
-        raise FileNotFoundError(
-            f"Expected one metadata CSV file (*.csv) at {metadata_dir}, but found {len(csvs)}."
-        )
 
-    return MetadataTableParser(csvs[0])
+def get_metadata_csv(expt_dir: str) -> str:
+    """
+    Get the metadata CSV file
+    """
+    # In most cases, should match experiment name
+    metadata_csv = f"{expt_dir}/metadata/{os.path.basename(expt_dir)}.csv"
+    if os.path.exists(metadata_csv):
+        return metadata_csv
+    metadata_csv = glob.glob(f"{expt_dir}/metadata/*.csv")
+    if len(metadata_csv) == 1:
+        return metadata_csv[0]
+    raise ValueError(
+        f"Found {len(metadata_csv)} *.csv files in '{expt_dir}/metadata', cannot determine which is metadata."
+    )
 
 
 def find_regions(input_dir: str) -> RegionBEDParser:

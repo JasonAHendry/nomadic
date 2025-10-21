@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import Iterable
 from warnings import warn
 import webbrowser
 from enum import StrEnum, auto
@@ -8,7 +9,6 @@ from pathlib import Path
 import pandas as pd
 
 from nomadic.dashboard.main import (
-    find_metadata,
     find_regions,
 )
 from nomadic.summarize.compute import (
@@ -20,27 +20,11 @@ from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
 from nomadic.util.experiment import (
     check_complete_experiment,
+    get_metadata_csv,
     get_summary_files,
 )
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import ExtendedMetadataTableParser
-
-
-def get_metadata_csv(expt_dir: str) -> str:
-    """
-    Get the metadata CSV file
-    TODO: Does this not duplicate with 'find_metadata' ??
-    """
-    # In most cases, should match experiment name
-    metadata_csv = f"{expt_dir}/metadata/{os.path.basename(expt_dir)}.csv"
-    if os.path.exists(metadata_csv):
-        return metadata_csv
-    metadata_csv = glob.glob(f"{expt_dir}/metadata/*.csv")
-    if len(metadata_csv) == 1:
-        return metadata_csv[0]
-    raise ValueError(
-        f"Found {len(metadata_csv)} *.csv files in '{expt_dir}/metadata', cannot determine which is metadata."
-    )
 
 
 # --------------------------------------------------------------------------------
@@ -87,7 +71,7 @@ def compute_throughput(metadata: pd.DataFrame, add_unique: bool = True) -> pd.Da
 
 
 def get_region_coverage_dataframe(
-    expt_dirs: list[str], metadata: pd.DataFrame
+    expt_dirs: Iterable[str], metadata: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Here we load a consolidated region coverage dataframe and include information required
@@ -140,6 +124,9 @@ def get_region_coverage_dataframe(
 
 
 def calc_unknown_samples(inventory_metadata: pd.DataFrame, master_metadata):
+    """
+    Returns the sample ids that are not in the masterdata file.
+    """
     field_samples = inventory_metadata.query("sample_type == 'field'")
     unknown_samples = field_samples.loc[
         ~field_samples["sample_id"].isin(master_metadata["sample_id"]), "sample_id"
@@ -415,6 +402,7 @@ def main(
     shared_columns = fixed_columns
     inventory_metadata = pd.concat([df[shared_columns] for df in dfs])
     master_metadata = pd.read_csv(meta_data_path)
+    # Do we want to have metadata in result files?
     # inventory_metadata = pd.merge(
     #     left=inventory_metadata, right=master_metadata, on=["sample_id"], how="left"
     # )
@@ -424,10 +412,11 @@ def main(
             f"Samples in experiments that are not in master metadata: {unknown_samples}"
         )
 
+    # Delete unknown samples
     inventory_metadata = inventory_metadata[
         ~inventory_metadata["sample_id"].isin(unknown_samples)
     ]
-    inventory_metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
+    inventory_metadata.to_csv(f"{output_dir}/inventory.csv", index=False)
 
     # Check regions are consistent
     check_regions_consistent(expt_dirs)
@@ -461,7 +450,7 @@ def main(
     log.info(f"  Contamination >{MAX_CONTAM}: {n_contam} ({100 * n_contam / n:.2f}%)")
     log.info(f"  Passing QC: {n_pass} ({100 * n_pass / n:.2f}%)")
     add_quality_control_status_column(coverage_df)
-    log.info(coverage_df["status"].value_counts())
+    log.info(str(coverage_df["status"].value_counts()))
     coverage_df.to_csv(f"{output_dir}/summary.coverage.csv", index=False)
 
     REPLICATE_PASSING_THRESHOLD = 0.8
@@ -570,7 +559,15 @@ def main(
         dashboard.run(debug=True)
 
 
-def calc_samples_summary(master_metadata, replicates_qc_df):
+def calc_samples_summary(
+    master_metadata_df: pd.DataFrame, replicates_qc_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Calculates a summary of which samples have how many replicates that are passing or failing,
+    and if it has at least one passing replicate, it is concidered as passing.
+
+    This can be used to get a list of to be resequenced samples.
+    """
     samples_summary_df = (
         replicates_qc_df.groupby(["sample_id"])
         .agg(
@@ -581,7 +578,7 @@ def calc_samples_summary(master_metadata, replicates_qc_df):
     )
     samples_summary_df = (
         samples_summary_df.merge(
-            master_metadata[["sample_id"]], how="right", on="sample_id"
+            master_metadata_df[["sample_id"]], how="right", on="sample_id"
         )
         .fillna({"n_replicates": 0, "n_passing": 0})
         .astype({"n_replicates": int, "n_passing": int})
@@ -604,6 +601,13 @@ def calc_samples_summary(master_metadata, replicates_qc_df):
 
 
 def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
+    """
+    Calculates a summary of which samples have how many replicates per amplicon that are passing or failing,
+    and if it has at least one passing replicate over that amplicon, it is concidered as passing.
+
+    This can be used to understand if there are certain amplicons of samples that have no coverage yet
+    and make decisions on resampling, that are more fine granular than per sample.
+    """
     samples_by_amplicons_summary_df = (
         replicates_amplicon_qc_df.groupby(["sample_id", "name"])
         .agg(
@@ -636,7 +640,13 @@ def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
     return samples_by_amplicons_summary_df
 
 
-def replicates_qc(coverage_df, REPLICATE_PASSING_THRESHOLD):
+def replicates_qc(
+    coverage_df: pd.DataFrame, REPLICATE_PASSING_THRESHOLD: float
+) -> pd.DataFrame:
+    """
+    Calculates which of the replicates (repeated runs of a sample) passed QC as a whole
+    (more than REPLICATE_PASSING_THRESHOLD passed)
+    """
     replicates_qc_df = (
         coverage_df.query("sample_type == 'field'")
         .groupby(["expt_name", "barcode", "sample_id"])
