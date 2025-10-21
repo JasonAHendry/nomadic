@@ -12,9 +12,7 @@ from nomadic.util.rsync import (
 from nomadic.util.workspace import Workspace, check_if_workspace
 
 
-@click.command(
-    short_help="Share summary nomadic workspace and associated minknow data to a cloud synchronized folder"
-)
+@click.command(short_help="Share summary nomadic and minknow data to another folder")
 @click.option(
     "-s",
     "--shared_dir",
@@ -55,7 +53,8 @@ def share(
     workspace_path: Path,
 ):
     """
-    Share summary nomadic workspace and associated minknow data to another location.
+    Share summary nomadic workspace and associated minknow data to another folder
+    e.g. a cloud synchronised folder for sharing.
     """
     if not check_if_workspace(workspace_path):
         raise click.BadParameter(
@@ -63,25 +62,27 @@ def share(
             message=f"'{workspace_path.resolve()}' is not a workspace.",
         )
     workspace = Workspace(str(workspace_path))
-    workspace_name = workspace.get_name()
-    shared_dir = shared_dir / workspace_name
-
     failure_reasons = defaultdict(list)
+
+    # Add workspace name to shared dir so multiple workspaces can be shared to same location
+    shared_dir = shared_dir / workspace.get_name()
 
     rsync_nomadic(
         target_dir=shared_dir,
-        workspace_path=workspace_path,
-        workspace_name=workspace_name,
-        additional_exclusions=["barcodes", "summary.fastq.csv"],
+        workspace=workspace,
+        additional_exclusions=[
+            "barcodes",
+            "summary.fastq.csv",
+            "summary.fastqs_processed.csv",
+        ],
     )
 
     if include_minknow:
         rsync_minknow_data(
-            shared_dir,
-            workspace_path,
-            minknow_base_dir,
-            workspace,
-            failure_reasons,
+            target_dir=shared_dir,
+            minknow_base_dir=minknow_base_dir,
+            workspace=workspace,
+            failure_reasons=failure_reasons,
             exclusions=[
                 "fastq_fail",
                 "fastq_pass",

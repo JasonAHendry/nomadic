@@ -74,15 +74,16 @@ def selective_rsync(
 
 def rsync_nomadic(
     target_dir: Path,
-    workspace_path: Path,
-    workspace_name: str,
+    workspace: Workspace,
     additional_exclusions: list[str] = None,
 ):
+    workspace_path = Path(workspace.path).resolve()
+    workspace_name = workspace.get_name()
     click.echo(f"Synchronising nomadic workspace ({workspace_name}) to {target_dir}")
 
     exclusions = ["**/.incremental/", "**/intermediate", ".work.log"]
 
-    if exclusions is not None:
+    if additional_exclusions is not None:
         exclusions = exclusions + additional_exclusions
 
     selective_rsync(
@@ -97,13 +98,13 @@ def rsync_nomadic(
 
 def rsync_minknow_data(
     target_dir: Path,
-    workspace_path: Path,
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
     exclusions: list[str] = None,
 ):
     click.echo(f"Synchronising minknow data to {target_dir}")
+    workspace_path = Path(workspace.path).resolve()
 
     for i, exp in enumerate(workspace.get_experiment_names()):
         click.echo(f"{exp} ({i + 1}/{len(workspace.get_experiment_names())})")
@@ -220,9 +221,9 @@ def print_rsync_experiment_summary(exp, *, statuses, reasons):
         click.echo()
 
 
-def get_minknow_target_dir(backup_dir, exp):
-    return backup_dir / "minknow" / exp
+def get_minknow_target_dir(dir, exp):
+    return dir / "minknow" / exp
 
 
-def get_nomadic_target_dir(backup_dir, exp):
-    return backup_dir / "results" / exp
+def get_nomadic_target_dir(dir, exp):
+    return dir / "results" / exp
