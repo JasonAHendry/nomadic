@@ -72,14 +72,14 @@ def selective_rsync(
         click.echo(f"stderr: {result.stderr}")
 
 
-def rsync_nomadic(
+def copy_nomadic_workspace(
     target_dir: Path,
     workspace: Workspace,
     additional_exclusions: list[str] = None,
 ):
     workspace_path = Path(workspace.path).resolve()
     workspace_name = workspace.get_name()
-    click.echo(f"Synchronising nomadic workspace ({workspace_name}) to {target_dir}")
+    click.echo(f"Copying nomadic workspace ({workspace_name}) to {target_dir}")
 
     exclusions = ["**/.incremental/", "**/intermediate", ".work.log"]
 
@@ -96,14 +96,14 @@ def rsync_nomadic(
     click.echo("Done.")
 
 
-def rsync_minknow_data(
+def copy_minknow_data(
     target_dir: Path,
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
     exclusions: list[str] = None,
 ):
-    click.echo(f"Synchronising minknow data to {target_dir}")
+    click.echo(f"Copying minknow data to {target_dir}")
     workspace_path = Path(workspace.path).resolve()
 
     for i, exp in enumerate(workspace.get_experiment_names()):

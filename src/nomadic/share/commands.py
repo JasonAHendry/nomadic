@@ -4,9 +4,9 @@ from pathlib import Path
 import click
 
 from nomadic.util.rsync import (
+    copy_minknow_data,
+    copy_nomadic_workspace,
     print_rsync_summary,
-    rsync_minknow_data,
-    rsync_nomadic,
     rsync_status,
 )
 from nomadic.util.workspace import Workspace, check_if_workspace
@@ -28,7 +28,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default="/var/lib/minknow/data",
-    help="Path to minknow output directory",
+    help="Path to minknow output directory (default it usually sufficient)",
 )
 @click.option(
     "-w",
@@ -67,7 +67,7 @@ def share(
     # Add workspace name to shared dir so multiple workspaces can be shared to same location
     shared_dir = shared_dir / workspace.get_name()
 
-    rsync_nomadic(
+    copy_nomadic_workspace(
         target_dir=shared_dir,
         workspace=workspace,
         additional_exclusions=[
@@ -78,7 +78,7 @@ def share(
     )
 
     if include_minknow:
-        rsync_minknow_data(
+        copy_minknow_data(
             target_dir=shared_dir,
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,

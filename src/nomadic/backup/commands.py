@@ -4,9 +4,9 @@ from pathlib import Path
 import click
 
 from nomadic.util.rsync import (
+    copy_minknow_data,
+    copy_nomadic_workspace,
     print_rsync_summary,
-    rsync_minknow_data,
-    rsync_nomadic,
     rsync_status,
 )
 from nomadic.util.workspace import Workspace, check_if_workspace
@@ -67,10 +67,10 @@ def backup(
 
     failure_reasons = defaultdict(list)
 
-    rsync_nomadic(backup_dir, workspace_path, workspace_name)
+    copy_nomadic_workspace(backup_dir, workspace_path, workspace_name)
 
     if include_minknow:
-        rsync_minknow_data(
+        copy_minknow_data(
             backup_dir, workspace_path, minknow_base_dir, workspace, failure_reasons
         )
     else:
