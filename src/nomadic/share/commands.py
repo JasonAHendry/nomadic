@@ -4,8 +4,8 @@ from pathlib import Path
 import click
 
 from nomadic.util.rsync import (
-    print_rsync_summary,
-    rsync_status,
+    print_sync_summary,
+    sync_status,
     share_minknow_data,
     share_nomadic_workspace,
 )
@@ -102,7 +102,7 @@ def share(
     else:
         click.echo("Skipping sharing minknow data as requested.")
 
-    all_backed_up, status_by_exp = rsync_status(
+    all_backed_up, status_by_exp = sync_status(
         target_dir, workspace, include_minknow=include_minknow
     )
-    print_rsync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
+    print_sync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)

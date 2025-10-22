@@ -6,8 +6,8 @@ import click
 from nomadic.util.rsync import (
     backup_minknow_data,
     backup_nomadic_workspace,
-    print_rsync_summary,
-    rsync_status,
+    print_sync_summary,
+    sync_status,
 )
 from nomadic.util.workspace import Workspace, check_if_workspace
 
@@ -99,7 +99,7 @@ def backup(
     else:
         click.echo("Skipping minknow data backup as requested.")
 
-    all_backed_up, status_by_exp = rsync_status(
+    all_backed_up, status_by_exp = sync_status(
         target_dir, workspace, include_minknow=include_minknow
     )
-    print_rsync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
+    print_sync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)

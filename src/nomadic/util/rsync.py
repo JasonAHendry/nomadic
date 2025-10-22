@@ -14,7 +14,7 @@ from nomadic.util.workspace import Workspace
 def selective_rsync(
     source_dir: Path,
     target_dir: Path,
-    exclusions: list = None,
+    exclusions: Optional[list] = None,
     recursive: bool = False,
     delete: bool = False,
     checksum: bool = False,
@@ -54,7 +54,7 @@ def selective_rsync(
             rsync_components.extend(["--exclude", exclusion])
 
     # Complete the list:
-    rsync_components.extend([source_dir, target_dir])
+    rsync_components.extend([str(source_dir), str(target_dir)])
 
     if verbose:
         rsync_feedback = [
@@ -146,10 +146,10 @@ def share_minknow_data(
         workspace=workspace,
         failure_reasons=failure_reasons,
         exclusions=[
-            "fastq_fail",
-            "fastq_pass",
-            "other_reports",
-            "pod5",
+            "fastq_fail/",
+            "fastq_pass/",
+            "other_reports/",
+            "pod5/",
             "sequencing_summary_*.txt",
         ],
     )
@@ -162,6 +162,9 @@ def sync_minknow_data(
     failure_reasons: dict[str, list[str]],
     exclusions: Optional[list[str]] = None,
 ):
+    """
+    Sync minknow data. This contains the core logic of finding the minknow data, but allows for different inclusions/exclusions
+    """
     workspace_path = Path(workspace.path).resolve()
 
     for i, exp in enumerate(workspace.get_experiment_names()):
@@ -211,9 +214,9 @@ def sync_minknow_data(
         )
 
 
-def rsync_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
+def sync_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
     """
-    Calculate rsync status for all experiments in the workspace.
+    Calculate sync status for all experiments in the workspace.
 
     This uses a very simple heuristic of checking if the result dir is there and relies
     on rsync working correctly. It is just a sanity check.
@@ -234,7 +237,11 @@ def rsync_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
     return all_backed_up, status_by_exp
 
 
-def print_rsync_summary(all_synced_up, status_by_exp, failure_reasons, include_minknow):
+def print_sync_summary(all_synced_up, status_by_exp, failure_reasons, include_minknow):
+    """
+    Prints a summary of the sync, showing which of the experiments have been synces successfully and
+    if not, what the failure reasons are.
+    """
     click.echo("")
     click.echo("--- Summary ---")
     click.echo("")
@@ -251,7 +258,7 @@ def print_rsync_summary(all_synced_up, status_by_exp, failure_reasons, include_m
     if include_minknow:
         click.echo(f"minknow: {n_minknow}/{len(status_by_exp)}")
     if all_synced_up:
-        click.echo(click.style("All experiments copied successfully!", fg="green"))
+        click.echo(click.style("All experiments synced successfully!", fg="green"))
     click.echo("")
     click.echo("----------------")
 
