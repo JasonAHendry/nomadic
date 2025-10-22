@@ -14,12 +14,12 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 
 @click.command(short_help="Share summary nomadic and minknow data to another folder")
 @click.option(
-    "-s",
-    "--shared_dir",
-    "shared_dir",
+    "-t",
+    "--target_dir",
+    "target_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     required=True,
-    help="Path to shared folder",
+    help="Path to target folder. The shared files will go inside of that folder into a folder with the name of the workspace.",
 )
 @click.option(
     "-k",
@@ -49,7 +49,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 @click.pass_context
 def share(
     ctx: click.Context,
-    shared_dir: Path,
+    target_dir: Path,
     minknow_base_dir: Path,
     include_minknow: bool,
     workspace_path: Path,
@@ -85,16 +85,16 @@ def share(
     failure_reasons = defaultdict(list)
 
     # Add workspace name to shared dir so multiple workspaces can be shared to same location
-    shared_dir = shared_dir / workspace.get_name()
+    target_dir = target_dir / workspace.get_name()
 
     share_nomadic_workspace(
-        target_dir=shared_dir,
+        target_dir=target_dir,
         workspace=workspace,
     )
 
     if include_minknow:
         share_minknow_data(
-            target_base_dir=shared_dir,
+            target_base_dir=target_dir,
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
@@ -103,6 +103,6 @@ def share(
         click.echo("Skipping sharing minknow data as requested.")
 
     all_backed_up, status_by_exp = rsync_status(
-        shared_dir, workspace, include_minknow=include_minknow
+        target_dir, workspace, include_minknow=include_minknow
     )
     print_rsync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)

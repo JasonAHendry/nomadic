@@ -14,12 +14,12 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 
 @click.command(short_help="Backup a workspace.")
 @click.option(
-    "-b",
-    "--backup_dir",
-    "backup_dir",
+    "-t",
+    "--target_dir",
+    "target_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     required=True,
-    help="Path to root backup folder. The backup will go into backup_dir/<workspace_name>.",
+    help="Path to root target backup folder. The backup will go into target_dir/<workspace_name>.",
 )
 @click.option(
     "-w",
@@ -49,7 +49,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 @click.pass_context
 def backup(
     ctx: click.Context,
-    backup_dir: Path,
+    target_dir: Path,
     workspace_path: Path,
     include_minknow: bool,
     minknow_base_dir: Path,
@@ -83,15 +83,15 @@ def backup(
 
     workspace = Workspace(str(workspace_path))
     workspace_name = workspace.get_name()
-    backup_dir = backup_dir / workspace_name
+    target_dir = target_dir / workspace_name
 
     failure_reasons = defaultdict(list)
 
-    backup_nomadic_workspace(target_dir=backup_dir, workspace=workspace)
+    backup_nomadic_workspace(target_dir=target_dir, workspace=workspace)
 
     if include_minknow:
         backup_minknow_data(
-            target_base_dir=backup_dir,
+            target_base_dir=target_dir,
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
@@ -100,6 +100,6 @@ def backup(
         click.echo("Skipping minknow data backup as requested.")
 
     all_backed_up, status_by_exp = rsync_status(
-        backup_dir, workspace, include_minknow=include_minknow
+        target_dir, workspace, include_minknow=include_minknow
     )
     print_rsync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
