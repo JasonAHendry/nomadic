@@ -25,7 +25,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     "-k",
     "--minknow_dir",
     "minknow_base_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
     show_default="/var/lib/minknow/data",
     help="Path to minknow output directory (default it usually sufficient)",
@@ -46,7 +46,9 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     show_default=True,
     help="Include/exclude minknow data in the backup.",
 )
+@click.pass_context
 def share(
+    ctx: click.Context,
     shared_dir: Path,
     minknow_base_dir: Path,
     include_minknow: bool,
@@ -56,11 +58,29 @@ def share(
     Share summary nomadic workspace and associated minknow data to another folder
     e.g. a cloud synchronised folder for sharing.
     """
-    if not check_if_workspace(workspace_path):
+    if not check_if_workspace(str(workspace_path)):
         raise click.BadParameter(
             param_hint="-w/--workspace",
             message=f"'{workspace_path.resolve()}' is not a workspace.",
         )
+
+    if (
+        ctx.get_parameter_source("minknow_base_dir")
+        is not click.core.ParameterSource.DEFAULT
+    ):
+        # Only check if the minknow dir exists if not used the default
+        # This is because we might not have to use this folder, it is only there for a fallback lookup method.
+        if not minknow_base_dir.exists():
+            raise click.BadParameter(
+                param_hint="-k/--minknow_dir",
+                message=f"'{minknow_base_dir.resolve()}' does not exist.",
+            )
+        if not minknow_base_dir.is_dir():
+            raise click.BadParameter(
+                param_hint="-k/--minknow_dir",
+                message=f"'{minknow_base_dir.resolve()}' is not a directory.",
+            )
+
     workspace = Workspace(str(workspace_path))
     failure_reasons = defaultdict(list)
 
