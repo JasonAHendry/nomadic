@@ -4,10 +4,10 @@ from pathlib import Path
 import click
 
 from nomadic.util.rsync import (
-    copy_minknow_data,
-    copy_nomadic_workspace,
     print_rsync_summary,
     rsync_status,
+    share_minknow_data,
+    share_nomadic_workspace,
 )
 from nomadic.util.workspace import Workspace, check_if_workspace
 
@@ -87,29 +87,17 @@ def share(
     # Add workspace name to shared dir so multiple workspaces can be shared to same location
     shared_dir = shared_dir / workspace.get_name()
 
-    copy_nomadic_workspace(
+    share_nomadic_workspace(
         target_dir=shared_dir,
         workspace=workspace,
-        additional_exclusions=[
-            "barcodes",
-            "summary.fastq.csv",
-            "summary.fastqs_processed.csv",
-        ],
     )
 
     if include_minknow:
-        copy_minknow_data(
+        share_minknow_data(
             target_base_dir=shared_dir,
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
-            exclusions=[
-                "fastq_fail",
-                "fastq_pass",
-                "other_reports",
-                "pod5",
-                "sequencing_summary_*.txt",
-            ],
         )
     else:
         click.echo("Skipping sharing minknow data as requested.")

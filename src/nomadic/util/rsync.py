@@ -1,6 +1,7 @@
 import subprocess
 from collections import defaultdict
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -72,19 +73,15 @@ def selective_rsync(
         click.echo(f"stderr: {result.stderr}")
 
 
-def copy_nomadic_workspace(
+def backup_nomadic_workspace(
     target_dir: Path,
     workspace: Workspace,
-    additional_exclusions: list[str] = None,
 ):
     workspace_path = Path(workspace.path).resolve()
     workspace_name = workspace.get_name()
-    click.echo(f"Copying nomadic workspace ({workspace_name}) to {target_dir}")
+    click.echo(f"Backing up nomadic workspace ({workspace_name}) to {target_dir}")
 
     exclusions = ["**/.incremental/", "**/intermediate", ".work.log"]
-
-    if additional_exclusions is not None:
-        exclusions = exclusions + additional_exclusions
 
     selective_rsync(
         source_dir=workspace_path,
@@ -96,14 +93,77 @@ def copy_nomadic_workspace(
     click.echo("Done.")
 
 
-def copy_minknow_data(
+def share_nomadic_workspace(
+    target_dir: Path,
+    workspace: Workspace,
+):
+    workspace_path = Path(workspace.path).resolve()
+    workspace_name = workspace.get_name()
+    click.echo(f"Sharing nomadic workspace ({workspace_name}) to {target_dir}")
+
+    exclusions = [
+        "**/.incremental/",
+        "**/intermediate",
+        ".work.log",
+        "barcodes",
+        "summary.fastq.csv",
+        "summary.fastqs_processed.csv",
+    ]
+
+    selective_rsync(
+        source_dir=workspace_path,
+        target_dir=target_dir,
+        recursive=True,
+        progressbar=True,
+        exclusions=exclusions,
+    )
+    click.echo("Done.")
+
+
+def backup_minknow_data(
     target_base_dir: Path,
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
-    exclusions: list[str] = None,
 ):
-    click.echo(f"Copying minknow data to {target_base_dir}")
+    click.echo(f"Backing up minknow data to {target_base_dir}")
+    sync_minknow_data(
+        target_base_dir=target_base_dir,
+        minknow_base_dir=minknow_base_dir,
+        workspace=workspace,
+        failure_reasons=failure_reasons,
+    )
+
+
+def share_minknow_data(
+    target_base_dir: Path,
+    minknow_base_dir: Path,
+    workspace: Workspace,
+    failure_reasons: dict[str, list[str]],
+):
+    click.echo(f"Sharing minknow data to {target_base_dir}")
+    sync_minknow_data(
+        target_base_dir=target_base_dir,
+        minknow_base_dir=minknow_base_dir,
+        workspace=workspace,
+        failure_reasons=failure_reasons,
+        exclusions=[
+            "fastq_fail",
+            "fastq_pass",
+            "other_reports",
+            "pod5",
+            "sequencing_summary_*.txt",
+        ],
+    )
+
+
+def sync_minknow_data(
+    target_base_dir: Path,
+    minknow_base_dir: Path,
+    workspace: Workspace,
+    failure_reasons: dict[str, list[str]],
+    exclusions: Optional[list[str]] = None,
+):
     workspace_path = Path(workspace.path).resolve()
 
     for i, exp in enumerate(workspace.get_experiment_names()):
@@ -128,13 +188,13 @@ def copy_minknow_data(
         target_dir = get_minknow_target_dir(target_base_dir, exp)
 
         if not source_dir.exists():
-            click.echo(f"   ERROR: {source_dir} does not exist, unable to copy...")
+            click.echo(f"   ERROR: {source_dir} does not exist, unable to sync...")
             failure_reasons[exp].append("no minknow data found")
             continue
         if not minknow.is_minknow_experiment_dir(source_dir):
             failure_reasons[exp].append("invalid minknow data")
             click.echo(
-                f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to copy..."
+                f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to sync..."
             )
             continue
         if not target_dir.exists():
