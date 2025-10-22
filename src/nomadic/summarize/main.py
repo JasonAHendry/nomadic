@@ -1,4 +1,3 @@
-import glob
 import os
 from typing import Iterable
 from warnings import warn
@@ -171,6 +170,10 @@ class QcStatus(StrEnum):
 
 
 def _add_qc_status_no_duplicates(df: pd.DataFrame) -> list[str]:
+    """
+    Adds a status to each replicate/amplicon to see which ones passed QC
+    and if they didn't, why.
+    """
     status_strs = []
     for _, row in df.iterrows():
         status = []
@@ -188,6 +191,11 @@ def _add_qc_status_no_duplicates(df: pd.DataFrame) -> list[str]:
 
 
 def _mark_duplicates(df: pd.DataFrame) -> None:
+    """
+    Mark all field samples as duplicates, if there is a better covered replicate for the same amplicon
+    Replicates marked as duplicate will not be used for prevalance evaluation.
+    """
+
     def _update_duplicate(status: str, idx: int, keep_idx: int) -> str:
         if idx == keep_idx:
             return status
@@ -244,7 +252,12 @@ def load_variant_summary_csv(
 
     # Settings
     NUMERIC_COLUMNS = ["dp", "wsaf"]
-    UNPHASED_GT_TO_INT = {"./.": -1, "0/0": 0, "0/1": 1, "1/1": 2}
+    UNPHASED_GT_TO_INT = {
+        "./.": -1,
+        "0/0": 0,
+        "0/1": 1,
+        "1/1": 2,
+    }  # TODO What about multiallelic sites
 
     # Load
     variants_df = pd.read_csv(variants_csv)
@@ -329,12 +342,124 @@ def load_and_concat_variants(expt_dirs: list[str]) -> pd.DataFrame:
         mdf["barcode"] = barcode
 
         # Filled by default with hom reference
-        mdf["gt"] = mdf["gt"].fillna(0.0)
+        mdf["gt"] = mdf["gt"].fillna("0/0")
         mdf["gt_int"] = mdf["gt_int"].fillna(0.0)
+        mdf["wsaf"] = mdf["wsaf"].fillna(0.0)
 
         full_variant_dfs.append(mdf)
 
     return pd.concat(full_variant_dfs)
+
+
+def calc_samples_summary(
+    master_metadata_df: pd.DataFrame, replicates_qc_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Calculates a summary of which samples have how many replicates that are passing or failing,
+    and if it has at least one passing replicate, it is concidered as passing.
+
+    This can be used to get a list of to be resequenced samples.
+    """
+    samples_summary_df = (
+        replicates_qc_df.groupby(["sample_id"])
+        .agg(
+            n_replicates=pd.NamedAgg("barcode", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+        )
+        .reset_index()
+    )
+    samples_summary_df = (
+        samples_summary_df.merge(
+            master_metadata_df[["sample_id"]], how="right", on="sample_id"
+        )
+        .fillna({"n_replicates": 0, "n_passing": 0})
+        .astype({"n_replicates": int, "n_passing": int})
+    )
+    samples_summary_df["status"] = samples_summary_df.apply(
+        lambda row: "passing"
+        if row["n_passing"] > 0
+        else "failing"
+        if row["n_replicates"] > 0
+        else "missing",
+        axis=1,
+    )
+    samples_summary_df.sort_values(
+        by=["n_passing", "n_replicates", "sample_id"],
+        inplace=True,
+        ascending=[False, False, True],
+    )
+
+    return samples_summary_df
+
+
+def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
+    """
+    Calculates a summary of which samples have how many replicates per amplicon that are passing or failing,
+    and if it has at least one passing replicate over that amplicon, it is concidered as passing.
+
+    This can be used to understand if there are certain amplicons of samples that have no coverage yet
+    and make decisions on resampling, that are more fine granular than per sample.
+    """
+    samples_by_amplicons_summary_df = (
+        replicates_amplicon_qc_df.groupby(["sample_id", "name"])
+        .agg(
+            n_replicates=pd.NamedAgg("barcode", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+        )
+        .reset_index()
+    )
+    samples_by_amplicons_summary_df = (
+        samples_by_amplicons_summary_df.merge(
+            master_metadata[["sample_id"]], how="right", on="sample_id"
+        )
+        .fillna({"n_replicates": 0, "n_passing": 0})
+        .astype({"n_replicates": int, "n_passing": int})
+    )
+    samples_by_amplicons_summary_df["status"] = samples_by_amplicons_summary_df.apply(
+        lambda row: "passing"
+        if row["n_passing"] > 0
+        else "failing"
+        if row["n_replicates"] > 0
+        else "missing",
+        axis=1,
+    )
+    samples_by_amplicons_summary_df.sort_values(
+        by=["n_passing", "n_replicates", "sample_id"],
+        inplace=True,
+        ascending=[False, False, True],
+    )
+
+    return samples_by_amplicons_summary_df
+
+
+def replicates_qc(
+    coverage_df: pd.DataFrame, REPLICATE_PASSING_THRESHOLD: float
+) -> pd.DataFrame:
+    """
+    Calculates which of the replicates (repeated runs of a sample) passed QC as a whole
+    (more than REPLICATE_PASSING_THRESHOLD passed)
+    """
+    replicates_qc_df = (
+        coverage_df.query("sample_type == 'field'")
+        .groupby(["expt_name", "barcode", "sample_id"])
+        .agg(
+            n_amplicons=pd.NamedAgg("name", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+            n_fail_contam=pd.NamedAgg("fail_contam", "sum"),
+            n_fail_lowcov=pd.NamedAgg("fail_lowcov", "sum"),
+        )
+        .reset_index()
+    )
+    replicates_qc_df["passing"] = (
+        replicates_qc_df["n_passing"] / replicates_qc_df["n_amplicons"]
+        >= REPLICATE_PASSING_THRESHOLD
+    )
+
+    return replicates_qc_df
+
+
+def replicates_amplicon_qc(coverage_df):
+    return coverage_df.query("sample_type == 'field'")
 
 
 # --------------------------------------------------------------------------------
@@ -503,13 +628,13 @@ def main(
     )
 
     log.info("Filtering to analysis set...")
-    remove_genes = ["hrp2", "hrp3"]
-    remove_mutations = ["crt-N75K"]
+    remove_genes = ["hrp2", "hrp3"]  # noqa: F841 later used in query
+    remove_mutations = ["crt-N75K"]  # noqa: F841 later used in query
     analysis_df = (
         variant_df.query("status == 'pass'")
         .query("mut_type == 'missense'")
         .query("gene not in @remove_genes")
-        .query("mutation not in @remove_mutations")
+        # .query("mutation not in @remove_mutations")
     )
 
     # Filter out false positives
@@ -555,119 +680,8 @@ def main(
         print("")
         print("Launching dashboard (press CNTRL+C to exit):")
         print("")
-        # webbrowser.open("http://127.0.0.1:8050")
-        dashboard.run(debug=True)
-
-
-def calc_samples_summary(
-    master_metadata_df: pd.DataFrame, replicates_qc_df: pd.DataFrame
-) -> pd.DataFrame:
-    """
-    Calculates a summary of which samples have how many replicates that are passing or failing,
-    and if it has at least one passing replicate, it is concidered as passing.
-
-    This can be used to get a list of to be resequenced samples.
-    """
-    samples_summary_df = (
-        replicates_qc_df.groupby(["sample_id"])
-        .agg(
-            n_replicates=pd.NamedAgg("barcode", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-        )
-        .reset_index()
-    )
-    samples_summary_df = (
-        samples_summary_df.merge(
-            master_metadata_df[["sample_id"]], how="right", on="sample_id"
-        )
-        .fillna({"n_replicates": 0, "n_passing": 0})
-        .astype({"n_replicates": int, "n_passing": int})
-    )
-    samples_summary_df["status"] = samples_summary_df.apply(
-        lambda row: "passing"
-        if row["n_passing"] > 0
-        else "failing"
-        if row["n_replicates"] > 0
-        else "missing",
-        axis=1,
-    )
-    samples_summary_df.sort_values(
-        by=["n_passing", "n_replicates", "sample_id"],
-        inplace=True,
-        ascending=[False, False, True],
-    )
-
-    return samples_summary_df
-
-
-def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
-    """
-    Calculates a summary of which samples have how many replicates per amplicon that are passing or failing,
-    and if it has at least one passing replicate over that amplicon, it is concidered as passing.
-
-    This can be used to understand if there are certain amplicons of samples that have no coverage yet
-    and make decisions on resampling, that are more fine granular than per sample.
-    """
-    samples_by_amplicons_summary_df = (
-        replicates_amplicon_qc_df.groupby(["sample_id", "name"])
-        .agg(
-            n_replicates=pd.NamedAgg("barcode", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-        )
-        .reset_index()
-    )
-    samples_by_amplicons_summary_df = (
-        samples_by_amplicons_summary_df.merge(
-            master_metadata[["sample_id"]], how="right", on="sample_id"
-        )
-        .fillna({"n_replicates": 0, "n_passing": 0})
-        .astype({"n_replicates": int, "n_passing": int})
-    )
-    samples_by_amplicons_summary_df["status"] = samples_by_amplicons_summary_df.apply(
-        lambda row: "passing"
-        if row["n_passing"] > 0
-        else "failing"
-        if row["n_replicates"] > 0
-        else "missing",
-        axis=1,
-    )
-    samples_by_amplicons_summary_df.sort_values(
-        by=["n_passing", "n_replicates", "sample_id"],
-        inplace=True,
-        ascending=[False, False, True],
-    )
-
-    return samples_by_amplicons_summary_df
-
-
-def replicates_qc(
-    coverage_df: pd.DataFrame, REPLICATE_PASSING_THRESHOLD: float
-) -> pd.DataFrame:
-    """
-    Calculates which of the replicates (repeated runs of a sample) passed QC as a whole
-    (more than REPLICATE_PASSING_THRESHOLD passed)
-    """
-    replicates_qc_df = (
-        coverage_df.query("sample_type == 'field'")
-        .groupby(["expt_name", "barcode", "sample_id"])
-        .agg(
-            n_amplicons=pd.NamedAgg("name", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-            n_fail_contam=pd.NamedAgg("fail_contam", "sum"),
-            n_fail_lowcov=pd.NamedAgg("fail_lowcov", "sum"),
-        )
-        .reset_index()
-    )
-    replicates_qc_df["passing"] = (
-        replicates_qc_df["n_passing"] / replicates_qc_df["n_amplicons"]
-        >= REPLICATE_PASSING_THRESHOLD
-    )
-
-    return replicates_qc_df
-
-
-def replicates_amplicon_qc(coverage_df):
-    return coverage_df.query("sample_type == 'field'")
+        webbrowser.open("http://127.0.0.1:8050")
+        dashboard.run(debug=False)
 
     # CHECKPOINT 2:
     # summary.quality_control.by_amplicon.csv

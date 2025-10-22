@@ -1,29 +1,15 @@
-# import datetime
-# import os
 from abc import ABC, abstractmethod
-from cProfile import label
-from calendar import c
-from turtle import title
-# from typing import Optional
-# import re
 
-from matplotlib.pyplot import colormaps
 import numpy as np
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-from pyparsing import annotations
-import seaborn as sns
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
-from matplotlib.colors import rgb2hex
 
 from nomadic.summarize.compute import (
     compute_variant_prevalence,
     compute_variant_prevalence_per,
 )
-from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.regions import RegionBEDParser
 from i18n import t
 
 # --------------------------------------------------------------------------------
@@ -401,7 +387,7 @@ class PrevalenceBarplot(SummaryDashboardComponent):
         def _update(gene_set: str, by: str):
             """Called whenver the input changes"""
 
-            genes = self.GENE_SETS[gene_set]
+            genes = self.GENE_SETS[gene_set]  # noqa: F841 later used in query
 
             # Limit to key genes
             analysis_df = self.analysis_df.query("gene in @genes")

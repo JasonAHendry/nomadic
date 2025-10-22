@@ -2,8 +2,6 @@ import logging
 import threading
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
-from datetime import datetime
-from typing import Optional
 
 from i18n import t
 
