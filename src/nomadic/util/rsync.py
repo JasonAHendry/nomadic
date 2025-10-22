@@ -81,7 +81,7 @@ def backup_nomadic_workspace(
     workspace_name = workspace.get_name()
     click.echo(f"Backing up nomadic workspace ({workspace_name}) to {target_dir}")
 
-    exclusions = ["**/.incremental/", "**/intermediate", ".work.log"]
+    exclusions = [".incremental/", "intermediate/", ".work.log"]
 
     selective_rsync(
         source_dir=workspace_path,
@@ -102,12 +102,10 @@ def share_nomadic_workspace(
     click.echo(f"Sharing nomadic workspace ({workspace_name}) to {target_dir}")
 
     exclusions = [
-        "**/.incremental/",
-        "**/intermediate",
+        ".incremental/",
+        "intermediate/",
         ".work.log",
-        "barcodes",
-        "summary.fastq.csv",
-        "summary.fastqs_processed.csv",
+        "barcodes/",
     ]
 
     selective_rsync(
