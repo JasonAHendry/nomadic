@@ -4,22 +4,31 @@ from pathlib import Path
 import click
 
 from nomadic.util.rsync import (
-    backup_minknow_data,
-    backup_nomadic_workspace,
     print_sync_summary,
     sync_status,
+    share_minknow_data,
+    share_nomadic_workspace,
 )
 from nomadic.util.workspace import Workspace, check_if_workspace
 
 
-@click.command(short_help="Backup a workspace.")
+@click.command(short_help="Share (lightweight) summary of a workspace.")
 @click.option(
     "-t",
     "--target_dir",
     "target_dir",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     required=True,
-    help="Path to root target backup folder. The backup will go into target_dir/<workspace_name>.",
+    help="Path to target folder. The shared files will go inside of that folder into a folder with the name of the workspace.",
+)
+@click.option(
+    "-k",
+    "--minknow_dir",
+    "minknow_base_dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+    default="/var/lib/minknow/data",
+    show_default="/var/lib/minknow/data",
+    help="Path to minknow output directory (default it usually sufficient)",
 )
 @click.option(
     "-w",
@@ -28,36 +37,27 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     default="./",
     show_default="current directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    help="Path to the nomadic workspace you want to back up.",
-)
-@click.option(
-    "-k",
-    "--minknow_dir",
-    "minknow_base_dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default=True,
-    help="Path to the base minknow output directory. Only needed if the files were moved.",
+    help="Path to the nomadic workspace you want to share",
 )
 @click.option(
     "--include-minknow/--exclude-minknow",
     "include_minknow",
     default=True,
     show_default=True,
-    help="Include/exclude minknow data in the backup.",
+    help="Include/exclude minknow data",
 )
 @click.pass_context
-def backup(
+def share(
     ctx: click.Context,
     target_dir: Path,
-    workspace_path: Path,
-    include_minknow: bool,
     minknow_base_dir: Path,
+    include_minknow: bool,
+    workspace_path: Path,
 ):
     """
-    Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive.
+    Share summary nomadic workspace and associated minknow data to another folder
+    e.g. a cloud synchronised folder for sharing.
     """
-
     if not check_if_workspace(str(workspace_path)):
         raise click.BadParameter(
             param_hint="-w/--workspace",
@@ -82,22 +82,25 @@ def backup(
             )
 
     workspace = Workspace(str(workspace_path))
-    workspace_name = workspace.get_name()
-    target_dir = target_dir / workspace_name
-
     failure_reasons = defaultdict(list)
 
-    backup_nomadic_workspace(target_dir=target_dir, workspace=workspace)
+    # Add workspace name to shared dir so multiple workspaces can be shared to same location
+    target_dir = target_dir / workspace.get_name()
+
+    share_nomadic_workspace(
+        target_dir=target_dir,
+        workspace=workspace,
+    )
 
     if include_minknow:
-        backup_minknow_data(
+        share_minknow_data(
             target_base_dir=target_dir,
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
         )
     else:
-        click.echo("Skipping minknow data backup as requested.")
+        click.echo("Skipping sharing minknow data as requested.")
 
     all_backed_up, status_by_exp = sync_status(
         target_dir, workspace, include_minknow=include_minknow

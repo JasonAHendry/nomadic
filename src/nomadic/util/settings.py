@@ -80,3 +80,8 @@ def load_settings(path: str) -> Optional[ExperimentSettings]:
             data["caller"] = "bcftools"
             del data["call"]
         return ExperimentSettings(**data)
+
+
+def settings_filepath(workspace_path, exp):
+    json_file = workspace_path / "results" / exp / "metadata" / "settings.json"
+    return json_file
