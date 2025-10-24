@@ -44,7 +44,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     "include_minknow",
     default=True,
     show_default=True,
-    help="Include/exclude minknow data in the backup.",
+    help="Include/exclude minknow data",
 )
 @click.pass_context
 def share(
