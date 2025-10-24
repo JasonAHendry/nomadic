@@ -12,7 +12,7 @@ from nomadic.util.rsync import (
 from nomadic.util.workspace import Workspace, check_if_workspace
 
 
-@click.command(short_help="Share summary nomadic and minknow data to another folder")
+@click.command(short_help="Share (lightweight) summary of a workspace.")
 @click.option(
     "-t",
     "--target_dir",
