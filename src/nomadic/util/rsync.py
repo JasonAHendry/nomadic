@@ -36,7 +36,7 @@ def selective_rsync(
     # Base command with recursive (r) and timestamp (t) options
     # r is needed to select all entries in the folder even if the rsync is not recursive
     # a folder exclusion is then added
-    rsync_components = ["rsync", "-rt"]
+    rsync_components: list[str | Path] = ["rsync", "-rt"]
 
     # Add variables
     if progressbar:
@@ -54,18 +54,16 @@ def selective_rsync(
             rsync_components.extend(["--exclude", exclusion])
 
     # Complete the list:
-    rsync_components.extend([str(source_dir), str(target_dir)])
-
-    if verbose:
-        rsync_feedback = [
-            f"{f.name}" if isinstance(f, Path) else f for f in rsync_components
-        ]
-        click.echo(f"{' '.join(rsync_feedback)}")
+    rsync_components.extend([source_dir, target_dir])
 
     # Format the rsync command properly for bash to run it
     rsync_command = [
         f"{f.resolve()}/" if isinstance(f, Path) else f for f in rsync_components
     ]
+
+    if verbose:
+        click.echo(f"{' '.join(rsync_command)}")
+
     result = subprocess.run(rsync_command, text=True, check=True)
     if result.stdout:
         click.echo(f"stdout: {result.stdout}")
