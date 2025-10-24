@@ -46,6 +46,20 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     show_default=True,
     help="Include/exclude minknow data",
 )
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Increase logging verbosity, will show files that are copied.",
+)
+@click.option(
+    "-c",
+    "--checksum",
+    is_flag=True,
+    default=False,
+    help="Use checksum check instead of file size and modification time.",
+)
 @click.pass_context
 def share(
     ctx: click.Context,
@@ -53,6 +67,8 @@ def share(
     minknow_base_dir: Path,
     include_minknow: bool,
     workspace_path: Path,
+    checksum: bool,
+    verbose: bool,
 ):
     """
     Share summary nomadic workspace and associated minknow data to another folder
@@ -90,6 +106,8 @@ def share(
     share_nomadic_workspace(
         target_dir=target_dir,
         workspace=workspace,
+        checksum=checksum,
+        verbose=verbose,
     )
 
     if include_minknow:
@@ -98,6 +116,8 @@ def share(
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
+            checksum=checksum,
+            verbose=verbose,
         )
     else:
         click.echo("Skipping sharing minknow data as requested.")

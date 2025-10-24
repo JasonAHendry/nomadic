@@ -46,6 +46,20 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     show_default=True,
     help="Include/exclude minknow data in the backup.",
 )
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Increase logging verbosity, will show files that are copied.",
+)
+@click.option(
+    "-c",
+    "--checksum",
+    is_flag=True,
+    default=False,
+    help="Use checksum check instead of file size and modification time.",
+)
 @click.pass_context
 def backup(
     ctx: click.Context,
@@ -53,6 +67,8 @@ def backup(
     workspace_path: Path,
     include_minknow: bool,
     minknow_base_dir: Path,
+    verbose: bool,
+    checksum: bool,
 ):
     """
     Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive.
@@ -82,12 +98,13 @@ def backup(
             )
 
     workspace = Workspace(str(workspace_path))
-    workspace_name = workspace.get_name()
-    target_dir = target_dir / workspace_name
+    target_dir = target_dir / workspace.get_name()
 
     failure_reasons = defaultdict(list)
 
-    backup_nomadic_workspace(target_dir=target_dir, workspace=workspace)
+    backup_nomadic_workspace(
+        target_dir=target_dir, workspace=workspace, checksum=checksum, verbose=verbose
+    )
 
     if include_minknow:
         backup_minknow_data(
@@ -95,6 +112,8 @@ def backup(
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
+            checksum=checksum,
+            verbose=verbose,
         )
     else:
         click.echo("Skipping minknow data backup as requested.")
