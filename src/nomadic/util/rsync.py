@@ -36,7 +36,8 @@ def selective_rsync(
     # Base command with recursive (r) and timestamp (t) options
     # r is needed to select all entries in the folder even if the rsync is not recursive
     # a folder exclusion is then added
-    rsync_components: list[str | Path] = ["rsync", "-rt"]
+    # --modify-window is added to help working with fat32
+    rsync_components: list[str | Path] = ["rsync", "-rt", "--modify-window=2"]
 
     # Add variables
     if progressbar:
@@ -74,6 +75,9 @@ def selective_rsync(
 def backup_nomadic_workspace(
     target_dir: Path,
     workspace: Workspace,
+    *,
+    checksum: bool = False,
+    verbose: bool = False,
 ):
     workspace_path = Path(workspace.path).resolve()
     workspace_name = workspace.get_name()
@@ -87,6 +91,8 @@ def backup_nomadic_workspace(
         recursive=True,
         progressbar=True,
         exclusions=exclusions,
+        checksum=checksum,
+        verbose=verbose,
     )
     click.echo("Done.")
 
@@ -94,6 +100,9 @@ def backup_nomadic_workspace(
 def share_nomadic_workspace(
     target_dir: Path,
     workspace: Workspace,
+    *,
+    checksum: bool = False,
+    verbose: bool = False,
 ):
     workspace_path = Path(workspace.path).resolve()
     workspace_name = workspace.get_name()
@@ -112,6 +121,8 @@ def share_nomadic_workspace(
         recursive=True,
         progressbar=True,
         exclusions=exclusions,
+        checksum=checksum,
+        verbose=verbose,
     )
     click.echo("Done.")
 
@@ -120,7 +131,10 @@ def backup_minknow_data(
     target_base_dir: Path,
     minknow_base_dir: Path,
     workspace: Workspace,
+    *,
     failure_reasons: dict[str, list[str]],
+    checksum: bool = False,
+    verbose: bool = False,
 ):
     click.echo(f"Backing up minknow data to {target_base_dir}")
     sync_minknow_data(
@@ -128,6 +142,8 @@ def backup_minknow_data(
         minknow_base_dir=minknow_base_dir,
         workspace=workspace,
         failure_reasons=failure_reasons,
+        checksum=checksum,
+        verbose=verbose,
     )
 
 
@@ -136,6 +152,9 @@ def share_minknow_data(
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
+    *,
+    checksum: bool = False,
+    verbose: bool = False,
 ):
     click.echo(f"Sharing minknow data to {target_base_dir}")
     sync_minknow_data(
@@ -150,6 +169,8 @@ def share_minknow_data(
             "pod5/",
             "sequencing_summary_*.txt",
         ],
+        checksum=checksum,
+        verbose=verbose,
     )
 
 
@@ -159,6 +180,9 @@ def sync_minknow_data(
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
     exclusions: Optional[list[str]] = None,
+    *,
+    checksum: bool = False,
+    verbose: bool = False,
 ):
     """
     Sync minknow data. This contains the core logic of finding the minknow data, but allows for different inclusions/exclusions
@@ -209,6 +233,8 @@ def sync_minknow_data(
             recursive=True,
             progressbar=True,
             exclusions=exclusions,
+            checksum=checksum,
+            verbose=verbose,
         )
 
 
