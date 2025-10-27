@@ -94,7 +94,7 @@ def get_region_coverage_dataframe(
             left=metadata[["expt_name", "barcode", "sample_id", "sample_type"]],
             right=bed_df,
             on=["expt_name", "barcode"],
-            how="right",
+            how="inner",  # ensure we only take samples that are in the master metadata
         )
         # TODO: Do checks
         bed_dfs.append(bed_df)
