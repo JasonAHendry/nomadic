@@ -161,7 +161,7 @@ class MetadataTableParser:
 
     """
 
-    REQUIRED_COLUMNS = ["barcode", "sample_id"]
+    REQUIRED_COLUMNS = ["barcode", "sample_id", "sample_type"]
     UNIQUE_COLUMNS = ["barcode"]
 
     # If the required columns are not found, try these alternative names, case insensitive
@@ -177,6 +177,14 @@ class MetadataTableParser:
             "sample_ids",
             "sample id",
             "sample ids",
+        ],
+        "sample_type": [
+            "sampletype",
+            "sample-type",
+            "sample type",
+            "sampletypes",
+            "sample-types",
+            "sample types",
         ],
     }
 
@@ -194,16 +202,16 @@ class MetadataTableParser:
         self._correct_all_barcodes()
 
         self.barcodes = self.df["barcode"].tolist()
-        self.required_metadata = self.df[self.REQUIRED_COLUMNS].set_index("barcode")
+        self.sample_ids_df = self.df[["barcode", "sample_id"]].set_index("barcode")
 
         if include_unclassified:
-            self.required_metadata.loc["unclassified"] = ["unclassified"]
+            self.sample_ids_df.loc["unclassified"] = ["unclassified"]
             self.barcodes.append("unclassified")
 
     def get_sample_id(self, barcode: str) -> Optional[str]:
         if barcode == "unclassified":
             return barcode
-        metadata = self.required_metadata
+        metadata = self.sample_ids_df
         if barcode not in metadata.index:
             return None
         return metadata.loc[barcode].get("sample_id", None)

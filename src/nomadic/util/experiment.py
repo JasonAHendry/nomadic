@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from nomadic.util.dirs import produce_dir
+from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
 
@@ -151,8 +152,13 @@ def check_complete_experiment(expt_dir: str) -> None:
         raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
 
     # We can use this for now, but of course this is getting messy
-    _ = find_metadata(expt_dir)
-    _ = find_regions(expt_dir)
+    try:
+        _ = find_metadata(expt_dir)
+        _ = find_regions(expt_dir)
+    except MetadataFormatError as e:
+        raise MetadataFormatError(
+            f"Metadata or regions file issue in experiment directory {expt_dir}: {e}"
+        ) from e
 
     used_summary_files = None
     for file_format in [summary_files, legacy_summary_files]:

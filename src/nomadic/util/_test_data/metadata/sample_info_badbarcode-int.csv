@@ -1,6 +1,7 @@
-﻿barcode,sample_id,parasite_per_ul,location,platform
-1,3D7 (NB01),10000,Oxford,flongle
-2,Dd2 (NB02),10000,Oxford,flongle
-3,CamC580Y (NB03),10000,Oxford,flongle
-4,GB4 (NB04),10000,Oxford,flongle
-5,HB3 (NB05),10000,Oxford,flongle
+﻿barcode,sample_id,sample_type,location,parasitemia,postclean_qubit
+1,3D7,pos,berlin,1000,87
+2,HB3,pos,berlin,100,34
+3,NTC,neg,berlin,0,0
+4,DBS-A01,field,berlin,543,44
+5,DBS-A02,field,berlin,7583,85
+6,DBS-A03,field,berlin,349,32

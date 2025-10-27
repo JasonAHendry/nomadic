@@ -394,7 +394,7 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
 
             if "sample_id" not in df.columns:
                 # for backwards compatibility to be able to show old experiments where this column was not in the data
-                df = df.join(self.metadata.required_metadata, on="barcode")
+                df = df.join(self.metadata.sample_ids_df, on="barcode")
 
             x = df.apply(
                 sample_string_from_row,
@@ -578,7 +578,7 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             )
             if "sample_id" not in df.columns:
                 # for backwards compatibility to be able to show old experiments where this column was not in the data
-                df = df.join(self.metadata.required_metadata, on="barcode")
+                df = df.join(self.metadata.sample_ids_df, on="barcode")
 
             # Prepare plotting data
             # plot_data = [
@@ -1126,9 +1126,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
             target_df = df.query(qry)
             if "sample_id" not in target_df.columns:
                 # for backwards compatibility to be able to show old experiments where this column was not in the data
-                target_df = target_df.join(
-                    self.metadata.required_metadata, on="barcode"
-                )
+                target_df = target_df.join(self.metadata.sample_ids_df, on="barcode")
 
             # Munge for plot
             target_df["sample_string"] = pd.Categorical(

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import click
 
+from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import Workspace, check_if_workspace
 
 
@@ -74,9 +75,15 @@ def summarize(
 
     from .main import main
 
-    main(
-        expt_dirs=experiment_dirs,
-        summary_name=summary_name,
-        meta_data_path=metadata_csv,
-        show_dashboard=dashboard,
-    )
+    try:
+        main(
+            expt_dirs=experiment_dirs,
+            summary_name=summary_name,
+            meta_data_path=metadata_csv,
+            show_dashboard=dashboard,
+        )
+    except MetadataFormatError as e:
+        raise click.BadParameter(
+            param_hint="-m/--metadata_csv",
+            message=f"Metadata format error: {e}",
+        ) from e

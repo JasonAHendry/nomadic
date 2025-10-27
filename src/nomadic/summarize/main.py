@@ -17,6 +17,7 @@ from nomadic.summarize.compute import (
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
+from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.experiment import (
     check_complete_experiment,
     get_metadata_csv,
@@ -509,8 +510,13 @@ def main(
     dfs = []
     for expt_dir in expt_dirs:
         metadata_csv = get_metadata_csv(expt_dir)
-        parser = ExtendedMetadataTableParser(metadata_csv)
-        parser.df.insert(0, "expt_name", os.path.basename(expt_dir))
+        try:
+            parser = ExtendedMetadataTableParser(metadata_csv)
+            parser.df.insert(0, "expt_name", os.path.basename(expt_dir))
+        except MetadataFormatError as e:
+            raise MetadataFormatError(
+                f"Metadata format issue in experiment directory {expt_dir}: {e}"
+            ) from e
         if not dfs:
             shared_columns = set(parser.df.columns)
         shared_columns.intersection_update(parser.df.columns)
