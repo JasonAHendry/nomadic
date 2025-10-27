@@ -6,6 +6,7 @@ from enum import StrEnum, auto
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from nomadic.dashboard.main import (
     find_regions,
@@ -565,10 +566,17 @@ def main(
         )
 
     # Delete unknown samples
-    inventory_metadata = inventory_metadata[
-        ~inventory_metadata["sample_id"].isin(unknown_samples)
-    ]
+    inventory_metadata["status"] = np.where(
+        inventory_metadata["sample_id"].isin(unknown_samples), "unknown", "known"
+    )
+    # set all controls
+    inventory_metadata["status"] = np.where(
+        inventory_metadata["sample_type"].isin(["pos", "neg"]),
+        "control",
+        inventory_metadata["status"],
+    )
     inventory_metadata.to_csv(f"{output_dir}/inventory.csv", index=False)
+    inventory_metadata = inventory_metadata.query("status != 'unknown'")
 
     # Check regions are consistent
     check_regions_consistent(expt_dirs)
@@ -582,6 +590,7 @@ def main(
     log.info(f"  Negative controls: {throughput_df.loc['neg', 'All']}")
     log.info(f"  Field samples (total): {throughput_df.loc['field', 'All']}")
     log.info(f"  Field samples (unique): {throughput_df.loc['field_unique', 'All']}")
+    log.info(f"  Unknown (excluded): {len(unknown_samples)}")
     throughput_df.to_csv(f"{output_dir}/summary.throughput.csv", index=True)
 
     # Now let's evaluate coverage
