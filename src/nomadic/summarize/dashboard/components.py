@@ -174,7 +174,7 @@ class SamplesPie(SummaryDashboardComponent):
 
         MAR = 20
         fig.update_layout(
-            showlegend=False,
+            showlegend=True,
             margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
             annotations=[
                 dict(
