@@ -123,14 +123,21 @@ def get_region_coverage_dataframe(
     return coverage_df
 
 
-def calc_unknown_samples(inventory_metadata: pd.DataFrame, master_metadata):
+def calc_unknown_samples(
+    inventory_metadata: pd.DataFrame, master_metadata: pd.DataFrame
+):
     """
     Returns the sample ids that are not in the masterdata file.
     """
     field_samples = inventory_metadata.query("sample_type == 'field'")
-    unknown_samples = field_samples.loc[
-        ~field_samples["sample_id"].isin(master_metadata["sample_id"]), "sample_id"
-    ].to_list()
+    unknown_samples = (
+        field_samples.loc[
+            ~field_samples["sample_id"].isin(master_metadata["sample_id"]),
+            "sample_id",
+        ]
+        .unique()
+        .tolist()
+    )
     return unknown_samples
 
 
@@ -533,6 +540,20 @@ def main(
     shared_columns = fixed_columns
     inventory_metadata = pd.concat([df[shared_columns] for df in dfs])
     master_metadata = pd.read_csv(meta_data_path)
+    master_metadata = master_metadata.astype(
+        {"sample_id": "str"}
+    )  # ensure sample IDs are strings
+    inventory_metadata = inventory_metadata.astype(
+        {"sample_id": "str"}
+    )  # ensure sample IDs are strings
+    # strip whitespaces from sample IDs
+    inventory_metadata["sample_id"] = inventory_metadata["sample_id"].str.strip()
+    master_metadata["sample_id"] = master_metadata["sample_id"].str.strip()
+
+    # In case sample IDs are numbers, we want to strip leading zeros (this was a problem in Zambia data)
+    inventory_metadata["sample_id"] = inventory_metadata["sample_id"].str.lstrip("0")
+    master_metadata["sample_id"] = master_metadata["sample_id"].str.lstrip("0")
+
     # Do we want to have metadata in result files?
     # inventory_metadata = pd.merge(
     #     left=inventory_metadata, right=master_metadata, on=["sample_id"], how="left"
