@@ -565,6 +565,15 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
                 data=df,
             )
 
+            # Sort, so aa changes are in correct order
+            pos_order = (
+                df.drop_duplicates("aa_change")
+                .set_index("aa_change")["aa_pos"]
+                .sort_values(ascending=True)
+                .index
+            )
+            plot_df = plot_df.reindex(pos_order)
+
             # Hover statment
             customdata = np.stack(
                 [plot_df["n_mixed"], plot_df["n_mut"], plot_df["n_passed"]], axis=-1

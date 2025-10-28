@@ -9,6 +9,7 @@ variants_group_columns = [
     # "ref",
     # "alt",
     "aa_change",
+    "aa_pos",
     "mut_type",
     "mutation",
 ]
