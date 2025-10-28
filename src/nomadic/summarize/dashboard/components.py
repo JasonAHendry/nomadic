@@ -299,6 +299,13 @@ class QualityControl(SummaryDashboardComponent):
         )
         def _update(focus_stat: str):
             """Called whenver the input changes"""
+            legend = (
+                "Field samples (%)"
+                if "per_" in focus_stat
+                else "Mean Coverage"
+                if "cov" in focus_stat
+                else ""
+            )
             plot_data = [
                 go.Heatmap(
                     x=self.plot_df[focus_stat].columns,
@@ -308,9 +315,7 @@ class QualityControl(SummaryDashboardComponent):
                     # colorscale="Reds",
                     xgap=1,
                     ygap=1,
-                    colorbar=dict(
-                        title=focus_stat, outlinecolor="black", outlinewidth=1
-                    ),
+                    colorbar=dict(title=legend, outlinecolor="black", outlinewidth=1),
                     hoverongaps=False,
                     # **STAT_KWARGS[STAT]
                 )
@@ -325,7 +330,7 @@ class QualityControl(SummaryDashboardComponent):
                 hovermode="y unified",
                 paper_bgcolor="white",  # Sets the background color of the paper
                 plot_bgcolor="white",
-                title=dict(text=focus_stat),
+                title=dict(text=t(focus_stat)),
                 margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
                 xaxis=dict(
                     showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
@@ -337,9 +342,10 @@ class QualityControl(SummaryDashboardComponent):
                 yaxis_showgrid=False,
                 # height=n_mutations*SZ # TOOD: how to adjust dynamically
             )
+            unit = "%" if "per_" in focus_stat else "x" if "cov" in focus_stat else ""
             fig.update_traces(
                 text=self.plot_df[focus_stat],
-                texttemplate="%{text:.0f}",
+                texttemplate="%{text:.0f}" + unit,
                 textfont_size=12,
             )
             return fig

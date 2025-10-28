@@ -1,9 +1,11 @@
+from importlib.resources import as_file, files
 import logging
 import threading
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
 
 from i18n import t
+import i18n
 
 # from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
@@ -65,7 +67,7 @@ class SummaryDashboardBuilder(ABC):
 
         """
 
-        # setup_translations()
+        setup_translations()
         app = self._gen_app()
         self._gen_layout()
 
@@ -127,7 +129,7 @@ class SummaryDashboardBuilder(ABC):
         quality_row = html.Div(
             className="samples-row",
             children=[
-                html.H3("Samples Statistics", style=dict(marginTop="0px")),
+                html.H3("Sample Statistics", style=dict(marginTop="0px")),
                 html.Div(
                     className="samples-plots",
                     children=[self.samples.get_layout(), self.amplicons.get_layout()],
@@ -303,7 +305,18 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_experiment_qc(self.coverage_csv)
         self._add_prevalence_row(self.analysis_csv, self.master_csv)
         self._add_prevalence_by_region_row(self.prevalence_region_csv)
-        # self._add_mapping_row(self.read_mapping_csv)
-        # self._add_region_coverage_row(self.region_coverage_csv, self.regions)
-        # self._add_depth_row(self.depth_profiles_csv, self.regions)
-        # self._add_footer()
+
+
+def setup_translations():
+    """
+    Set up translations for the dashboard
+
+    This function loads the translation files from the package resources
+    and appends them to the i18n load path.
+
+    """
+    with as_file(files("nomadic.summarize.dashboard").joinpath("translations")) as path:
+        i18n.load_path.append(str(path))
+        i18n.set("filename_format", "{locale}.{format}")
+        i18n.load_everything()
+    i18n.set("locale", "en")
