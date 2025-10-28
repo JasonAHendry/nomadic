@@ -192,6 +192,39 @@ class SamplesPie(SummaryDashboardComponent):
         """
 
 
+COV_MAX = 10000
+COLORSCALES = {
+    "per_field_passing": [
+        [0.00, "#FF0033"],
+        [0.50, "#FF9900"],
+        [0.70, "#FFEB33"],  # set 70% as okay
+        [0.90, "#80FF7E"],  # above 90% is good
+        [1.00, "#3A9A3E"],
+    ],
+    "per_field_contam": [
+        [0.00, "#3A9A3E"],  # low contamination is good
+        [0.20, "#FFEB33"],  # set 30% as okay
+        [0.30, "#FF9900"],  # contamination is bad
+        [1.00, "#FF0033"],
+    ],
+    "per_field_lowcov": [
+        [0.00, "#3A9A3E"],  # low lowcov is good
+        [0.10, "#80FF7E"],  # above 90% is good
+        [0.30, "#FFEB33"],  # set 30% as okay
+        [0.50, "#FF9900"],  # lowcov is bad
+        [1.00, "#FF0033"],
+    ],
+    "mean_cov_field": [
+        [0, "#FF0033"],  # low coverage is bad
+        [25 / COV_MAX, "#FF9900"],
+        [50 / COV_MAX, "#FFEB33"],  # set threshold as okay
+        [200 / COV_MAX, "#80FF7E"],  # above 200 we can make good calls
+        [500 / COV_MAX, "#3A9A3E"],  # above 500 is excellent also for low freq calls
+        [1.0, "#7585FE"],  # coverage is uncapped
+    ],
+}
+
+
 class AmpliconsBarplot(SummaryDashboardComponent):
     """
     Make a bar chart that shows the Amplicons Statistics
@@ -312,12 +345,13 @@ class QualityControl(SummaryDashboardComponent):
                     y=self.plot_df[focus_stat].index,
                     z=self.plot_df[focus_stat],
                     text=self.plot_df[focus_stat],
-                    # colorscale="Reds",
                     xgap=1,
                     ygap=1,
+                    zmin=0,
+                    zmax=100 if "per_" in focus_stat else 10000,
                     colorbar=dict(title=legend, outlinecolor="black", outlinewidth=1),
                     hoverongaps=False,
-                    # **STAT_KWARGS[STAT]
+                    colorscale=COLORSCALES[focus_stat],
                 )
             ]
             MAR = 40
