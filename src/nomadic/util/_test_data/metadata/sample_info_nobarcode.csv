@@ -1,6 +1,7 @@
-﻿sample_id,parasite_per_ul,location,platform
-3D7 (NB01),10000,Oxford,flongle
-Dd2 (NB02),10000,Oxford,flongle
-CamC580Y (NB03),10000,Oxford,flongle
-GB4 (NB04),10000,Oxford,flongle
-HB3 (NB05),10000,Oxford,flongle
+﻿sample_id,sample_type,location,parasitemia,postclean_qubit
+3D7,pos,berlin,1000,87
+HB3,pos,berlin,100,34
+NTC,neg,berlin,0,0
+DBS-A01,field,berlin,543,44
+DBS-A02,field,berlin,7583,85
+DBS-A03,field,berlin,349,32

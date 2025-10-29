@@ -32,6 +32,12 @@ def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";", "\t"]):
     return used[0]
 
 
+# --------------------------------------------------------------------------------
+# Check validity of various columns in the metadata
+#
+# --------------------------------------------------------------------------------
+
+
 def correct_barcode_format(barcode: str, try_to_fix: bool = True) -> str:
     """
     Check that the format of a barcode is as expected, and optionally
@@ -79,6 +85,75 @@ def correct_barcode_format(barcode: str, try_to_fix: bool = True) -> str:
     return barcode
 
 
+def check_sample_type_format(sample_type: str, try_to_fix: bool = False) -> str:
+    """
+    Check that the format of the `sample_type` column is correct, and optionally
+    try to fix if it is not
+
+    """
+
+    # Settings
+    EXPECTED = ["field", "pos", "neg"]
+    KNOWN_POS_CONTROLS = [
+        "3D7",
+        "Dd2",
+        "HB3",
+        "GB4",
+        "7G8",
+        "NF54",
+        "FCR3",
+    ]  # some smaller ones could be field substrings, e.g. K1, W2
+
+    if pd.isna(sample_type):
+        raise MetadataFormatError(
+            "Missing information in the 'sample_type' column. Please ensure it is complete."
+        )
+
+    if not isinstance(sample_type, str):
+        sample_type = str(sample_type)
+
+    sample_type = sample_type.strip()  # safe to do this in all cases
+    if sample_type in EXPECTED:
+        return sample_type
+
+    if not try_to_fix:
+        raise MetadataFormatError(
+            f"Found a sample with type '{sample_type}' which is invalid. Please assign one of: {', '.join(EXPECTED)}."
+        )
+
+    # Raise a warning and proceed if we are fixing.
+    # warnings.warn(
+    #     f"Found a sample with type '{sample_type}' which is invalid. Trying to fix..."
+    # )
+
+    for e in EXPECTED:
+        if sample_type.lower() == e:  # capitalisation issue
+            return e
+        if sample_type.lower().startswith(e):  # added something to the end
+            return e
+
+    for k in KNOWN_POS_CONTROLS:
+        if sample_type.lower() == k.lower():
+            return "pos"
+
+    for (
+        e
+    ) in EXPECTED:  # this can be dangerous, only do if other attempts haven't worked
+        if sample_type.lower().startswith(e[0]):
+            return e
+
+    # Raise if couldn't fix
+    raise MetadataFormatError(
+        f"Found a sample with type '{sample_type}' which is invalid. Please assign one of: {', '.join(EXPECTED)}."
+    )
+
+
+# --------------------------------------------------------------------------------
+# Class(es) to parse metadata table(s) for various use cases, e.g. realtime
+# analysis or summarizing
+# --------------------------------------------------------------------------------
+
+
 class MetadataTableParser:
     """
     Parse the `metadata_csv` table, and make sure that it is formatted
@@ -86,7 +161,7 @@ class MetadataTableParser:
 
     """
 
-    REQUIRED_COLUMNS = ["barcode", "sample_id"]
+    REQUIRED_COLUMNS = ["barcode", "sample_id", "sample_type"]
     UNIQUE_COLUMNS = ["barcode"]
 
     # If the required columns are not found, try these alternative names, case insensitive
@@ -102,6 +177,14 @@ class MetadataTableParser:
             "sample_ids",
             "sample id",
             "sample ids",
+        ],
+        "sample_type": [
+            "sampletype",
+            "sample-type",
+            "sample type",
+            "sampletypes",
+            "sample-types",
+            "sample types",
         ],
     }
 
@@ -119,16 +202,16 @@ class MetadataTableParser:
         self._correct_all_barcodes()
 
         self.barcodes = self.df["barcode"].tolist()
-        self.required_metadata = self.df[self.REQUIRED_COLUMNS].set_index("barcode")
+        self.sample_ids_df = self.df[["barcode", "sample_id"]].set_index("barcode")
 
         if include_unclassified:
-            self.required_metadata.loc["unclassified"] = ["unclassified"]
+            self.sample_ids_df.loc["unclassified"] = ["unclassified"]
             self.barcodes.append("unclassified")
 
     def get_sample_id(self, barcode: str) -> Optional[str]:
         if barcode == "unclassified":
             return barcode
-        metadata = self.required_metadata
+        metadata = self.sample_ids_df
         if barcode not in metadata.index:
             return None
         return metadata.loc[barcode].get("sample_id", None)
@@ -181,5 +264,37 @@ class MetadataTableParser:
                     )
                 observed_entries.append(entry)
 
-    def _correct_all_barcodes(self) -> List[str]:
+    def _correct_all_barcodes(self):
         self.df["barcode"] = [correct_barcode_format(b) for b in self.df["barcode"]]
+
+
+class ExtendedMetadataTableParser(MetadataTableParser):
+    """
+    Add requirement for sample type, and parse it
+
+    # Should also check we have positive and negative controls in each experiment
+
+    """
+
+    def __init__(self, metadata_csv: str, include_unclassified: bool = True):
+        super().__init__(metadata_csv, include_unclassified)
+
+        self._check_sample_type()
+
+    def _check_sample_type(self):
+        if "sample_type" not in self.df.columns:
+            raise MetadataFormatError(
+                "Metadata is missing the column 'sample_type'. "
+                "Please create this column and populate it with"
+                " 'field' (field sample), 'pos' (positive control) or 'neg' (negative control)"
+                " for each sample."
+            )
+        self.df["sample_type"] = [
+            check_sample_type_format(s, try_to_fix=True) for s in self.df["sample_type"]
+        ]
+
+        sample_type_counts = self.df.sample_type.value_counts().to_dict()
+        if "neg" not in sample_type_counts:
+            raise MetadataFormatError("No negative control found for experiment!")
+        # if "pos" not in sample_type_counts:
+        #     raise MetadataFormatError("No positive control found for experiment!")
