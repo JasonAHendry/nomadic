@@ -357,8 +357,6 @@ class QualityControl(SummaryDashboardComponent):
             MAR = 40
             fig = go.Figure(plot_data)
             fig.update_layout(
-                width=1200,
-                height=600,
                 xaxis_title="Amplicons",
                 yaxis_title="Experiments",
                 hovermode="y unified",
@@ -537,12 +535,16 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        prevalence_region_csv: str,
+        analysis_csv: str,
+        master_csv: str,
         component_id: str,
         gene_dropdown_id: str,
+        col_dropdown_id: str,
     ):
         self.gene_dropdown_id = gene_dropdown_id
-        self.df = pd.read_csv(prevalence_region_csv)
+        self.col_dropdown_id = col_dropdown_id
+        self.analysis_df = pd.read_csv(analysis_csv)
+        self.master_df = pd.read_csv(master_csv)
         super().__init__(summary_name, component_id)
 
     def _define_layout(self):
@@ -553,14 +555,18 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
         @app.callback(
             Output(self.component_id, "figure"),
             Input(self.gene_dropdown_id, "value"),
+            Input(self.col_dropdown_id, "value"),
         )
-        def _update(target_gene):
+        def _update(target_gene, col_by):
             """Called every time an input changes"""
 
-            df = self.df.query("gene == @target_gene")
+            df = compute_variant_prevalence_per(
+                self.analysis_df.query("gene == @target_gene"), self.master_df, [col_by]
+            )
+
             plot_df = pd.pivot_table(
                 index="aa_change",
-                columns="region",
+                columns=col_by,
                 values=["prevalence", "n_mixed", "n_mut", "n_passed"],
                 data=df,
             )
@@ -605,7 +611,7 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
             MAR = 40
             fig = go.Figure(plot_data)
             fig.update_layout(
-                xaxis_title="Regions",
+                xaxis_title=col_by,
                 hovermode="y unified",
                 paper_bgcolor="white",  # Sets the background color of the paper
                 plot_bgcolor="white",

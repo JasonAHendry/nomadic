@@ -34,6 +34,12 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 )
 @click.option("-n", "--summary_name", type=str, help="Name of summary")
 @click.option(
+    "--prevalence-by",
+    type=str,
+    help="Column to calculate prevalence by for output files.",
+    multiple=True,
+)
+@click.option(
     "--dashboard/--no-dashboard",
     default=True,
     help="Whether to start the web dashboard to monitor the run.",
@@ -44,6 +50,7 @@ def summarize(
     workspace_path: str,
     metadata_csv: Path,
     dashboard: bool,
+    prevalence_by: tuple[str],
 ):
     """
     Summarize a set of experiments to evaluate quality control and
@@ -81,6 +88,7 @@ def summarize(
             summary_name=summary_name,
             meta_data_path=metadata_csv,
             show_dashboard=dashboard,
+            prevalence_by=list(prevalence_by),
         )
     except MetadataFormatError as e:
         raise click.BadParameter(

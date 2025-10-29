@@ -6,6 +6,7 @@ from dash import Dash, html, dcc
 
 from i18n import t
 import i18n
+import pandas as pd
 
 # from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
@@ -167,7 +168,17 @@ class SummaryDashboardBuilder(ABC):
             className="quality-row",
             children=[
                 html.H3("Experiment QC Statistics", style=dict(marginTop="0px")),
-                dropdown,
+                html.Div(
+                    className="quality-dropdowns",
+                    children=[
+                        html.Div(
+                            children=[
+                                html.Label("Select statistic:"),
+                                dropdown,
+                            ]
+                        ),
+                    ],
+                ),
                 html.Div(
                     className="quality-plots",
                     children=[self.quality_control.get_layout()],
@@ -184,26 +195,29 @@ class SummaryDashboardBuilder(ABC):
         Add a panel that shows prevalence calls
 
         """
-        radio = dcc.RadioItems(
-            id="prevalence-radio",
+        dropdown_genset = dcc.Dropdown(
+            id="prevalence-dropdown-gene-set",
             options=list(PrevalenceBarplot.GENE_SETS.keys()),
             value=list(PrevalenceBarplot.GENE_SETS.keys())[0],
-            inputClassName="prevalence-radio-input",
-            labelClassName="prevalence-radio-label",
+            style=dict(width="300px"),
+            clearable=False,
         )
-        radio_by = dcc.RadioItems(
-            id="prevalence-radio-by",
-            options=["All", "region", "year", "region_year"],
+
+        cols = cols_to_group_by(master_csv, analysis_csv, 10)
+
+        dropdown_by = dcc.Dropdown(
+            id="prevalence-dropdown-by",
+            options=["All", *cols],
             value="All",
-            inputClassName="prevalence-radio-input",
-            labelClassName="prevalence-radio-label",
+            style=dict(width="300px"),
+            clearable=False,
         )
 
         self.prevalence_bars = PrevalenceBarplot(
             self.summary_name,
             component_id="prevalence-bars",
-            radio_id="prevalence-radio",
-            radio_id_by="prevalence-radio-by",
+            radio_id="prevalence-dropdown-gene-set",
+            radio_id_by="prevalence-dropdown-by",
             analysis_csv=analysis_csv,
             master_csv=master_csv,
         )
@@ -213,8 +227,21 @@ class SummaryDashboardBuilder(ABC):
             children=[
                 html.H3("Prevalence", style=dict(marginTop="0px")),
                 html.Div(
-                    className="prevalence-radio-row",
-                    children=[radio, radio_by],
+                    className="prevalence-dropdowns",
+                    children=[
+                        html.Div(
+                            children=[
+                                html.Label("Select gene set:"),
+                                dropdown_genset,
+                            ]
+                        ),
+                        html.Div(
+                            children=[
+                                html.Label("Group by:"),
+                                dropdown_by,
+                            ]
+                        ),
+                    ],
                 ),
                 html.Div(
                     className="prevalence-plots",
@@ -227,29 +254,58 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.prevalence_bars)
         self.layout.append(prevalence_row)
 
-    def _add_prevalence_by_region_row(self, prevalence_region_csv: str) -> None:
+    def _add_prevalence_by_col_row(self, analysis_csv: str, master_csv: str) -> None:
         """
-        Add a panel that shows prevalence calls by region
+        Add a panel that shows prevalence calls by cols
 
         """
-        dropdown = dcc.Dropdown(
+        gen_dropdown = dcc.Dropdown(
             id="gene-dropdown",
             options=PrevalenceBarplot.GENE_SETS["Resistance"],
             value=PrevalenceBarplot.GENE_SETS["Resistance"][0],
             style=dict(width="300px"),
+            clearable=False,
+        )
+
+        cols = cols_to_group_by(master_csv, analysis_csv, 50)
+
+        col_dropdown = dcc.Dropdown(
+            id="col-dropdown",
+            options=cols,
+            value=cols[0],
+            style=dict(width="300px"),
+            clearable=False,
         )
 
         self.prevalence_heatmap = PrevalenceHeatmap(
             summary_name=self.summary_name,
-            prevalence_region_csv=prevalence_region_csv,
+            analysis_csv=analysis_csv,
+            master_csv=master_csv,
             component_id="prevalence-heatmap",
             gene_dropdown_id="gene-dropdown",
+            col_dropdown_id="col-dropdown",
         )
         prevalence_row = html.Div(
-            className="prevalence-region-row",
+            className="prevalence-by-row",
             children=[
-                html.H3("Prevalence by region", style=dict(marginTop="0px")),
-                dropdown,
+                html.H3("Prevalence by category", style=dict(marginTop="0px")),
+                html.Div(
+                    className="prevalence-dropdowns",
+                    children=[
+                        html.Div(
+                            children=[
+                                html.Label("Select gene:"),
+                                gen_dropdown,
+                            ]
+                        ),
+                        html.Div(
+                            children=[
+                                html.Label("Group by:"),
+                                col_dropdown,
+                            ]
+                        ),
+                    ],
+                ),
                 html.Div(
                     className="prevalence-region-plots",
                     children=[self.prevalence_heatmap.get_layout()],
@@ -279,7 +335,6 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         coverage_csv: str,
         analysis_csv: str,
         master_csv: str,
-        prevalence_region_csv: str,
     ):
         """
         Initialise all of the dashboard components
@@ -293,7 +348,6 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.coverage_csv = coverage_csv
         self.analysis_csv = analysis_csv
         self.master_csv = master_csv
-        self.prevalence_region_csv = prevalence_region_csv
 
     def _gen_layout(self):
         """
@@ -304,7 +358,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_samples(self.samples_csv, self.samples_amplicons_csv)
         self._add_experiment_qc(self.coverage_csv)
         self._add_prevalence_row(self.analysis_csv, self.master_csv)
-        self._add_prevalence_by_region_row(self.prevalence_region_csv)
+        self._add_prevalence_by_col_row(self.analysis_csv, self.master_csv)
 
 
 def setup_translations():
@@ -320,3 +374,31 @@ def setup_translations():
         i18n.set("filename_format", "{locale}.{format}")
         i18n.load_everything()
     i18n.set("locale", "en")
+
+
+def cols_to_group_by(master_csv: str, analysis_csv, max_cat: int) -> list[str]:
+    """
+    Get columns that can be used to group prevalence by
+
+    """
+
+    master_df = pd.read_csv(master_csv)
+    analysis_df = pd.read_csv(analysis_csv)
+    df = pd.merge(
+        master_df,
+        analysis_df[["sample_id"]],
+        on="sample_id",
+        how="inner",
+    )
+    cols = df.columns.tolist()
+    cols.remove("sample_id")
+
+    for col in cols[:]:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            cols.remove(col)
+            continue
+        n_unique = df[col].nunique()
+        if n_unique > max_cat:
+            cols.remove(col)
+
+    return cols

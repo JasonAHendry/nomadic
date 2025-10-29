@@ -483,6 +483,7 @@ def main(
     summary_name: str,
     meta_data_path: Path,
     show_dashboard: bool = True,
+    prevalence_by: list[str],
 ) -> None:
     """
     Define the main function for the summary analysis
@@ -681,20 +682,13 @@ def main(
     prev_df = compute_variant_prevalence(analysis_df)
     prev_df.to_csv(f"{output_dir}/summary.variants.prevalence.csv", index=False)
 
-    prev_df_region = compute_variant_prevalence_per(
-        analysis_df, master_metadata, ["region"]
-    )
-    prev_df_region.to_csv(
-        f"{output_dir}/summary.variants.prevalence-region.csv", index=False
-    )
-
-    prev_df_year = compute_variant_prevalence_per(
-        analysis_df, master_metadata, ["year"]
-    )
-    prev_df_year.to_csv(
-        f"{output_dir}/summary.variants.prevalence-year.csv", index=False
-    )
-
+    for col in prevalence_by:
+        prev_by_col_df = compute_variant_prevalence_per(
+            analysis_df, master_metadata, [col]
+        )
+        prev_by_col_df.to_csv(
+            f"{output_dir}/summary.variants.prevalence-{col}.csv", index=False
+        )
     # --------------------------------------------------------------------------------
     # Dashboard
     #
