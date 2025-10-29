@@ -167,6 +167,10 @@ def check_complete_experiment(expt_dir: str) -> None:
 
         used_summary_files = file_format
         for file in used_summary_files:
+            if "depth" in file:
+                # depth files are optional
+                continue
+
             if not os.path.exists(f"{expt_dir}/{file}"):
                 raise FileNotFoundError(f"Missing '{file}' file in {expt_dir}.")
 
