@@ -703,15 +703,16 @@ def main(
             coverage_csv=f"{output_dir}/summary.experiments_qc.csv",
             analysis_csv=f"{output_dir}/summary.variants.analysis_set.csv",
             master_csv=str(meta_data_path),
-            prevalence_region_csv=f"{output_dir}/summary.variants.prevalence-region.csv",
         )
         print("Done.")
 
         print("")
         print("Launching dashboard (press CNTRL+C to exit):")
         print("")
-        webbrowser.open("http://127.0.0.1:8050")
-        dashboard.run(debug=False)
+        debug = bool(os.getenv("NOMADIC_DEBUG"))
+        if not debug:
+            webbrowser.open("http://127.0.0.1:8050")
+        dashboard.run(debug=debug)
 
     # CHECKPOINT 2:
     # summary.quality_control.by_amplicon.csv
