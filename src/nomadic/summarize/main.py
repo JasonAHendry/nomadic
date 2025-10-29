@@ -153,12 +153,12 @@ def calc_quality_control_columns(
     df["fail_lowcov"] = df["mean_cov"] < min_coverage
 
     # Check if coverage of negative control exceeds `max_contam`
-    df["fail_contam"] = (df["mean_cov_neg"] / (df["mean_cov"] + 0.01) >= max_contam) | (
-        df["mean_cov_neg"] >= min_coverage
-    )
+    df["fail_contam_rel"] = df["mean_cov_neg"] / (df["mean_cov"] + 0.01) >= max_contam
+    df["fail_contam_abs"] = df["mean_cov_neg"] >= min_coverage
+
     df["fail_contam"] = (
-        df["fail_contam"] & ~df["fail_lowcov"]
-    )  # If already failed low coverage, don't consider contamination.
+        (df["fail_contam_rel"] & ~df["fail_lowcov"]) | df["fail_contam_abs"]
+    )  # If already failed low coverage, don't consider contamination, unless it's absolute threshold is exceeded
 
     # Finally, define passing
     df["passing"] = ~df["fail_contam"] & ~df["fail_lowcov"]
