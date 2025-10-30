@@ -9,6 +9,7 @@ from dash.dependencies import Input, Output
 from nomadic.summarize.compute import (
     compute_variant_prevalence,
     compute_variant_prevalence_per,
+    gene_deletion_prevalence_by,
 )
 from i18n import t
 
@@ -627,4 +628,135 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
                 yaxis_showgrid=False,
                 # height=n_mutations*SZ # TOOD: how to adjust dynamically
             )
+            return fig
+
+
+class GeneDeletionsBarplot(SummaryDashboardComponent):
+    def __init__(
+        self,
+        summary_name: str,
+        gene_deletions_csv: str,
+        master_csv: str,
+        component_id: str,
+        radio_id_by: str,
+    ) -> None:
+        """
+        Initialisation loads the coverage data and prepares for plotting;
+
+        """
+
+        self.gene_deletions_csv = gene_deletions_csv
+        self.gene_deletions_df = pd.read_csv(gene_deletions_csv)
+
+        self.master__csv = master_csv
+        self.master_df = pd.read_csv(master_csv)
+
+        self.radio_id_by = radio_id_by
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.radio_id_by, "value"),
+        )
+        def _update(by: str):
+            """Called whenver the input changes"""
+
+            if by == "All":
+                plot_df = gene_deletion_prevalence_by(
+                    self.gene_deletions_df, self.master_df, []
+                )
+            else:
+                plot_df = gene_deletion_prevalence_by(
+                    self.gene_deletions_df, self.master_df, by.split("_")
+                )
+                if "_" in by:
+                    # we need to create this column
+                    plot_df[by] = (
+                        plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
+                    )
+            data = []
+            htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
+
+            if by == "All":
+                # Prepare plotting data
+                customdata = np.stack(
+                    [
+                        plot_df["n_samples"],
+                        plot_df["n_passed"],
+                        plot_df["n_deleted"],
+                    ],
+                    axis=-1,
+                )
+                data.append(
+                    go.Bar(
+                        x=plot_df["gene"],
+                        y=plot_df["prevalence"],
+                        customdata=customdata,
+                        hovertemplate=htemp,
+                        name="Prevalence",
+                        error_y=dict(
+                            type="data",
+                            array=plot_df["prevalence_highci"] - plot_df["prevalence"],
+                            arrayminus=plot_df["prevalence"]
+                            - plot_df["prevalence_lowci"],
+                        ),
+                    )
+                )
+            else:
+                for group in plot_df[by].unique():
+                    group_df = plot_df.query(f"{by} == @group")
+                    # Prepare plotting data
+                    customdata = np.stack(
+                        [
+                            group_df["n_samples"],
+                            group_df["n_passed"],
+                            group_df["n_deleted"],
+                        ],
+                        axis=-1,
+                    )
+                    data.append(
+                        go.Bar(
+                            x=group_df["gene"],
+                            y=group_df["prevalence"],
+                            customdata=customdata,
+                            hovertemplate=htemp,
+                            name=str(group),
+                            error_y=dict(
+                                type="data",
+                                array=plot_df["prevalence_highci"]
+                                - plot_df["prevalence"],
+                                arrayminus=plot_df["prevalence"]
+                                - plot_df["prevalence_lowci"],
+                            ),
+                        )
+                    )
+
+            # Plotting
+            fig = go.Figure(data)
+            fig.update_layout(
+                yaxis_title="Prevalence (%)",
+                xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                yaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    showgrid=True,
+                    gridcolor="lightgray",
+                    gridwidth=0.5,
+                    griddash="dot",
+                ),
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
+                ),
+                plot_bgcolor="rgba(0,0,0,0)",
+                hovermode="x unified",
+            )
+            fig.update_yaxes(range=[0, 100])
+            fig.update_traces(marker=dict(line=dict(color="black", width=1)))
+
             return fig

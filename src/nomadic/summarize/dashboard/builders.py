@@ -11,6 +11,7 @@ import pandas as pd
 # from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
     AmpliconsBarplot,
+    GeneDeletionsBarplot,
     PrevalenceHeatmap,
     SamplesPie,
     ThroughputSummary,
@@ -317,6 +318,56 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.prevalence_heatmap)
         self.layout.append(prevalence_row)
 
+    def _add_gene_deletion_row(self, gene_deletions_csv: str, master_csv: str) -> None:
+        """
+        Add a panel that shows prevalence calls
+
+        """
+
+        cols = cols_to_group_by(master_csv, gene_deletions_csv, 50)
+
+        dropdown_by = dcc.Dropdown(
+            id="gene-deletions-dropdown-by",
+            options=["All", *cols],
+            value="All",
+            style=dict(width="300px"),
+            clearable=False,
+        )
+
+        self.prevalence_bars = GeneDeletionsBarplot(
+            self.summary_name,
+            component_id="gene-deletions-bars",
+            radio_id_by="gene-deletions-dropdown-by",
+            gene_deletions_csv=gene_deletions_csv,
+            master_csv=master_csv,
+        )
+
+        prevalence_row = html.Div(
+            className="gene-deltions-row",
+            children=[
+                html.H3("Prevalence Gene Deletions", style=dict(marginTop="0px")),
+                html.Div(
+                    className="prevalence-dropdowns",
+                    children=[
+                        html.Div(
+                            children=[
+                                html.Label("Group by:"),
+                                dropdown_by,
+                            ]
+                        ),
+                    ],
+                ),
+                html.Div(
+                    className="gene-deletions-plots",
+                    children=[self.prevalence_bars.get_layout()],
+                ),
+            ],
+        )
+
+        # Add components and layout
+        self.components.append(self.prevalence_bars)
+        self.layout.append(prevalence_row)
+
 
 class BasicSummaryDashboard(SummaryDashboardBuilder):
     """
@@ -334,6 +385,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         samples_amplicons_csv: str,
         coverage_csv: str,
         analysis_csv: str,
+        gene_deletions_csv: str,
         master_csv: str,
     ):
         """
@@ -348,6 +400,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.coverage_csv = coverage_csv
         self.analysis_csv = analysis_csv
         self.master_csv = master_csv
+        self.gene_deletions_csv = gene_deletions_csv
 
     def _gen_layout(self):
         """
@@ -359,6 +412,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_experiment_qc(self.coverage_csv)
         self._add_prevalence_row(self.analysis_csv, self.master_csv)
         self._add_prevalence_by_col_row(self.analysis_csv, self.master_csv)
+        self._add_gene_deletion_row(self.gene_deletions_csv, self.master_csv)
 
 
 def setup_translations():

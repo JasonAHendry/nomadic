@@ -15,6 +15,8 @@ from nomadic.summarize.compute import (
     compute_variant_prevalence,
     compute_variant_prevalence_per,
     filter_false_positives,
+    gene_deletion_prevalence_by,
+    gene_deletions,
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
@@ -689,6 +691,31 @@ def main(
         prev_by_col_df.to_csv(
             f"{output_dir}/summary.variants.prevalence-{col}.csv", index=False
         )
+
+    # --------------------------------------------------------------------------------
+    # Gene deletion analysis
+    #
+    # --------------------------------------------------------------------------------
+
+    log.info("Calculate gene deletions...")
+    gene_deletion_df = gene_deletions(coverage_df, ["hrp2", "hrp3"])
+    gene_deletion_df.to_csv(f"{output_dir}/summary.gene_deletions.csv", index=False)
+
+    prev_gen_deletions_df = gene_deletion_prevalence_by(
+        gene_deletion_df, master_metadata, []
+    )
+    prev_gen_deletions_df.to_csv(
+        f"{output_dir}/summary.gene-deletions.prevalence.csv", index=False
+    )
+
+    for col in prevalence_by:
+        prev_gen_deletion_by_col_df = gene_deletion_prevalence_by(
+            gene_deletion_df, master_metadata, [col]
+        )
+        prev_gen_deletion_by_col_df.to_csv(
+            f"{output_dir}/summary.gene-deletions.prevalence-{col}.csv", index=False
+        )
+
     # --------------------------------------------------------------------------------
     # Dashboard
     #
@@ -702,6 +729,7 @@ def main(
             samples_amplicons_csv=f"{output_dir}/summary.samples_amplicons_qc.csv",
             coverage_csv=f"{output_dir}/summary.experiments_qc.csv",
             analysis_csv=f"{output_dir}/summary.variants.analysis_set.csv",
+            gene_deletions_csv=f"{output_dir}/summary.gene_deletions.csv",
             master_csv=str(meta_data_path),
         )
         print("Done.")
