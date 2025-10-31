@@ -731,6 +731,7 @@ def main(
             analysis_csv=f"{output_dir}/summary.variants.analysis_set.csv",
             gene_deletions_csv=f"{output_dir}/summary.gene_deletions.csv",
             master_csv=str(meta_data_path),
+            geojson_glob=f"metadata/{summary_name}-*.geojson",
         )
         print("Done.")
 

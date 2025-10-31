@@ -1,3 +1,4 @@
+import glob
 from importlib.resources import as_file, files
 import logging
 import threading
@@ -17,6 +18,7 @@ from nomadic.summarize.dashboard.components import (
     ThroughputSummary,
     QualityControl,
     PrevalenceBarplot,
+    MapComponent,
 )
 
 
@@ -368,6 +370,85 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.prevalence_bars)
         self.layout.append(prevalence_row)
 
+    def _add_map_row(
+        self, analysis_csv: str, master_csv: str, geojsons: list[str]
+    ) -> None:
+        """
+        Add a panel that shows a choropleth map of drug resistance marker prevalence
+        """
+        # Get unique mutations from the analysis CSV for resistance genes only
+        analysis_df = pd.read_csv(analysis_csv)
+        resistance_genes = PrevalenceBarplot.GENE_SETS["Resistance"]
+        resistance_df = analysis_df[analysis_df["gene"].isin(resistance_genes)]
+        resistance_df["gene_mutation"] = (
+            resistance_df["gene"] + "-" + resistance_df["aa_change"]
+        )
+        gene_mutations = sorted(resistance_df["gene_mutation"].unique())
+
+        # Create the dropdowns
+        mutation_dropdown = dcc.Dropdown(
+            id="map-mutation-dropdown",
+            options=gene_mutations,
+            value=gene_mutations[0] if gene_mutations else None,
+            style=dict(width="300px"),
+            clearable=False,
+        )
+
+        regions = {
+            path.split("/")[-1].split(".")[0].split("-")[1]: path for path in geojsons
+        }
+
+        region_dropdown = dcc.Dropdown(
+            id="map-region-dropdown",
+            options=list(regions.keys()),
+            value="district",
+            style=dict(width="300px"),
+            clearable=False,
+        )
+
+        # Create the map component with the prepared dropdowns
+        self.prevalence_map = MapComponent(
+            summary_name=self.summary_name,
+            analysis_csv=analysis_csv,
+            master_csv=master_csv,
+            component_id="prevalence-map",
+            mutation_dropdown_id="map-mutation-dropdown",
+            region_dropdown_id="map-region-dropdown",
+            geojsons=regions,
+        )
+
+        map_row = html.Div(
+            className="map-row",
+            children=[
+                html.H3("Geographic Distribution", style=dict(marginTop="0px")),
+                html.Div(
+                    className="map-dropdowns",
+                    children=[
+                        html.Div(
+                            children=[
+                                html.Label("Select mutation:"),
+                                mutation_dropdown,
+                            ]
+                        ),
+                        html.Div(
+                            children=[
+                                html.Label("Group by:"),
+                                region_dropdown,
+                            ]
+                        ),
+                    ],
+                ),
+                html.Div(
+                    className="map-plot",
+                    children=[self.prevalence_map.get_layout()],
+                ),
+            ],
+        )
+
+        # Add components and layout
+        self.components.append(self.prevalence_map)
+        self.layout.append(map_row)
+
 
 class BasicSummaryDashboard(SummaryDashboardBuilder):
     """
@@ -387,10 +468,10 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         analysis_csv: str,
         gene_deletions_csv: str,
         master_csv: str,
+        geojson_glob: str,
     ):
         """
         Initialise all of the dashboard components
-
         """
 
         super().__init__(summary_name, self.CSS_STYLE)
@@ -401,6 +482,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.analysis_csv = analysis_csv
         self.master_csv = master_csv
         self.gene_deletions_csv = gene_deletions_csv
+        self.geojson_glob = geojson_glob
 
     def _gen_layout(self):
         """
@@ -413,6 +495,11 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_prevalence_row(self.analysis_csv, self.master_csv)
         self._add_prevalence_by_col_row(self.analysis_csv, self.master_csv)
         self._add_gene_deletion_row(self.gene_deletions_csv, self.master_csv)
+
+        if glob.glob(self.geojson_glob):
+            self._add_map_row(
+                self.analysis_csv, self.master_csv, glob.glob(self.geojson_glob)
+            )
 
 
 def setup_translations():
