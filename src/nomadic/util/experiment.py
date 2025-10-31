@@ -123,7 +123,7 @@ class ExperimentDirectories:
 def get_summary_files(exp_path: Path) -> SummaryFiles:
     if not exp_path.exists():
         raise FileNotFoundError(f"Experiment path does not exist: {exp_path}")
-    if (exp_path / legacy_summary_files.fastqs_processed).exists():
+    if (exp_path / legacy_summary_files.read_mapping).exists():
         # Use legacy summary files if the old format exists
         return SummaryFiles(
             fastqs_processed=str(exp_path / legacy_summary_files.fastqs_processed),
@@ -162,13 +162,16 @@ def check_complete_experiment(expt_dir: str) -> None:
 
     used_summary_files = None
     for file_format in [summary_files, legacy_summary_files]:
-        if not os.path.exists(f"{expt_dir}/{file_format.fastqs_processed}"):
+        if not os.path.exists(f"{expt_dir}/{file_format.read_mapping}"):
             continue
 
         used_summary_files = file_format
         for file in used_summary_files:
             if "depth" in file:
                 # depth files are optional
+                continue
+            if "fastq" in file:
+                # fastq files are optional
                 continue
 
             if not os.path.exists(f"{expt_dir}/{file}"):
