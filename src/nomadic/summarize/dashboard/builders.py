@@ -9,6 +9,8 @@ from i18n import t
 import i18n
 import pandas as pd
 
+from nomadic.summarize.compute import compute_variant_prevalence
+
 # from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
     AmpliconsBarplot,
@@ -376,20 +378,37 @@ class SummaryDashboardBuilder(ABC):
         """
         Add a panel that shows a choropleth map of drug resistance marker prevalence
         """
-        # Get unique mutations from the analysis CSV for resistance genes only
+        # Get mutations and their prevalence for resistance genes
         analysis_df = pd.read_csv(analysis_csv)
         resistance_genes = PrevalenceBarplot.GENE_SETS["Resistance"]
         resistance_df = analysis_df[analysis_df["gene"].isin(resistance_genes)]
-        resistance_df["gene_mutation"] = (
-            resistance_df["gene"] + "-" + resistance_df["aa_change"]
-        )
-        gene_mutations = sorted(resistance_df["gene_mutation"].unique())
+        prevalence_df = compute_variant_prevalence(resistance_df)
 
-        # Create the dropdowns
+        # Create a dictionary with mutation info and prevalence
+        mutations_info = {}
+        for _, row in prevalence_df.iterrows():
+            mutation_id = f"{row['gene']}-{row['aa_change']}"
+            mutations_info[mutation_id] = {
+                "prevalence": row["prevalence"],
+                "label": f"{mutation_id} ({row['prevalence']:.1f}%)",
+                "value": mutation_id,
+            }
+
+        # Sort by prevalence and create dropdown options
+        gene_mutations = [
+            info
+            for info in sorted(
+                mutations_info.values(), key=lambda x: x["prevalence"], reverse=True
+            )
+        ]
+
+        # Create the dropdown with sorted mutations
         mutation_dropdown = dcc.Dropdown(
             id="map-mutation-dropdown",
-            options=gene_mutations,
-            value=gene_mutations[0] if gene_mutations else None,
+            options=[
+                {"label": m["label"], "value": m["value"]} for m in gene_mutations
+            ],
+            value=gene_mutations[0]["value"] if gene_mutations else None,
             style=dict(width="300px"),
             clearable=False,
         )

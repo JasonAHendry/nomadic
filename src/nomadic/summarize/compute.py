@@ -29,7 +29,7 @@ def filter_false_positives(variants_df: pd.DataFrame):
     return df
 
 
-def compute_variant_prevalence(variants_df: str) -> pd.DataFrame:
+def compute_variant_prevalence(variants_df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute the prevalence of each mutation in `variants_df`
 
