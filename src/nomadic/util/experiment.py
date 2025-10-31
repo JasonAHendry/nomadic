@@ -180,9 +180,9 @@ def check_complete_experiment(expt_dir: str) -> None:
     if not used_summary_files:
         raise FileNotFoundError(f"Could not find any summary files in {expt_dir}.")
 
-    # TODO: for now, using this for VCF
-    if not os.path.exists(f"{expt_dir}/vcfs"):
-        raise FileNotFoundError(f"Could not find VCF directory in {expt_dir}.")
+    # TODO: at the moment we don't require VCFs to be present as we don't use them at the moment
+    # if not os.path.exists(f"{expt_dir}/vcfs"):
+    #     raise FileNotFoundError(f"Could not find VCF directory in {expt_dir}.")
 
 
 def find_metadata(input_dir: str) -> MetadataTableParser:
