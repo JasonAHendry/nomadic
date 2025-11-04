@@ -44,6 +44,13 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     default=True,
     help="Whether to start the web dashboard to monitor the run.",
 )
+@click.option(
+    "-s",
+    "--settings-file",
+    type=click.Path(exists=True, dir_okay=False, file_okay=True, path_type=Path),
+    show_default="<workspace>/metadata/<summary_name>.yaml",
+    help="Path to the summary settings YAML file.",
+)
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
@@ -51,6 +58,7 @@ def summarize(
     metadata_csv: Path,
     dashboard: bool,
     prevalence_by: tuple[str],
+    settings_file: Path,
 ):
     """
     Summarize a set of experiments to evaluate quality control and
@@ -71,6 +79,9 @@ def summarize(
     if metadata_csv is None:
         metadata_csv = Path(workspace.get_master_metadata_csv(summary_name))
 
+    if settings_file is None:
+        settings_file = Path(workspace.get_summary_settings_file(summary_name))
+
     if not metadata_csv.exists():
         raise click.BadParameter(
             param_hint="-m/--metadata_csv",
@@ -87,6 +98,7 @@ def summarize(
             expt_dirs=experiment_dirs,
             summary_name=summary_name,
             meta_data_path=metadata_csv,
+            settings_file_path=settings_file,
             show_dashboard=dashboard,
             prevalence_by=list(prevalence_by),
         )

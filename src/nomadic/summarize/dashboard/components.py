@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 import json
+import os
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -435,13 +437,13 @@ class PrevalenceBarplot(SummaryDashboardComponent):
                 plot_df = compute_variant_prevalence(analysis_df)
             else:
                 plot_df = compute_variant_prevalence_per(
-                    analysis_df, self.master_df, by.split("_")
+                    analysis_df, self.master_df, [by]
                 )
-                if "_" in by:
-                    # we need to create this column
-                    plot_df[by] = (
-                        plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
-                    )
+                # if "_" in by:
+                #     # we need to create this column
+                #     plot_df[by] = (
+                #         plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
+                #     )
             plot_df.sort_values(["gene", "chrom", "pos"], inplace=True)
 
             data = []
@@ -672,13 +674,13 @@ class GeneDeletionsBarplot(SummaryDashboardComponent):
                 )
             else:
                 plot_df = gene_deletion_prevalence_by(
-                    self.gene_deletions_df, self.master_df, by.split("_")
+                    self.gene_deletions_df, self.master_df, [by]
                 )
-                if "_" in by:
-                    # we need to create this column
-                    plot_df[by] = (
-                        plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
-                    )
+                # if "_" in by:
+                #     # we need to create this column
+                #     plot_df[by] = (
+                #         plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
+                #     )
             data = []
             htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
 
@@ -765,7 +767,7 @@ class GeneDeletionsBarplot(SummaryDashboardComponent):
 
 class MapComponent(SummaryDashboardComponent):
     """
-    Component for displaying a choropleth map of drug resistance marker prevalence
+    Component for displaying a choropleth map of drug resistance marker prevalence with sample site markers
     """
 
     def __init__(
@@ -777,11 +779,21 @@ class MapComponent(SummaryDashboardComponent):
         mutation_dropdown_id: str,
         region_dropdown_id: str,
         geojsons: dict[str, str],
+        location_coords_csv: str,
+        map_zoom_level: Optional[int] = None,
+        map_center: Optional[tuple[float, float]] = None,
     ):
         self.mutation_dropdown_id = mutation_dropdown_id
         self.region_dropdown_id = region_dropdown_id
         self.analysis_df = pd.read_csv(analysis_csv)
         self.master_df = pd.read_csv(master_csv)
+        self.map_zoom_level = map_zoom_level
+        self.map_center = map_center
+
+        # Load location coordinates if provided
+        self.location_coords = None
+        if os.path.exists(location_coords_csv):
+            self.location_coords = pd.read_csv(location_coords_csv)
 
         # Load GeoJSON data
         self.geojson_data = {}
@@ -800,8 +812,10 @@ class MapComponent(SummaryDashboardComponent):
             Input(self.mutation_dropdown_id, "value"),
             Input(self.region_dropdown_id, "value"),
         )
-        def _update(target_mutation, region_by):
+        def _update(target_mutation, region_by: Optional[str]):
             """Called every time an input changes"""
+
+            fig = go.Figure()
 
             def normalize_location(loc):
                 """Normalize location names for consistent matching"""
@@ -809,84 +823,147 @@ class MapComponent(SummaryDashboardComponent):
 
             # Split the gene-mutation value and calculate prevalence by region
             gene, aa_change = target_mutation.split("-")
-            df = compute_variant_prevalence_per(
-                self.analysis_df.query("gene == @gene and aa_change == @aa_change"),
-                self.master_df,
-                [region_by],
-            )
 
-            # Normalize location names in the data
-            df[f"{region_by}_normalized"] = df[region_by].apply(normalize_location)
-
-            # Get the appropriate GeoJSON data based on the region selection
-            if region_by not in self.geojson_data:
-                raise ValueError(
-                    f"No GeoJSON data available for region type: {region_by}"
+            if region_by is not None:
+                df = compute_variant_prevalence_per(
+                    self.analysis_df.query("gene == @gene and aa_change == @aa_change"),
+                    self.master_df,
+                    [region_by],
                 )
 
-            # Create a mapping from normalized names to original GeoJSON names
-            geojson_name_map = {
-                normalize_location(feat["properties"]["shapeName"]): feat["properties"][
-                    "shapeName"
-                ]
-                for feat in self.geojson_data[region_by]["features"]
-            }
+                # Normalize location names in the data
+                df[f"{region_by}_normalized"] = df[region_by].apply(normalize_location)
 
-            # Debug: Print location names from both sources
-            geojson_locations = set(geojson_name_map.keys())
-            data_locations = set(df[f"{region_by}_normalized"].unique())
-            print(f"Normalized GeoJSON locations: {geojson_locations}")
-            print(f"Normalized data locations: {data_locations}")
-            print(
-                f"Locations in data but not in GeoJSON: {data_locations - geojson_locations}"
-            )
-            # print(
-            #     f"Locations in GeoJSON but not in data: {geojson_locations - data_locations}"
-            # )
+                # Get the appropriate GeoJSON data based on the region selection
+                if region_by not in self.geojson_data:
+                    raise ValueError(
+                        f"No GeoJSON data available for region type: {region_by}"
+                    )
 
-            # Map the normalized names back to GeoJSON names for display
-            df[f"{region_by}_display"] = df[f"{region_by}_normalized"].map(
-                {k: v for k, v in geojson_name_map.items()}
-            )
+                # Create a mapping from normalized names to original GeoJSON names
+                geojson_name_map = {
+                    normalize_location(feat["properties"]["shapeName"]): feat[
+                        "properties"
+                    ]["shapeName"]
+                    for feat in self.geojson_data[region_by]["features"]
+                }
 
-            # Create choropleth map
-            fig = go.Figure(
-                go.Choroplethmapbox(
-                    geojson=self.geojson_data[region_by],
-                    locations=df[
-                        f"{region_by}_display"
-                    ],  # Use the mapped display names
-                    z=df["prevalence"],
-                    colorscale="Spectral_r",
-                    zmin=0,
-                    zmax=100,
-                    marker_opacity=0.8,
-                    marker_line_width=1.0,
-                    featureidkey="properties.shapeName",  # Specify which GeoJSON property matches the location names
-                    customdata=np.stack(
-                        [
-                            df["n_samples"],
-                            df["n_passed"],
-                            df["n_mut"] + df["n_mixed"],
-                        ],
-                        axis=-1,
-                    ),
-                    hovertemplate=(
-                        "<b>%{location}</b><br>"
-                        + "Prevalence: %{z:.1f}%<br>"
-                        + "Samples: %{customdata[1]}<br>"
-                        + "Mutations: %{customdata[2]}<br>"
-                        + "<extra></extra>"
-                    ),
+                # Map the normalized names back to GeoJSON names for display
+                df[f"{region_by}_display"] = df[f"{region_by}_normalized"].map(
+                    {k: v for k, v in geojson_name_map.items()}
                 )
-            )
+
+                # Add choropleth layer
+                fig.add_trace(
+                    go.Choroplethmapbox(
+                        geojson=self.geojson_data[region_by],
+                        locations=df[f"{region_by}_display"],
+                        z=df["prevalence"],
+                        colorscale="Spectral_r",
+                        zmin=0,
+                        zmax=100,
+                        marker_opacity=0.8,
+                        marker_line_width=1.0,
+                        featureidkey="properties.shapeName",
+                        customdata=np.stack(
+                            [
+                                df["n_samples"],
+                                df["n_passed"],
+                                df["n_mut"] + df["n_mixed"],
+                            ],
+                            axis=-1,
+                        ),
+                        hovertemplate=(
+                            "<b>%{location}</b><br>"
+                            + "Prevalence: %{z:.1f}%<br>"
+                            + "Samples: %{customdata[1]}<br>"
+                            + "Mutations: %{customdata[2]}<br>"
+                            + "<extra></extra>"
+                        ),
+                    )
+                )
+
+            # Add sample site markers if we have location coordinates
+            if self.location_coords is not None:
+                # Case-insensitive column matching for the location join
+                master_location_col = "location"
+                coords_location_col = "location"
+
+                # Group by location to get sample counts and average prevalence
+                site_data = compute_variant_prevalence_per(
+                    self.analysis_df.query("gene == @gene and aa_change == @aa_change"),
+                    self.master_df,
+                    [master_location_col],
+                )
+
+                # Create copies with lowercase location names for case-insensitive join
+                site_data["location_normalized"] = site_data[
+                    master_location_col
+                ].str.lower()
+
+                coords_df = self.location_coords.copy()
+                coords_df["location_normalized"] = coords_df[
+                    coords_location_col
+                ].str.lower()
+
+                coords_df.rename(
+                    columns={coords_location_col: "location_display"}, inplace=True
+                )
+
+                # Merge using lowercase columns
+                merged_df = pd.merge(
+                    site_data,
+                    coords_df,
+                    on="location_normalized",
+                    how="inner",
+                )
+
+                # --- Scale bubbles by area ---
+                max_size = 40  # max bubble diameter (px)
+                min_size = 5  # min bubble diameter (px)
+
+                # Scale radius ~ sqrt(sample_size)
+                merged_df["scaled_size"] = (
+                    np.sqrt(merged_df["n_passed"] / merged_df["n_passed"].max())
+                    * max_size
+                )
+                merged_df["scaled_size"] = merged_df["scaled_size"].clip(lower=min_size)
+                # Add scatter markers for sample sites
+                fig.add_trace(
+                    go.Scattermapbox(
+                        lat=merged_df["lat"],
+                        lon=merged_df["lng"],
+                        mode="markers",
+                        marker=dict(
+                            size=merged_df["scaled_size"],
+                            color=merged_df["prevalence"],  # Color by prevalence
+                            colorscale="Spectral_r",
+                            cmin=0,
+                            cmax=100,
+                            showscale=False,  # Don't show a second colorbar
+                        ),
+                        text=merged_df.apply(
+                            lambda row: f"<b>{row['location_display']}</b><br>"
+                            f"Site Samples: {row['n_passed']}<br>"
+                            f"Site Prevalence: {row['prevalence']:.1f}%<br>"
+                            f"Site Mutations: {row['n_mut'] + row['n_mixed']}",
+                            axis=1,
+                        ),
+                        hoverinfo="text",
+                    )
+                )
 
             fig.update_layout(
                 mapbox_style="carto-positron",
-                # TODO, allow to customize center and zoom
                 mapbox=dict(
-                    center=dict(lat=-13.133897, lon=27.849332),  # Center of Zambia
-                    zoom=5,
+                    # center=dict(lat=-13.133897, lon=27.849332),  # Center of Zambia
+                    # center=dict(lat=12.3787, lon=-1.5328),  # Center of Burkina Faso
+                    center=dict(lat=self.map_center[0], lon=self.map_center[1])
+                    if self.map_center is not None
+                    else None,
+                    zoom=self.map_zoom_level
+                    if self.map_zoom_level is not None
+                    else None,
                 ),
                 margin={"r": 0, "t": 0, "l": 0, "b": 0},
                 height=600,

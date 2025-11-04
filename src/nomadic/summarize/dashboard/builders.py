@@ -1,6 +1,7 @@
 import glob
 from importlib.resources import as_file, files
 import logging
+import os
 import threading
 from abc import ABC, abstractmethod
 from dash import Dash, html, dcc
@@ -22,6 +23,7 @@ from nomadic.summarize.dashboard.components import (
     PrevalenceBarplot,
     MapComponent,
 )
+from nomadic.util.summary import Settings, get_map_settings
 
 
 class SummaryDashboardBuilder(ABC):
@@ -373,10 +375,27 @@ class SummaryDashboardBuilder(ABC):
         self.layout.append(prevalence_row)
 
     def _add_map_row(
-        self, analysis_csv: str, master_csv: str, geojsons: list[str]
+        self,
+        analysis_csv: str,
+        master_csv: str,
+        geojsons: list[str],
+        location_coords_csv: str,
+        map_center: tuple[float, float] | None,
+        map_zoom_level: int | None,
     ) -> None:
         """
         Add a panel that shows a choropleth map of drug resistance marker prevalence
+
+        Parameters
+        ----------
+        analysis_csv : str
+            Path to the analysis CSV file
+        master_csv : str
+            Path to the master CSV file
+        geojsons : list[str]
+            List of paths to GeoJSON files for different region types
+        location_coords_csv : str | None, optional
+            Path to a CSV file containing location to coordinate mappings
         """
         # Get mutations and their prevalence for resistance genes
         analysis_df = pd.read_csv(analysis_csv)
@@ -434,6 +453,9 @@ class SummaryDashboardBuilder(ABC):
             mutation_dropdown_id="map-mutation-dropdown",
             region_dropdown_id="map-region-dropdown",
             geojsons=regions,
+            location_coords_csv=location_coords_csv,
+            map_center=map_center,
+            map_zoom_level=map_zoom_level,
         )
 
         map_row = html.Div(
@@ -488,9 +510,17 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         gene_deletions_csv: str,
         master_csv: str,
         geojson_glob: str,
+        settings: Settings,
+        location_coords_csv: str,
     ):
         """
         Initialise all of the dashboard components
+
+        Parameters
+        ----------
+        location_coords_csv : str | None, optional
+            Path to a CSV file containing location to coordinate mappings.
+            The file should have columns: location,latitude,longitude
         """
 
         super().__init__(summary_name, self.CSS_STYLE)
@@ -502,6 +532,8 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.master_csv = master_csv
         self.gene_deletions_csv = gene_deletions_csv
         self.geojson_glob = geojson_glob
+        self.location_coords_csv = location_coords_csv
+        self.map_center, self.map_zoom_level = get_map_settings(settings)
 
     def _gen_layout(self):
         """
@@ -515,9 +547,14 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_prevalence_by_col_row(self.analysis_csv, self.master_csv)
         self._add_gene_deletion_row(self.gene_deletions_csv, self.master_csv)
 
-        if glob.glob(self.geojson_glob):
+        if glob.glob(self.geojson_glob) or os.path.exists(self.location_coords_csv):
             self._add_map_row(
-                self.analysis_csv, self.master_csv, glob.glob(self.geojson_glob)
+                self.analysis_csv,
+                self.master_csv,
+                glob.glob(self.geojson_glob),
+                self.location_coords_csv,
+                self.map_center,
+                self.map_zoom_level,
             )
 
 

@@ -28,6 +28,7 @@ from nomadic.util.experiment import (
 )
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.metadata import ExtendedMetadataTableParser
+from nomadic.util.summary import Settings, get_master_columns_mapping, load_settings
 
 
 # --------------------------------------------------------------------------------
@@ -484,6 +485,7 @@ def main(
     expt_dirs: tuple[str],
     summary_name: str,
     meta_data_path: Path,
+    settings_file_path: Path,
     show_dashboard: bool = True,
     prevalence_by: list[str],
 ) -> None:
@@ -509,10 +511,17 @@ def main(
     log.info("Input parameters:")
     log.info(f"  Summary Name: {summary_name}")
     log.info(f"  Master metadata: {meta_data_path}")
+    log.info(f"  Setting file: {settings_file_path}")
     log.info(f"  Found {len(expt_dirs)} experiment directories.")
     for expt_dir in expt_dirs:
         check_complete_experiment(expt_dir)
     log.info("  All experiments are complete.")
+
+    settings: Settings = Settings()
+
+    if settings_file_path.exists():
+        settings = load_settings(settings_file_path)
+        log.info(f"  Loaded summary settings from {settings_file_path}.")
 
     # CHECK METADATA IS VALID
     # TODO:
@@ -543,7 +552,9 @@ def main(
     # shared_columns = fixed_columns + list(shared_columns)
     shared_columns = fixed_columns
     inventory_metadata = pd.concat([df[shared_columns] for df in dfs])
-    master_metadata = pd.read_csv(meta_data_path)
+    master_metadata = pd.read_csv(meta_data_path).rename(
+        columns=get_master_columns_mapping(settings)
+    )
     master_metadata = master_metadata.astype(
         {"sample_id": "str"}
     )  # ensure sample IDs are strings
@@ -716,6 +727,8 @@ def main(
             f"{output_dir}/summary.gene-deletions.prevalence-{col}.csv", index=False
         )
 
+    master_metadata.to_csv(f"{output_dir}/{summary_name}.metadata.csv", index=False)
+
     # --------------------------------------------------------------------------------
     # Dashboard
     #
@@ -730,8 +743,10 @@ def main(
             coverage_csv=f"{output_dir}/summary.experiments_qc.csv",
             analysis_csv=f"{output_dir}/summary.variants.analysis_set.csv",
             gene_deletions_csv=f"{output_dir}/summary.gene_deletions.csv",
-            master_csv=str(meta_data_path),
+            master_csv=f"{output_dir}/{summary_name}.metadata.csv",
             geojson_glob=f"metadata/{summary_name}-*.geojson",
+            location_coords_csv=f"metadata/{summary_name}.coords.csv",
+            settings=settings,
         )
         print("Done.")
 
