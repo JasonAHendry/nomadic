@@ -159,6 +159,11 @@ def gene_deletions(coverage_df: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
         analysis_set["n_passing_ctrl_amplicons"]
         >= AMPLICONS_QC_CUTOFF * analysis_set["n_ctrl_amplicons"]
     ]
+
+    # QC: don't analyze amplicons that did not pass negative control
+    analysis_set = analysis_set[~analysis_set["fail_contam_abs"]]
+
+    # Determine deletions
     analysis_set["is_deleted"] = analysis_set["mean_cov"] < DELETION_COVERAGE_THRESHOLD
 
     # consider a gene deleted if all amplicons that belong to the gene are deleted
