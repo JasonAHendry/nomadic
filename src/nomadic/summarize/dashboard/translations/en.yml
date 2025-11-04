@@ -1,0 +1,9 @@
+en:
+  mean_cov_field: "Mean Coverage field samples"
+  per_field_passing: "Field samples passing QC (%%)"
+  per_field_contam: "Field samples with contamination (%%)"
+  per_field_lowcov: "Field samples with low coverage (%%)"
+  mean_cov_field_tooltip: "The average mean coverage per amplicon across all field samples."
+  per_field_passing_tooltip: "The percentage of field samples that passed quality control (QC) for this amplicon. We check for minimum coverage and no contamination"
+  per_field_contam_tooltip: "The percentage of field samples that showed contamination for this amplicon. This is defined as having more than 50x mean coverage of negative controls for this amplicon, or the ratio of mean coverage of negative controls to mean coverage is more than 10%%"
+  per_field_lowcov_tooltip: "The percentage of field samples that had low coverage for this amplicon. This is defined as having mean coverage less than 50x."
