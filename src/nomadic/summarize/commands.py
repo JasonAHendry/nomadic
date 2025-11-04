@@ -92,6 +92,5 @@ def summarize(
         )
     except MetadataFormatError as e:
         raise click.BadParameter(
-            param_hint="-m/--metadata_csv",
             message=f"Metadata format error: {e}",
         ) from e
