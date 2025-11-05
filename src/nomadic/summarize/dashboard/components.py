@@ -196,39 +196,6 @@ class SamplesPie(SummaryDashboardComponent):
         """
 
 
-COV_MAX = 10000
-COLORSCALES = {
-    "per_field_passing": [
-        [0.00, "#FF0033"],
-        [0.50, "#FF9900"],
-        [0.70, "#FFEB33"],  # set 70% as okay
-        [0.90, "#80FF7E"],  # above 90% is good
-        [1.00, "#3A9A3E"],
-    ],
-    "per_field_contam": [
-        [0.00, "#3A9A3E"],  # low contamination is good
-        [0.20, "#FFEB33"],  # set 30% as okay
-        [0.30, "#FF9900"],  # contamination is bad
-        [1.00, "#FF0033"],
-    ],
-    "per_field_lowcov": [
-        [0.00, "#3A9A3E"],  # low lowcov is good
-        [0.10, "#80FF7E"],  # above 90% is good
-        [0.30, "#FFEB33"],  # set 30% as okay
-        [0.50, "#FF9900"],  # lowcov is bad
-        [1.00, "#FF0033"],
-    ],
-    "mean_cov_field": [
-        [0, "#FF0033"],  # low coverage is bad
-        [25 / COV_MAX, "#FF9900"],
-        [50 / COV_MAX, "#FFEB33"],  # set threshold as okay
-        [200 / COV_MAX, "#80FF7E"],  # above 200 we can make good calls
-        [500 / COV_MAX, "#3A9A3E"],  # above 500 is excellent also for low freq calls
-        [1.0, "#7585FE"],  # coverage is uncapped
-    ],
-}
-
-
 class AmpliconsBarplot(SummaryDashboardComponent):
     """
     Make a bar chart that shows the Amplicons Statistics
@@ -297,9 +264,52 @@ class AmpliconsBarplot(SummaryDashboardComponent):
         pass
 
 
+COV_MAX = 10000
+COV_NEG_MAX = 50
+COLORSCALES = {
+    "per_field_passing": [
+        [0.00, "#FF0033"],
+        [0.50, "#FF9900"],
+        [0.70, "#FFEB33"],  # set 70% as okay
+        [0.90, "#80FF7E"],  # above 90% is good
+        [1.00, "#3A9A3E"],
+    ],
+    "per_field_contam": [
+        [0.00, "#3A9A3E"],  # low contamination is good
+        [0.20, "#FFEB33"],  # set 30% as okay
+        [0.30, "#FF9900"],  # contamination is bad
+        [1.00, "#FF0033"],
+    ],
+    "per_field_lowcov": [
+        [0.00, "#3A9A3E"],  # low lowcov is good
+        [0.10, "#80FF7E"],  # above 90% is good
+        [0.30, "#FFEB33"],  # set 30% as okay
+        [0.50, "#FF9900"],  # lowcov is bad
+        [1.00, "#FF0033"],
+    ],
+    "mean_cov_field": [
+        [0, "#FF0033"],  # low coverage is bad
+        [25 / COV_MAX, "#FF9900"],
+        [50 / COV_MAX, "#FFEB33"],  # set threshold as okay
+        [200 / COV_MAX, "#80FF7E"],  # above 200 we can make good calls
+        [500 / COV_MAX, "#3A9A3E"],  # above 500 is excellent also for low freq calls
+        [1.0, "#7585FE"],  # coverage is uncapped
+    ],
+    "mean_cov_neg": [
+        [0, "#3A9A3E"],  # low neg cov is good
+        [2 / COV_NEG_MAX, "#80FF7E"],
+        [5 / COV_NEG_MAX, "#FFEB33"],
+        [10 / COV_NEG_MAX, "#FF9900"],
+        [50 / COV_NEG_MAX, "#FF0033"],  # from 50 cov we fail neg control
+        [1.0, "#FF0033"],  # coverage is uncapped
+    ],
+}
+
+
 class QualityControl(SummaryDashboardComponent):
     STATISTICS = [
         "mean_cov_field",
+        "mean_cov_neg",
         "per_field_passing",
         "per_field_contam",
         "per_field_lowcov",
@@ -318,7 +328,7 @@ class QualityControl(SummaryDashboardComponent):
         self.plot_df = pd.pivot_table(
             index="expt_name",
             columns="name",
-            values=self.STATISTICS,
+            values=[*self.STATISTICS, "n_field"],
             dropna=False,
             observed=False,
             data=self.coverage_df,
@@ -343,6 +353,14 @@ class QualityControl(SummaryDashboardComponent):
                 if "cov" in focus_stat
                 else ""
             )
+            # Create customdata array for hover
+            customdata = np.stack(
+                [
+                    self.plot_df["n_field"],
+                ],
+                axis=-1,
+            )
+
             plot_data = [
                 go.Heatmap(
                     x=self.plot_df[focus_stat].columns,
@@ -352,10 +370,24 @@ class QualityControl(SummaryDashboardComponent):
                     xgap=1,
                     ygap=1,
                     zmin=0,
-                    zmax=100 if "per_" in focus_stat else 10000,
+                    zmax=100
+                    if "per_" in focus_stat
+                    else COV_MAX
+                    if "mean_cov_field" in focus_stat
+                    else COV_NEG_MAX,
                     colorbar=dict(title=legend, outlinecolor="black", outlinewidth=1),
                     hoverongaps=False,
                     colorscale=COLORSCALES[focus_stat],
+                    customdata=customdata,
+                    hovertemplate=(
+                        (
+                            "<b>%{z:.1f}%</b><br>"
+                            if "per_" in focus_stat
+                            else "<b>%{z:.1f}x</b><br>"
+                        )
+                        + "Amplicon: %{x}<br>"
+                        + "Number of samples: %{customdata[0]}<br><extra></extra>"
+                    ),
                 )
             ]
             MAR = 40

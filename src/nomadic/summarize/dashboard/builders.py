@@ -160,7 +160,7 @@ class SummaryDashboardBuilder(ABC):
                 {"label": t(option), "value": option, "title": t(f"{option}_tooltip")}
                 for option in QualityControl.STATISTICS
             ],
-            value=QualityControl.STATISTICS[1],
+            value=QualityControl.STATISTICS[2],
             style=dict(width="300px"),
         )
 
@@ -351,7 +351,7 @@ class SummaryDashboardBuilder(ABC):
         prevalence_row = html.Div(
             className="gene-deltions-row",
             children=[
-                html.H3("Prevalence Gene Deletions", style=dict(marginTop="0px")),
+                html.H3("Potential Gene Deletions", style=dict(marginTop="0px")),
                 html.Div(
                     className="prevalence-dropdowns",
                     children=[
