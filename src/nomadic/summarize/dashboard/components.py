@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import json
 import os
 from typing import Optional
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -879,6 +880,15 @@ class MapComponent(SummaryDashboardComponent):
                     ]["shapeName"]
                     for feat in self.geojson_data[region_by]["features"]
                 }
+
+                geojson_regions = set(geojson_name_map.keys())
+                metadata_regions = set(df[f"{region_by}_normalized"])
+
+                not_in_geojson = metadata_regions - geojson_regions
+                if not_in_geojson:
+                    warnings.warn(
+                        f"Some regions in metadata could not be mapped to a region in the geojson: {not_in_geojson}.\nDo you mean any of: {geojson_regions}"
+                    )
 
                 # Map the normalized names back to GeoJSON names for display
                 df[f"{region_by}_display"] = df[f"{region_by}_normalized"].map(
