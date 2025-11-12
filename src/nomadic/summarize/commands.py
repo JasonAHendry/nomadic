@@ -32,7 +32,13 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     help="Path to the master metadata CSV file.",
     show_default="<workspace>/metadata/<summary_name>.csv",
 )
-@click.option("-n", "--summary_name", type=str, help="Name of summary")
+@click.option(
+    "-n",
+    "--summary_name",
+    type=str,
+    help="Name of summary",
+    show_default="name of the workspace.",
+)
 @click.option(
     "--prevalence-by",
     type=str,
@@ -42,7 +48,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 @click.option(
     "--dashboard/--no-dashboard",
     default=True,
-    help="Whether to start the web dashboard to monitor the run.",
+    help="Whether to start the web dashboard to look at the summary.",
 )
 @click.option(
     "-s",
