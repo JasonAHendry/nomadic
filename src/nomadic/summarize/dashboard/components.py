@@ -527,10 +527,10 @@ class PrevalenceBarplot(SummaryDashboardComponent):
                             name=str(group),
                             error_y=dict(
                                 type="data",
-                                array=plot_df["prevalence_highci"]
-                                - plot_df["prevalence"],
-                                arrayminus=plot_df["prevalence"]
-                                - plot_df["prevalence_lowci"],
+                                array=group_df["prevalence_highci"]
+                                - group_df["prevalence"],
+                                arrayminus=group_df["prevalence"]
+                                - group_df["prevalence_lowci"],
                             ),
                         )
                     )
