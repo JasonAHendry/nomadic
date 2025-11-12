@@ -695,7 +695,7 @@ def main(
         variant_df.query("status == 'pass'")
         .query("mut_type == 'missense'")
         .query("gene not in @remove_genes")
-        # .query("mutation not in @remove_mutations")
+        .query("mutation not in @remove_mutations")
     )
 
     # Filter out false positives
