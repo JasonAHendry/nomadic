@@ -51,6 +51,12 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     show_default="<workspace>/metadata/<summary_name>.yaml",
     help="Path to the summary settings YAML file.",
 )
+@click.option(
+    "--no-master-metadata",
+    is_flag=True,
+    default=False,
+    help="If set, no master metadata CSV needs to be provided. This is not recommended, as it's better to be explicit about the samples to be included, but it can be used to quickly get an overview of the data in the workspace.",
+)
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
@@ -59,6 +65,7 @@ def summarize(
     dashboard: bool,
     prevalence_by: tuple[str],
     settings_file: Path,
+    no_master_metadata: bool,
 ):
     """
     Summarize a set of experiments to evaluate quality control and
@@ -76,13 +83,13 @@ def summarize(
     if summary_name is None:
         summary_name = workspace.get_name()
 
-    if metadata_csv is None:
+    if metadata_csv is None and not no_master_metadata:
         metadata_csv = Path(workspace.get_master_metadata_csv(summary_name))
 
     if settings_file is None:
         settings_file = Path(workspace.get_summary_settings_file(summary_name))
 
-    if not metadata_csv.exists():
+    if not no_master_metadata and not metadata_csv.exists():
         raise click.BadParameter(
             param_hint="-m/--metadata_csv",
             message=f"Master metadata file '{metadata_csv}' does not exist.",
@@ -101,6 +108,7 @@ def summarize(
             settings_file_path=settings_file,
             show_dashboard=dashboard,
             prevalence_by=list(prevalence_by),
+            no_master_metadata=no_master_metadata,
         )
     except MetadataFormatError as e:
         raise click.BadParameter(

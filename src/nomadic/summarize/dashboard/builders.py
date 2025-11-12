@@ -276,6 +276,10 @@ class SummaryDashboardBuilder(ABC):
 
         cols = cols_to_group_by(master_csv, analysis_csv, 50)
 
+        if not cols:
+            # Nothing to show
+            return
+
         col_dropdown = dcc.Dropdown(
             id="col-dropdown",
             options=cols,
