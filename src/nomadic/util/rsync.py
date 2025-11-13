@@ -20,6 +20,7 @@ def selective_rsync(
     checksum: bool = False,
     verbose: bool = False,
     progressbar: bool = False,
+    update: bool = False,
 ):
     """Copies contents of a folder to a new location.
 
@@ -46,6 +47,9 @@ def selective_rsync(
         rsync_components.append("-v")
     if delete:
         rsync_components.append("--delete")
+    # Only update newer files on target (don't overwrite) when requested by caller
+    if update:
+        rsync_components.append("--update")
     if not recursive:
         rsync_components.extend(["--exclude", "*/"])
     if checksum:
@@ -103,6 +107,7 @@ def share_nomadic_workspace(
     *,
     checksum: bool = False,
     verbose: bool = False,
+    update: bool = True,
 ):
     workspace_path = Path(workspace.path).resolve()
     workspace_name = workspace.get_name()
@@ -123,6 +128,7 @@ def share_nomadic_workspace(
         exclusions=exclusions,
         checksum=checksum,
         verbose=verbose,
+        update=update,
     )
     click.echo("Done.")
 
@@ -155,6 +161,7 @@ def share_minknow_data(
     *,
     checksum: bool = False,
     verbose: bool = False,
+    update: bool = True,
 ):
     click.echo(f"Sharing minknow data to {target_base_dir}")
     sync_minknow_data(
@@ -171,6 +178,7 @@ def share_minknow_data(
         ],
         checksum=checksum,
         verbose=verbose,
+        update=update,
     )
 
 
@@ -183,6 +191,7 @@ def sync_minknow_data(
     *,
     checksum: bool = False,
     verbose: bool = False,
+    update: bool = False,
 ):
     """
     Sync minknow data. This contains the core logic of finding the minknow data, but allows for different inclusions/exclusions
@@ -235,6 +244,7 @@ def sync_minknow_data(
             exclusions=exclusions,
             checksum=checksum,
             verbose=verbose,
+            update=update,
         )
 
 

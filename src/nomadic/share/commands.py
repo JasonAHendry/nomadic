@@ -65,6 +65,14 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     default=False,
     help="Use checksum check instead of file size and modification time.",
 )
+@click.option(
+    "--update/--overwrite",
+    "update",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Update will not overwrite files that are newer.",
+)
 @click.pass_context
 def share(
     ctx: click.Context,
@@ -73,6 +81,7 @@ def share(
     include_minknow: bool,
     workspace_path: Path,
     checksum: bool,
+    update: bool,
     verbose: bool,
 ):
     """
@@ -113,6 +122,7 @@ def share(
         workspace=workspace,
         checksum=checksum,
         verbose=verbose,
+        update=update,
     )
 
     if include_minknow:
@@ -123,6 +133,7 @@ def share(
             failure_reasons=failure_reasons,
             checksum=checksum,
             verbose=verbose,
+            update=update,
         )
     else:
         click.echo("Skipping sharing minknow data as requested.")
