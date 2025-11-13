@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 import click
 
+from nomadic.configure.commands import configure
 from nomadic.backup.commands import backup
 from nomadic.dashboard.commands import dashboard
 from nomadic.download.commands import download
@@ -37,5 +38,6 @@ cli.add_command(download)
 cli.add_command(realtime)
 cli.add_command(process)
 cli.add_command(dashboard)
-cli.add_command(backup)
 cli.add_command(share)
+cli.add_command(backup)
+cli.add_command(configure)

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from nomadic.util.cli import load_default_function_for
 from nomadic.util.rsync import (
     backup_minknow_data,
     backup_nomadic_workspace,
@@ -14,14 +15,6 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 
 @click.command(short_help="Backup a workspace.")
 @click.option(
-    "-t",
-    "--target_dir",
-    "target_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    required=True,
-    help="Path to root target backup folder. The backup will go into target_dir/<workspace_name>.",
-)
-@click.option(
     "-w",
     "--workspace",
     "workspace_path",
@@ -29,6 +22,18 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     show_default="current directory",
     type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
     help="Path to the nomadic workspace you want to back up.",
+)
+@click.option(
+    callback=load_default_function_for("backup"),
+    expose_value=False,
+)
+@click.option(
+    "-t",
+    "--target_dir",
+    "target_dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    required=True,
+    help="Path to root target backup folder. The backup will go into target_dir/<workspace_name>.",
 )
 @click.option(
     "-k",
