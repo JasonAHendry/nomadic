@@ -191,7 +191,7 @@ def realtime(
         )
     except MetadataFormatError as e:
         raise click.BadParameter(
-            param_hint="-m/--metadata_csv",
+            param_hint="-m/--metadata_path",
             message=str(e),
         ) from e
 
@@ -246,10 +246,13 @@ def get_metadata_path(experiment_name, metadata_path, workspace):
             load_config(config_path).get("defaults", None).get("shared_folder", None)
         )
         if shared_folder is not None:
+            stub = os.path.join(
+                shared_folder, workspace.get_name(), "metadata", f"{experiment_name}"
+            )
             files.extend(
                 [
-                    os.path.join(shared_folder, f"metadata/{experiment_name}.csv"),
-                    os.path.join(shared_folder, f"metadata/{experiment_name}.xlsx"),
+                    stub + ".csv",
+                    stub + ".xlsx",
                 ]
             )
 
