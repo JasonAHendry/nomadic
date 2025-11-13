@@ -14,7 +14,7 @@ Please visit our [documentation](https://jasonahendry.github.io/nomadic) to lear
 ## Features
  - [x] Real-time read mapping with Minimap2.
  - [x] Real-time sample quality control and amplicon coverage evaluation.
- - [x] Real-time variant calling with bcftools. These calls are preleiminary; treat with caution.
+ - [x] Real-time variant calling with bcftools or delve (our own variant caller). These calls are preleiminary; treat with caution.
  - [x] Support for different reference genomes or amplicons panels.
 
  ## Installation
