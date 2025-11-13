@@ -25,7 +25,7 @@ def main(
     workspace: str,
     fastq_dir: str,
     minknow_dir: Optional[Path],
-    metadata_csv: str,
+    metadata_path: str,
     region_bed: str,
     reference_name: str,
     caller: str,
@@ -48,7 +48,7 @@ def main(
     log.info(f"  Output dir: {output}")
     log.info(f"  Minknow dir: {minknow_dir}")
     log.info(f"  FASTQ (.fastq): {fastq_dir}")
-    log.info(f"  Metadata (.csv): {metadata_csv}")
+    log.info(f"  Metadata file: {metadata_path}")
     log.info(f"  Regions (.bed): {region_bed}")
     log.info(f"  Reference genome: {reference_name}")
     REFERENCE_COLLECTION[reference_name].confirm_downloaded()
@@ -57,7 +57,7 @@ def main(
     log.info("Processing...")
 
     # PREPARE TO RUN
-    metadata = MetadataTableParser(metadata_csv)
+    metadata = MetadataTableParser(metadata_path)
     regions = RegionBEDParser(region_bed)
     expt_dirs = ExperimentDirectories(output, metadata, regions)
     log.info(f"  Found {len(metadata.barcodes) - 1} barcodes to track.")
@@ -75,7 +75,7 @@ def main(
         start_date=datetime.now().replace(microsecond=0),
         fastq_dir=fastq_dir,
         minknow_dir=minknow_dir_settings,
-        metadata_csv=metadata_csv,
+        metadata_csv=metadata_path,
         region_bed=region_bed,
         reference_name=reference_name,
         n_barcodes=len(metadata.barcodes) - 1,

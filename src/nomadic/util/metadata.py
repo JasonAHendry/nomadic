@@ -1,8 +1,10 @@
+import os
 import re
-from typing import Optional
 import warnings
+from typing import List, Optional
+
 import pandas as pd
-from typing import List
+
 from .exceptions import MetadataFormatError
 
 
@@ -105,14 +107,19 @@ class MetadataTableParser:
         ],
     }
 
-    def __init__(self, metadata_csv: str, include_unclassified: bool = True):
+    def __init__(self, metadata_path: str, include_unclassified: bool = True):
         """
         Load and sanity check the metadata table
 
         """
 
-        self.csv = metadata_csv
-        self.df = pd.read_csv(self.csv, delimiter=get_csv_delimiter(self.csv))
+        self.path = metadata_path
+        if os.path.splitext(self.path)[1].lower() == ".xlsx":
+            data = pd.read_excel(self.path, sheet_name="nomadic")
+            data.dropna(how="all", inplace=True)
+            self.df = data
+        else:
+            self.df = pd.read_csv(self.path, delimiter=get_csv_delimiter(self.path))
 
         self._correct_columns()
         self._check_entries_unique()
