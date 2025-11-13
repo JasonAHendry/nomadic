@@ -6,16 +6,17 @@ import click
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util import minknow
+from nomadic.util.cli import (
+    complete_bed_file,
+    complete_experiment_name,
+    load_default_function_for,
+)
+from nomadic.util.config import default_config_path, load_config
+from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import (
     Workspace,
     check_if_workspace,
     looks_like_a_bed_filepath,
-)
-from nomadic.util.exceptions import MetadataFormatError
-from nomadic.util.cli import (
-    complete_experiment_name,
-    complete_bed_file,
-    load_default_function_for,
 )
 
 
@@ -65,9 +66,9 @@ from nomadic.util.cli import (
 )
 @click.option(
     "-m",
-    "--metadata_csv",
+    "--metadata_path",
     type=click.Path(exists=True, dir_okay=False, file_okay=True),
-    help="Path to metadata CSV file containing barcode and sample information.",
+    help="Path to metadata file (CSV or XLSX) containing barcode and sample information.",
     show_default="<workspace>/metadata/<experiment_name>.csv",
 )
 @click.option(
@@ -128,7 +129,7 @@ def realtime(
     workspace_path,
     minknow_dir,
     fastq_dir,
-    metadata_csv,
+    metadata_path,
     region_bed,
     reference_name,
     call,
@@ -143,7 +144,7 @@ def realtime(
     """
     workspace = get_workspace(workspace_path)
     output = get_output_path(experiment_name, output, workspace)
-    metadata_csv = get_metadata_path(experiment_name, metadata_csv, workspace)
+    metadata_path = get_metadata_path(experiment_name, metadata_path, workspace)
     region_bed = get_region_path(region_bed, workspace)
     minknow_dir, fastq_dir = get_minknow_fastq_dirs(
         experiment_name, minknow_dir, fastq_dir
@@ -180,7 +181,7 @@ def realtime(
             workspace_path,
             fastq_dir,
             minknow_dir,
-            metadata_csv,
+            metadata_path,
             region_bed,
             reference_name,
             caller,
@@ -233,15 +234,36 @@ def get_region_path(region_bed, workspace):
     return region_bed
 
 
-def get_metadata_path(experiment_name, metadata_csv, workspace):
-    if not metadata_csv:
-        metadata_csv = workspace.get_metadata_csv(experiment_name)
-        if not os.path.isfile(metadata_csv):
-            raise click.BadParameter(
-                message=f"Metadata CSV file not found at {metadata_csv}. Did you create your metadata file in `{workspace.get_metadata_dir()}` and does the name match `{experiment_name}`?",
+def get_metadata_path(experiment_name, metadata_path, workspace):
+    if metadata_path is None:
+        files = [
+            workspace.get_metadata_csv(experiment_name),
+            workspace.get_metadata_xlsx(experiment_name),
+        ]
+
+        config_path = os.path.join(workspace.path, default_config_path)
+        shared_folder = (
+            load_config(config_path).get("defaults", None).get("shared_folder", None)
+        )
+        if shared_folder is not None:
+            files.extend(
+                [
+                    os.path.join(shared_folder, f"metadata/{experiment_name}.csv"),
+                    os.path.join(shared_folder, f"metadata/{experiment_name}.xlsx"),
+                ]
             )
 
-    return metadata_csv
+        for file in files:
+            if os.path.isfile(file):
+                metadata_path = file
+                break
+
+    if metadata_path is None or not os.path.isfile(metadata_path):
+        raise click.BadParameter(
+            message=f"Metadata file not found. Did you create your metadata file in `{workspace.get_metadata_dir()}` and does the name match `{experiment_name}`?",
+        )
+
+    return metadata_path
 
 
 def get_output_path(experiment_name, output, workspace):

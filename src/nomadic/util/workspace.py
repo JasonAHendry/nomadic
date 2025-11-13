@@ -1,6 +1,7 @@
 import os
-import click
 from pathlib import Path
+
+import click
 
 from nomadic.util.dirs import produce_dir
 
@@ -90,6 +91,24 @@ class Workspace:
         Get the path to the metadata CSV file for a given experiment.
         """
         return os.path.join(self.get_metadata_dir(), f"{experiment_name}.csv")
+
+    def get_metadata_xlsx(self, experiment_name: str):
+        """
+        Get the path to the metadata XLSX file for a given experiment.
+        """
+        return os.path.join(self.get_metadata_dir(), f"{experiment_name}.xlsx")
+
+    def get_master_metadata_csv(self, summary_name: str):
+        """
+        Get the path to the master metadata CSV file for summaries.
+        """
+        return os.path.join(self.get_metadata_dir(), f"{summary_name}.csv")
+
+    def get_summary_settings_file(self, summary_name: str):
+        """
+        Get the path to the master metadata CSV file for summaries.
+        """
+        return os.path.join(self.get_metadata_dir(), f"{summary_name}.yaml")
 
     def get_bed_file(self, panel_name: str):
         """

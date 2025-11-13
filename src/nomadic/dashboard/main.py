@@ -1,7 +1,8 @@
 import os
-from nomadic.realtime.dashboard.builders import MappingRTDashboard, CallingRTDashboard
-from nomadic.util.metadata import MetadataTableParser
+
+from nomadic.realtime.dashboard.builders import CallingRTDashboard, MappingRTDashboard
 from nomadic.util.experiment import ExperimentDirectories
+from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.settings import load_settings
 
@@ -92,7 +93,7 @@ def main(input_dir: str):
     print("Input Parameters:")
     print(f"  Input dir: {input_dir}")
     print(f"  Experiment Name: {expt_name}")
-    print(f"  Metadata (.csv): {metadata.csv}")
+    print(f"  Metadata (.csv): {metadata.path}")
     print(f"  Regions (.bed): {regions.path}")
     print(f"  Found {len(metadata.barcodes) - 1} barcodes in this experiment.")
     print(f"  Found {regions.n_regions} regions of interest.")
