@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import click
 import click.shell_completion
@@ -42,17 +43,26 @@ def complete_bed_file(ctx: click.Context, param, incomplete):
     return result
 
 
-def load_defaults_from_config(ctx: click.Context, param, value):
+def load_defaults_from_config(ctx: click.Context, command: Optional[str] = None):
     """Load configuration from the default config file if it exists."""
     config_path = os.path.join(
         ctx.params.get("workspace_path", "./"), default_config_path
     )
     if os.path.isfile(config_path):
-        defaults = load_config(config_path).get("defaults", None)
-        if defaults is not None:
+        config = load_config(config_path)
+        defaults = config.get("defaults", {})
+        defaults = defaults | config.get(command, {}).get("defaults", {})
+        if defaults:
             if not ctx.resilient_parsing:
                 # Don't print defaults if parsing is resilient, as this is used for shell completion
                 click.echo(f"Loaded defaults from {config_path}")
             ctx.default_map = defaults
             ctx.show_default = True
-    return value
+
+
+def load_default_function_for(command: str):
+    def click_callback(ctx: click.Context, param, value):
+        load_defaults_from_config(ctx, command=command)
+        return value
+
+    return click_callback

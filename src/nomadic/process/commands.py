@@ -15,7 +15,7 @@ from nomadic.realtime.commands import (
 from nomadic.util.cli import (
     complete_bed_file,
     complete_experiment_name,
-    load_defaults_from_config,
+    load_default_function_for,
 )
 
 
@@ -39,7 +39,7 @@ from nomadic.util.cli import (
     shell_complete=complete_experiment_name,
 )
 @click.option(
-    callback=load_defaults_from_config,
+    callback=load_default_function_for("process"),
     expose_value=False,
 )
 @click.option(
