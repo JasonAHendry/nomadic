@@ -9,6 +9,7 @@ from nomadic.process.commands import process
 from nomadic.realtime.commands import realtime
 from nomadic.share.commands import share
 from nomadic.start.commands import start
+from nomadic.summarize.commands import summarize
 
 
 # From: https://stackoverflow.com/questions/47972638/how-can-i-define-the-order-of-click-sub-commands-in-help
@@ -37,5 +38,6 @@ cli.add_command(download)
 cli.add_command(realtime)
 cli.add_command(process)
 cli.add_command(dashboard)
+cli.add_command(summarize)
 cli.add_command(backup)
 cli.add_command(share)

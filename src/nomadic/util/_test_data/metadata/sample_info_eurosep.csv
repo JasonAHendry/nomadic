@@ -1,6 +1,7 @@
-﻿barcode;sample_id;parasite_per_ul;location;platform;number
-barcode01;3D7 (NB01);10000;Oxford;flongle;8,4
-barcode02;Dd2 (NB02);10000;Oxford;flongle;2,0
-barcode03;CamC580Y (NB03);10000;Oxford;flongle;4,3
-barcode04;GB4 (NB04);10000;Oxford;flongle;5,4
-barcode05;HB3 (NB05);10000;Oxford;flongle;6,1
+﻿barcode;sample_id;sample_type;location;parasitemia;postclean_qubit;number
+barcode01;3D7;pos;berlin;1000;87;8,4
+barcode02;HB3;pos;berlin;100;34;2,0
+barcode03;NTC;neg;berlin;0;0;4,3
+barcode04;DBS-A01;field;berlin;543;44;5,4
+barcode05;DBS-A02;field;berlin;7583;85;6,1
+barcode06;DBS-A03;field;berlin;349;32;7,2

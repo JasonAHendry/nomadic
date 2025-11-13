@@ -1,10 +1,13 @@
-from nomadic.util.dirs import produce_dir
-from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.regions import RegionBEDParser
-
+import glob
 import os
 import shutil
+from pathlib import Path
 from typing import NamedTuple
+
+from nomadic.util.dirs import produce_dir
+from nomadic.util.exceptions import MetadataFormatError
+from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.regions import RegionBEDParser
 
 
 class SummaryFiles(NamedTuple):
@@ -97,38 +100,7 @@ class ExperimentDirectories:
         return os.path.join(self.metadata_dir, "settings.json")
 
     def get_summary_files(self) -> SummaryFiles:
-        if os.path.exists(
-            f"{self.approach_dir}/{legacy_summary_files.fastqs_processed}"
-        ):
-            # Use legacy summary files if the old format exists
-            return SummaryFiles(
-                fastqs_processed=os.path.join(
-                    self.approach_dir, legacy_summary_files.fastqs_processed
-                ),
-                read_mapping=os.path.join(
-                    self.approach_dir, legacy_summary_files.read_mapping
-                ),
-                region_coverage=os.path.join(
-                    self.approach_dir, legacy_summary_files.region_coverage
-                ),
-                depth_profiles=os.path.join(
-                    self.approach_dir, legacy_summary_files.depth_profiles
-                ),
-                variants=os.path.join(self.approach_dir, legacy_summary_files.variants),
-            )
-        return SummaryFiles(
-            fastqs_processed=os.path.join(
-                self.approach_dir, summary_files.fastqs_processed
-            ),
-            read_mapping=os.path.join(self.approach_dir, summary_files.read_mapping),
-            region_coverage=os.path.join(
-                self.approach_dir, summary_files.region_coverage
-            ),
-            depth_profiles=os.path.join(
-                self.approach_dir, summary_files.depth_profiles
-            ),
-            variants=os.path.join(self.approach_dir, summary_files.variants),
-        )
+        return get_summary_files(Path(self.approach_dir))
 
     def _setup_metadata_dir(
         self, metadata: MetadataTableParser, regions: RegionBEDParser
@@ -146,3 +118,119 @@ class ExperimentDirectories:
             self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
             if not os.path.exists(self.regions_bed):
                 shutil.copy(regions.path, self.regions_bed)
+
+
+def get_summary_files(exp_path: Path) -> SummaryFiles:
+    if not exp_path.exists():
+        raise FileNotFoundError(f"Experiment path does not exist: {exp_path}")
+    if (exp_path / legacy_summary_files.read_mapping).exists():
+        # Use legacy summary files if the old format exists
+        return SummaryFiles(
+            fastqs_processed=str(exp_path / legacy_summary_files.fastqs_processed),
+            read_mapping=str(exp_path / legacy_summary_files.read_mapping),
+            region_coverage=str(exp_path / legacy_summary_files.region_coverage),
+            depth_profiles=str(exp_path / legacy_summary_files.depth_profiles),
+            variants=str(exp_path / legacy_summary_files.variants),
+        )
+    else:
+        return SummaryFiles(
+            fastqs_processed=str(exp_path / summary_files.fastqs_processed),
+            read_mapping=str(exp_path / summary_files.read_mapping),
+            region_coverage=str(exp_path / summary_files.region_coverage),
+            depth_profiles=str(exp_path / summary_files.depth_profiles),
+            variants=str(exp_path / summary_files.variants),
+        )
+
+
+def check_complete_experiment(expt_dir: str) -> None:
+    """
+    Check if an experiment is complete; in reality, it would be nice, at this point, to load an object
+    that represents all the files I'd want to work with, e.g. the experiment directories class
+    """
+
+    if not os.path.isdir(expt_dir):
+        raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
+
+    # We can use this for now, but of course this is getting messy
+    try:
+        _ = find_metadata(expt_dir)
+        _ = find_regions(expt_dir)
+    except MetadataFormatError as e:
+        raise MetadataFormatError(
+            f"Metadata or regions file issue in experiment directory {expt_dir}: {e}"
+        ) from e
+
+    used_summary_files = None
+    for file_format in [summary_files, legacy_summary_files]:
+        if not os.path.exists(f"{expt_dir}/{file_format.read_mapping}"):
+            continue
+
+        used_summary_files = file_format
+        for file in used_summary_files:
+            if "depth" in file:
+                # depth files are optional
+                continue
+            if "fastq" in file:
+                # fastq files are optional
+                continue
+
+            if not os.path.exists(f"{expt_dir}/{file}"):
+                raise FileNotFoundError(f"Missing '{file}' file in {expt_dir}.")
+
+    if not used_summary_files:
+        raise FileNotFoundError(f"Could not find any summary files in {expt_dir}.")
+
+    # TODO: at the moment we don't require VCFs to be present as we don't use them at the moment
+    # if not os.path.exists(f"{expt_dir}/vcfs"):
+    #     raise FileNotFoundError(f"Could not find VCF directory in {expt_dir}.")
+
+
+def find_metadata(input_dir: str) -> MetadataTableParser:
+    """
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location
+
+    TODO this function is probably not needed anymore, could combine it with get_metadata_csv
+    """
+
+    csv = get_metadata_csv(expt_dir=input_dir)
+    return MetadataTableParser(csv)
+
+
+def get_metadata_csv(expt_dir: str) -> str:
+    """
+    Get the metadata CSV file
+    """
+    # In most cases, should match experiment name
+    metadata_csv = f"{expt_dir}/metadata/{os.path.basename(expt_dir)}.csv"
+    if os.path.exists(metadata_csv):
+        return metadata_csv
+    metadata_csv = glob.glob(f"{expt_dir}/metadata/*.csv")
+    if len(metadata_csv) == 1:
+        return metadata_csv[0]
+    raise ValueError(
+        f"Found {len(metadata_csv)} *.csv files in '{expt_dir}/metadata', cannot determine which is metadata."
+    )
+
+
+def find_regions(input_dir: str) -> RegionBEDParser:
+    """
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location
+
+    TODO: Bad duplication from above, can write inner function
+    """
+
+    metadata_dir = os.path.join(input_dir, "metadata")
+    beds = [
+        f"{metadata_dir}/{file}"
+        for file in os.listdir(metadata_dir)
+        if file.endswith(".bed") and not file.endswith(".lowcomplexity_mask.bed")
+    ]  # TODO: what about no-suffix files?
+
+    if len(beds) != 1:  # Could alternatively load and LOOK
+        raise FileNotFoundError(
+            f"Expected one region BED file (*.bed) at {metadata_dir}, but found {len(beds)}."
+        )
+
+    return RegionBEDParser(beds[0])
