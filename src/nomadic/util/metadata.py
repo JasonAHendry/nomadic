@@ -114,8 +114,14 @@ class MetadataTableParser:
         """
 
         self.path = metadata_path
-        if os.path.splitext(self.path)[1].lower() == ".xlsx":
-            data = pd.read_excel(self.path, sheet_name="nomadic")
+        filetype = os.path.splitext(self.path)[1].lower()
+        if filetype == ".xlsx":
+            xlsx = pd.ExcelFile(self.path)
+            target_sheets = ["nomadic", "rxn_metadata"]
+            sheet_name = next(
+                (s for s in target_sheets if s in xlsx.sheet_names), xlsx.sheet_names[0]
+            )
+            data = pd.read_excel(self.path, sheet_name=sheet_name)
             data.dropna(how="all", inplace=True)
             self.df = data
         else:

@@ -259,7 +259,6 @@ def get_metadata_path(experiment_name, metadata_path, workspace):
         for file in files:
             if os.path.isfile(file):
                 metadata_path = file
-                click.echo(f"Using metadata file: {metadata_path}")
                 break
 
     if metadata_path is None or not os.path.isfile(metadata_path):
