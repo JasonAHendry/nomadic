@@ -2,18 +2,20 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional
+from typing import Union
 
 import click
 
 from nomadic.util import minknow
 from nomadic.util.dirs import produce_dir
 from nomadic.util.settings import load_settings, settings_filepath
+from nomadic.util.ssh import remote_dir_exists, create_remote_dir, is_ssh_target
 from nomadic.util.workspace import Workspace
 
 
 def selective_rsync(
     source_dir: Path,
-    target_dir: Path,
+    target_dir: Union[Path, str],
     exclusions: Optional[list] = None,
     recursive: bool = False,
     delete: bool = False,
@@ -77,7 +79,7 @@ def selective_rsync(
 
 
 def backup_nomadic_workspace(
-    target_dir: Path,
+    target_dir: Union[Path, str],
     workspace: Workspace,
     *,
     checksum: bool = False,
@@ -102,7 +104,7 @@ def backup_nomadic_workspace(
 
 
 def share_nomadic_workspace(
-    target_dir: Path,
+    target_dir: Union[Path, str],
     workspace: Workspace,
     *,
     checksum: bool = False,
@@ -134,7 +136,7 @@ def share_nomadic_workspace(
 
 
 def backup_minknow_data(
-    target_base_dir: Path,
+    target_base_dir: Union[Path, str],
     minknow_base_dir: Path,
     workspace: Workspace,
     *,
@@ -154,7 +156,7 @@ def backup_minknow_data(
 
 
 def share_minknow_data(
-    target_base_dir: Path,
+    target_base_dir: Union[Path, str],
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
@@ -183,7 +185,7 @@ def share_minknow_data(
 
 
 def sync_minknow_data(
-    target_base_dir: Path,
+    target_base_dir: Union[Path, str],
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
@@ -229,8 +231,16 @@ def sync_minknow_data(
                 f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to sync..."
             )
             continue
-        if not target_dir.exists():
-            produce_dir(target_dir)
+        # If target_dir is a Path (local) ensure it exists; for remote targets we can't create it here
+        if isinstance(target_dir, Path):
+            if not target_dir.exists():
+                produce_dir(target_dir)
+        elif is_ssh_target(target_dir):
+            ok, msg = create_remote_dir(target_dir, verbose=verbose)
+            if not ok:
+                raise click.ClickException(
+                    f"Unable to create/verify remote directory '{target_dir}': {msg}"
+                )
 
         if exclusions is None:
             exclusions = []
@@ -248,7 +258,12 @@ def sync_minknow_data(
         )
 
 
-def sync_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
+def sync_status(
+    backup_dir: Union[Path, str],
+    workspace: Workspace,
+    include_minknow: bool,
+    verbose: bool,
+):
     """
     Calculate sync status for all experiments in the workspace.
 
@@ -258,15 +273,37 @@ def sync_status(backup_dir: Path, workspace: Workspace, include_minknow: bool):
     all_backed_up = True
     status_by_exp = defaultdict(list)
     for exp in workspace.get_experiment_names():
+        # If backup_dir is a local Path, we can check existence. If it's a remote target (str) we can't determine status here.
         exp_dir = get_nomadic_target_dir(backup_dir, exp)
-        nomadic_backed_up = exp_dir.exists()
+        if isinstance(exp_dir, Path):
+            nomadic_backed_up = exp_dir.exists()
+        elif is_ssh_target(exp_dir):
+            nomadic_backed_up, msg = remote_dir_exists(exp_dir, verbose=False)
+            if msg and verbose:
+                click.echo(
+                    f"Warning: unable to check exp backup status for experiment {exp}: {msg}"
+                )
+        else:
+            nomadic_backed_up = None
         status_by_exp[exp].append(nomadic_backed_up)
-        if not nomadic_backed_up:
+        if nomadic_backed_up is False:
             all_backed_up = False
         if include_minknow:
-            minknow_backed_up = get_minknow_target_dir(backup_dir, exp).exists()
+            minknow_target = get_minknow_target_dir(backup_dir, exp)
+            if isinstance(minknow_target, Path):
+                minknow_backed_up = minknow_target.exists()
+            elif is_ssh_target(minknow_target):
+                minknow_backed_up, msg = remote_dir_exists(
+                    minknow_target, verbose=verbose
+                )
+                if msg and verbose:
+                    click.echo(
+                        f"Warning: unable to check minknow backup status for experiment {exp}: {msg}"
+                    )
+            else:
+                minknow_backed_up = None
             status_by_exp[exp].append(minknow_backed_up)
-            if not minknow_backed_up:
+            if minknow_backed_up is False:
                 all_backed_up = False
     return all_backed_up, status_by_exp
 
@@ -302,15 +339,20 @@ def print_rsync_experiment_summary(exp, *, statuses, reasons):
     Prints the rsync status line for a single experiment
     """
     if len(statuses) > 0:
-        if statuses[0]:
+        if statuses[0] is True:
             click.echo(click.style("✓", fg="green"), nl=False)
-        else:
+        elif statuses[0] is False:
             click.echo(click.style("✗", fg="red"), nl=False)
+        else:
+            # Unknown (remote targets)
+            click.echo(click.style("?", fg="yellow"), nl=False)
     if len(statuses) > 1:
-        if statuses[1]:
+        if statuses[1] is True:
             click.echo(click.style("✓", fg="green"), nl=False)
-        else:
+        elif statuses[1] is False:
             click.echo(click.style("✗", fg="red"), nl=False)
+        else:
+            click.echo(click.style("?", fg="yellow"), nl=False)
     click.echo(click.style(f" {exp} "), nl=False)
     if reasons is not None:
         click.echo(click.style(",".join(reasons), fg="red"), nl=True)
@@ -318,9 +360,14 @@ def print_rsync_experiment_summary(exp, *, statuses, reasons):
         click.echo()
 
 
-def get_minknow_target_dir(dir, exp):
-    return dir / "minknow" / exp
+def get_minknow_target_dir(dir: Union[Path, str], exp: str):
+    if isinstance(dir, Path):
+        return dir / "minknow" / exp
+    # assume string remote target like user@host:/path
+    return f"{dir.rstrip('/')}/minknow/{exp}"
 
 
-def get_nomadic_target_dir(dir, exp):
-    return dir / "results" / exp
+def get_nomadic_target_dir(dir: Union[Path, str], exp: str):
+    if isinstance(dir, Path):
+        return dir / "results" / exp
+    return f"{dir.rstrip('/')}/results/{exp}"

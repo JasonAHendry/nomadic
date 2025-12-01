@@ -3,13 +3,14 @@ from pathlib import Path
 
 import click
 
-from nomadic.util.cli import load_default_function_for
-from nomadic.util.rsync import (
+from nomadic.util.cli import load_default_function_for, validate_target
+from nomadic.util.sync import (
     print_sync_summary,
     sync_status,
     share_minknow_data,
     share_nomadic_workspace,
 )
+from nomadic.util.ssh import is_ssh_target
 from nomadic.util.workspace import Workspace, check_if_workspace
 
 
@@ -31,9 +32,13 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     "-t",
     "--target_dir",
     "target_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    type=str,
     required=True,
-    help="Path to target folder. The shared files will go inside of that folder into a folder with the name of the workspace.",
+    help=(
+        "Path to target folder, local or an SSH target like user@host:/path. "
+        "The shared files will go inside of that folder into a folder with the name of the workspace."
+    ),
+    callback=validate_target,
 )
 @click.option(
     "-k",
@@ -76,7 +81,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 @click.pass_context
 def share(
     ctx: click.Context,
-    target_dir: Path,
+    target_dir: Path | str,
     minknow_base_dir: Path,
     include_minknow: bool,
     workspace_path: Path,
@@ -114,8 +119,15 @@ def share(
     workspace = Workspace(str(workspace_path))
     failure_reasons = defaultdict(list)
 
-    # Add workspace name to shared dir so multiple workspaces can be shared to same location
-    target_dir = target_dir / workspace.get_name()
+    if isinstance(target_dir, Path):
+        target_dir = Path(target_dir) / workspace.get_name()
+    elif is_ssh_target(target_dir):
+        target_dir = f"{target_dir.rstrip('/')}/{workspace.get_name()}"
+    else:
+        raise click.BadParameter(
+            param_hint="-t/--target_dir",
+            message=f"Target '{target_dir}' is not a valid local path or SSH target.",
+        )
 
     share_nomadic_workspace(
         target_dir=target_dir,
@@ -139,6 +151,6 @@ def share(
         click.echo("Skipping sharing minknow data as requested.")
 
     all_backed_up, status_by_exp = sync_status(
-        target_dir, workspace, include_minknow=include_minknow
+        target_dir, workspace, include_minknow=include_minknow, verbose=verbose
     )
     print_sync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)

@@ -3,13 +3,14 @@ from pathlib import Path
 
 import click
 
-from nomadic.util.cli import load_default_function_for
-from nomadic.util.rsync import (
+from nomadic.util.cli import load_default_function_for, validate_target
+from nomadic.util.sync import (
     backup_minknow_data,
     backup_nomadic_workspace,
     print_sync_summary,
     sync_status,
 )
+from nomadic.util.ssh import is_ssh_target
 from nomadic.util.workspace import Workspace, check_if_workspace
 
 
@@ -31,9 +32,13 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     "-t",
     "--target_dir",
     "target_dir",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    type=str,
     required=True,
-    help="Path to root target backup folder. The backup will go into target_dir/<workspace_name>.",
+    help=(
+        "Path to root target backup folder, local or an SSH target like user@host:/path. "
+        "The backup will go into <target>/<workspace_name>."
+    ),
+    callback=validate_target,
 )
 @click.option(
     "-k",
@@ -68,7 +73,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 @click.pass_context
 def backup(
     ctx: click.Context,
-    target_dir: Path,
+    target_dir: Path | str,
     workspace_path: Path,
     include_minknow: bool,
     minknow_base_dir: Path,
@@ -103,12 +108,24 @@ def backup(
             )
 
     workspace = Workspace(str(workspace_path))
-    target_dir = target_dir / workspace.get_name()
+
+    if isinstance(target_dir, Path):
+        target_dir = target_dir / workspace.get_name()
+    elif is_ssh_target(target_dir):
+        target_dir = f"{target_dir.rstrip('/')}/{workspace.get_name()}"
+    else:
+        raise click.BadParameter(
+            param_hint="-t/--target_dir",
+            message=f"Target '{target_dir}' is not a valid local path or SSH target.",
+        )
 
     failure_reasons = defaultdict(list)
 
     backup_nomadic_workspace(
-        target_dir=target_dir, workspace=workspace, checksum=checksum, verbose=verbose
+        target_dir=target_dir,
+        workspace=workspace,
+        checksum=checksum,
+        verbose=verbose,
     )
 
     if include_minknow:
@@ -124,6 +141,6 @@ def backup(
         click.echo("Skipping minknow data backup as requested.")
 
     all_backed_up, status_by_exp = sync_status(
-        target_dir, workspace, include_minknow=include_minknow
+        target_dir, workspace, include_minknow=include_minknow, verbose=verbose
     )
     print_sync_summary(all_backed_up, status_by_exp, failure_reasons, include_minknow)
