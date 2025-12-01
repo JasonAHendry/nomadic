@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from nomadic.util.cli import load_default_function_for
 from nomadic.util.rsync import (
     print_sync_summary,
     sync_status,
@@ -13,6 +14,19 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 
 
 @click.command(short_help="Share (lightweight) summary of a workspace.")
+@click.option(
+    "-w",
+    "--workspace",
+    "workspace_path",
+    default="./",
+    show_default="current directory",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    help="Path to the nomadic workspace you want to share",
+)
+@click.option(
+    callback=load_default_function_for("share"),
+    expose_value=False,
+)
 @click.option(
     "-t",
     "--target_dir",
@@ -29,15 +43,6 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     default="/var/lib/minknow/data",
     show_default="/var/lib/minknow/data",
     help="Path to minknow output directory (default it usually sufficient)",
-)
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default="current directory",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    help="Path to the nomadic workspace you want to share",
 )
 @click.option(
     "--include-minknow/--exclude-minknow",
@@ -60,6 +65,14 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     default=False,
     help="Use checksum check instead of file size and modification time.",
 )
+@click.option(
+    "--update/--overwrite",
+    "update",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Update will not overwrite files that are newer.",
+)
 @click.pass_context
 def share(
     ctx: click.Context,
@@ -68,6 +81,7 @@ def share(
     include_minknow: bool,
     workspace_path: Path,
     checksum: bool,
+    update: bool,
     verbose: bool,
 ):
     """
@@ -108,6 +122,7 @@ def share(
         workspace=workspace,
         checksum=checksum,
         verbose=verbose,
+        update=update,
     )
 
     if include_minknow:
@@ -118,6 +133,7 @@ def share(
             failure_reasons=failure_reasons,
             checksum=checksum,
             verbose=verbose,
+            update=update,
         )
     else:
         click.echo("Skipping sharing minknow data as requested.")
