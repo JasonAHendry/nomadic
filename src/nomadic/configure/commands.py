@@ -46,7 +46,7 @@ def share(workspace_path: str, target_dir: Path):
     else:
         config = {}
 
-    set_config_item(config, "share.defaults.target_dir", str(target_dir))
+    set_config_item(config, "share.defaults.target_dir", str(target_dir.resolve()))
 
     write_config(config, config_path)
 
