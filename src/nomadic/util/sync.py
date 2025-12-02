@@ -9,7 +9,7 @@ import click
 from nomadic.util import minknow
 from nomadic.util.dirs import produce_dir
 from nomadic.util.settings import load_settings, settings_filepath
-from nomadic.util.ssh import remote_dir_exists, create_remote_dir, is_ssh_target
+from nomadic.util.ssh import remote_dir_exists, ensure_remote_dir, is_ssh_target
 from nomadic.util.workspace import Workspace
 
 
@@ -231,12 +231,13 @@ def sync_minknow_data(
                 f"   ERROR: {source_dir} does not look like a valid minknow experiment directory, unable to sync..."
             )
             continue
-        # If target_dir is a Path (local) ensure it exists; for remote targets we can't create it here
+
+        # Ensure target dir exists
         if isinstance(target_dir, Path):
             if not target_dir.exists():
                 produce_dir(target_dir)
         elif is_ssh_target(target_dir):
-            ok, msg = create_remote_dir(target_dir, verbose=verbose)
+            ok, msg = ensure_remote_dir(target_dir, verbose=verbose)
             if not ok:
                 raise click.ClickException(
                     f"Unable to create/verify remote directory '{target_dir}': {msg}"
