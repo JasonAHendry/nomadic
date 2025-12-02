@@ -109,6 +109,7 @@ def backup(
 
     workspace = Workspace(str(workspace_path))
 
+    # Add workspace name to shared dir so multiple workspaces can be shared to same location
     if isinstance(target_dir, Path):
         target_dir = target_dir / workspace.get_name()
     elif is_ssh_target(target_dir):

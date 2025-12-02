@@ -6,19 +6,21 @@ import click
 
 
 def is_ssh_target(s: str) -> bool:
+    """Checks if a string is an SSH target of the form user@host:/path or host:/path."""
     # matches user@host:/path or host:/path
     return re.match(r"^(?:[^@:\\s]+@)?[^@:\\s]+:/", s) is not None
 
 
 def split_ssh_target(t: str) -> tuple[str, str]:
-    # split into 'user@host' and '/absolute/path'
+    """Splits an SSH target into (user@host, /absolute/path)."""
     idx = t.find(":")
     host = t[:idx]
     path = t[idx + 1 :]
     return host, path
 
 
-def create_remote_dir(ssh_target: str, verbose: bool = False) -> tuple[bool, str]:
+def ensure_remote_dir(ssh_target: str, verbose: bool = False) -> tuple[bool, str]:
+    """Creates a remote directory on an SSH target if it does not exist."""
     host, path = split_ssh_target(ssh_target)
     # make sure path is absolute
     if not path.startswith("/"):
