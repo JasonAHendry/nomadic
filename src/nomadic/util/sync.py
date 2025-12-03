@@ -2,7 +2,6 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path
 from typing import Optional
-from typing import Union
 
 import click
 
@@ -15,7 +14,7 @@ from nomadic.util.workspace import Workspace
 
 def selective_rsync(
     source_dir: Path,
-    target_dir: Union[Path, str],
+    target_dir: Path | str,
     exclusions: Optional[list] = None,
     recursive: bool = False,
     delete: bool = False,
@@ -79,7 +78,7 @@ def selective_rsync(
 
 
 def backup_nomadic_workspace(
-    target_dir: Union[Path, str],
+    target_dir: Path | str,
     workspace: Workspace,
     *,
     checksum: bool = False,
@@ -104,7 +103,7 @@ def backup_nomadic_workspace(
 
 
 def share_nomadic_workspace(
-    target_dir: Union[Path, str],
+    target_dir: Path | str,
     workspace: Workspace,
     *,
     checksum: bool = False,
@@ -136,7 +135,7 @@ def share_nomadic_workspace(
 
 
 def backup_minknow_data(
-    target_base_dir: Union[Path, str],
+    target_base_dir: Path | str,
     minknow_base_dir: Path,
     workspace: Workspace,
     *,
@@ -156,7 +155,7 @@ def backup_minknow_data(
 
 
 def share_minknow_data(
-    target_base_dir: Union[Path, str],
+    target_base_dir: Path | str,
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
@@ -185,7 +184,7 @@ def share_minknow_data(
 
 
 def sync_minknow_data(
-    target_base_dir: Union[Path, str],
+    target_base_dir: Path | str,
     minknow_base_dir: Path,
     workspace: Workspace,
     failure_reasons: dict[str, list[str]],
@@ -260,7 +259,7 @@ def sync_minknow_data(
 
 
 def sync_status(
-    backup_dir: Union[Path, str],
+    backup_dir: Path | str,
     workspace: Workspace,
     include_minknow: bool,
     verbose: bool,
@@ -361,14 +360,14 @@ def print_rsync_experiment_summary(exp, *, statuses, reasons):
         click.echo()
 
 
-def get_minknow_target_dir(dir: Union[Path, str], exp: str):
+def get_minknow_target_dir(dir: Path | str, exp: str):
     if isinstance(dir, Path):
         return dir / "minknow" / exp
     # assume string remote target like user@host:/path
     return f"{dir.rstrip('/')}/minknow/{exp}"
 
 
-def get_nomadic_target_dir(dir: Union[Path, str], exp: str):
+def get_nomadic_target_dir(dir: Path | str, exp: str):
     if isinstance(dir, Path):
         return dir / "results" / exp
     return f"{dir.rstrip('/')}/results/{exp}"
