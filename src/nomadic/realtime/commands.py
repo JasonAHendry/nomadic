@@ -68,7 +68,7 @@ from nomadic.util.workspace import (
     "-m",
     "--metadata_path",
     type=click.Path(exists=True, dir_okay=False, file_okay=True),
-    help="Path to metadata file (CSV or XLSX) containing barcode and sample information.",
+    help="Path to metadata file (CSV or XLSX (Excel)) containing barcode and sample information.",
     show_default="<workspace>/metadata/<experiment_name>.csv",
 )
 @click.option(
