@@ -12,7 +12,6 @@ import pandas as pd
 
 from nomadic.summarize.compute import compute_variant_prevalence
 
-# from importlib.resources import files, as_file
 from nomadic.summarize.dashboard.components import (
     AmpliconsBarplot,
     GeneDeletionsBarplot,
@@ -61,14 +60,6 @@ class SummaryDashboardBuilder(ABC):
 
         return app
 
-    # def _gen_timer(self, name, speed):
-    #     """
-    #     Generate the timer which is a feature of all real-time dashboards
-
-    #     """
-
-    #     return dcc.Interval(id=name, interval=speed, n_intervals=0)
-
     def run(self, in_thread: bool = False, **kwargs):
         """
         Run the dashboard
@@ -100,8 +91,7 @@ class SummaryDashboardBuilder(ABC):
 
     def _add_throughput_banner(self, throughput_csv: str) -> None:
         """
-        Add a banner which shows the logo and summarise the number of FASTQ files
-        processed
+        Add a banner which shows the logo and summarise the number of samples processed.
 
         """
 
@@ -121,7 +111,7 @@ class SummaryDashboardBuilder(ABC):
 
     def _add_samples(self, samples_csv: str, samples_amplicons_csv: str) -> None:
         """
-        Add a panel that shows progress of samples
+        Add a panel that shows progress of samples sequenced
 
         """
         self.samples = SamplesPie(
@@ -210,7 +200,7 @@ class SummaryDashboardBuilder(ABC):
             clearable=False,
         )
 
-        cols = cols_to_group_by(master_csv, analysis_csv, 10)
+        cols = cols_to_group_by(master_csv, analysis_csv, max_cat=10)
 
         dropdown_by = dcc.Dropdown(
             id="prevalence-dropdown-by",
@@ -274,7 +264,7 @@ class SummaryDashboardBuilder(ABC):
             clearable=False,
         )
 
-        cols = cols_to_group_by(master_csv, analysis_csv, 50)
+        cols = cols_to_group_by(master_csv, analysis_csv, max_cat=50)
 
         if not cols:
             # Nothing to show
@@ -334,7 +324,7 @@ class SummaryDashboardBuilder(ABC):
 
         """
 
-        cols = cols_to_group_by(master_csv, gene_deletions_csv, 50)
+        cols = cols_to_group_by(master_csv, gene_deletions_csv, max_cat=50)
 
         dropdown_by = dcc.Dropdown(
             id="gene-deletions-dropdown-by",
@@ -577,7 +567,7 @@ def setup_translations():
     i18n.set("locale", "en")
 
 
-def cols_to_group_by(master_csv: str, analysis_csv, max_cat: int) -> list[str]:
+def cols_to_group_by(master_csv: str, analysis_csv, *, max_cat: int) -> list[str]:
     """
     Get columns that can be used to group prevalence by
 

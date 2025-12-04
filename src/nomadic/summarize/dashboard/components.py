@@ -472,11 +472,6 @@ class PrevalenceBarplot(SummaryDashboardComponent):
                 plot_df = compute_variant_prevalence_per(
                     analysis_df, self.master_df, [by]
                 )
-                # if "_" in by:
-                #     # we need to create this column
-                #     plot_df[by] = (
-                #         plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
-                #     )
             plot_df.sort_values(["gene", "chrom", "pos"], inplace=True)
 
             data = []
@@ -709,11 +704,6 @@ class GeneDeletionsBarplot(SummaryDashboardComponent):
                 plot_df = gene_deletion_prevalence_by(
                     self.gene_deletions_df, self.master_df, [by]
                 )
-                # if "_" in by:
-                #     # we need to create this column
-                #     plot_df[by] = (
-                #         plot_df[by.split("_")].astype(str).agg("_".join, axis=1)
-                #     )
             data = []
             htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
 
@@ -998,8 +988,6 @@ class MapComponent(SummaryDashboardComponent):
             fig.update_layout(
                 mapbox_style="carto-positron",
                 mapbox=dict(
-                    # center=dict(lat=-13.133897, lon=27.849332),  # Center of Zambia
-                    # center=dict(lat=12.3787, lon=-1.5328),  # Center of Burkina Faso
                     center=dict(lat=self.map_center[0], lon=self.map_center[1])
                     if self.map_center is not None
                     else None,

@@ -7,6 +7,7 @@ variants_group_columns = [
     "chrom",
     "pos",
     # "ref",
+    # The alt might differ for multiallelic sites
     # "alt",
     "aa_change",
     "aa_pos",
@@ -16,6 +17,14 @@ variants_group_columns = [
 
 
 def filter_false_positives(variants_df: pd.DataFrame):
+    """Filter out likely false positive variant calls.
+
+    Removes variants where only one mutation is called and the
+    maximum WSAF is below 15%.
+    """
+    N_MUT = 1
+    WSAF_CUTOFF = 0.15
+
     mut = variants_df[variants_df["gt_int"].isin([1, 2])]
     df = variants_df.merge(
         mut.groupby(variants_group_columns).agg(
@@ -23,7 +32,7 @@ def filter_false_positives(variants_df: pd.DataFrame):
         ),
         on=variants_group_columns,
     )
-    df = df[~(df["n_mut"].le(1) & df["wsaf_max"].lt(0.15))].drop(
+    df = df[~(df["n_mut"].le(N_MUT) & df["wsaf_max"].lt(WSAF_CUTOFF))].drop(
         columns=["n_mut", "wsaf_max"]
     )
     return df
@@ -32,10 +41,6 @@ def filter_false_positives(variants_df: pd.DataFrame):
 def compute_variant_prevalence(variants_df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute the prevalence of each mutation in `variants_df`
-
-    Assumes columns several columns exist; compute across all samples
-    in data;
-
     """
 
     prev_df = (
@@ -77,11 +82,8 @@ def compute_variant_prevalence_per(
     variants_df, master_df, fields: list[str]
 ) -> pd.DataFrame:
     """
-    Compute the prevalence of each mutation in `variants_df`
-
-    Assumes columns several columns exist; compute across all samples
-    in data;
-
+    Compute the prevalence of each mutation in `variants_df` and groups by `fields`
+    from `master_df`.
     """
     variants_df = variants_df.merge(
         master_df[["sample_id", *fields]], on="sample_id", how="left"

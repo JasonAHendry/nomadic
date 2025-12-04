@@ -613,9 +613,9 @@ def main(
     throughput_df = compute_throughput(inventory_metadata)
     log.info(f"  Positive controls: {throughput_df.loc['pos', 'All']}")
     log.info(f"  Negative controls: {throughput_df.loc['neg', 'All']}")
-    log.info(f"  Field samples (total): {throughput_df.loc['field', 'All']}")
+    log.info(f"  Fields samples sequenced (total): {throughput_df.loc['field', 'All']}")
     log.info(f"  Field samples (unique): {throughput_df.loc['field_unique', 'All']}")
-    log.info(f"  Unknown (excluded): {len(unknown_samples)}")
+    log.info(f"  Unknown samples (excluded): {len(unknown_samples)}")
     throughput_df.to_csv(f"{output_dir}/summary.throughput.csv", index=True)
 
     # Now let's evaluate coverage
