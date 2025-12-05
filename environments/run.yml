@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python >= 3.10 
+  - python >= 3.10
   - minimap2
   - samtools >=1.20
   - bcftools >=1.20
@@ -19,5 +19,6 @@ dependencies:
   - platformdirs
   - pyyaml
   - i18nice
+  - pydantic
   - pip
   - rsync

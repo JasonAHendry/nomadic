@@ -35,6 +35,7 @@ requirements:
     - pysam
     - pyyaml
     - i18nice
+    - pydantic
     # tools
     - minimap2
     - samtools >=1.20
