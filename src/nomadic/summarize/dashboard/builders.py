@@ -4,6 +4,7 @@ import logging
 import os
 import threading
 from abc import ABC, abstractmethod
+import webbrowser
 from dash import Dash, html, dcc
 
 from i18n import t
@@ -60,7 +61,7 @@ class SummaryDashboardBuilder(ABC):
 
         return app
 
-    def run(self, in_thread: bool = False, **kwargs):
+    def run(self, in_thread: bool = False, auto_open: bool = True, **kwargs):
         """
         Run the dashboard
 
@@ -74,6 +75,11 @@ class SummaryDashboardBuilder(ABC):
             component.callback(app)
 
         app.layout = html.Div(id="overall", children=self.layout)
+
+        if auto_open:
+            threading.Timer(
+                1, webbrowser.open, kwargs=dict(url="http://127.0.0.1:8050")
+            ).start()
 
         if in_thread:
             dashboard_thread = threading.Thread(

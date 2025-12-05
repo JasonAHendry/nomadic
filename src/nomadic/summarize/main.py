@@ -1,7 +1,6 @@
 import os
 from typing import Iterable, Optional
 from warnings import warn
-import webbrowser
 from enum import StrEnum, auto
 from pathlib import Path
 
@@ -686,9 +685,7 @@ def main(
         print("Launching dashboard (press CNTRL+C to exit):")
         print("")
         debug = bool(os.getenv("NOMADIC_DEBUG"))
-        if not debug:
-            webbrowser.open("http://127.0.0.1:8050")
-        dashboard.run(debug=debug)
+        dashboard.run(debug=debug, auto_open=not debug)
 
     # CHECKPOINT 2:
     # summary.quality_control.by_amplicon.csv
