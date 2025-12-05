@@ -689,38 +689,3 @@ def main(
         print("")
         debug = bool(os.getenv("NOMADIC_DEBUG"))
         dashboard.run(debug=debug, auto_open=not debug)
-
-    # CHECKPOINT 2:
-    # summary.quality_control.by_amplicon.csv
-    # summary.quality_control.by_experiment.csv
-    # -> the .by_amplicon.csv we use...
-    # -> Some visualisations and statistics on these tables
-
-    # PART 3: Mutation prevalence
-    # -> In future versions, will change
-
-    # 3a. get the data and filter to passing
-    # Load the variants for each experiment
-
-    # Get the unique mutations
-
-    # Use this to make sure every sample has all mutations
-
-    # Merge with the sumary.quality_control.by_amplicon.csv table!
-    # REDUCE to the set of amplicons we use for analysis
-    # -> Limit to passing
-    # -> Limit to missense mutations
-
-    # 3b. Nice analysis to compute the prevalence by site
-    # Idea would be to do country-wide prevalence for each bar;
-    # but then partition the bar by the SITE
-    # Then if I pick a site, just show the prevalence there.
-
-    # CHECKPOINT 3:
-    # summary.variants_prevalence.by_site.csv
-    #
-
-    # PART 4: Mapping
-    # -> Simple: input the summary.variants_prevalence.by_site.csv
-    # -> Load hte site data, if we have it;
-    # plot
