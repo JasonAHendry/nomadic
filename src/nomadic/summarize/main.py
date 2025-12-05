@@ -63,14 +63,17 @@ def compute_throughput(metadata: pd.DataFrame, add_unique: bool = True) -> pd.Da
     """
 
     throughput_df = pd.crosstab(
-        metadata["sample_type"], metadata["expt_name"], margins="All"
+        metadata["sample_type"], metadata["expt_name"], margins=True
     )
 
     if add_unique:
         um = metadata.drop_duplicates("sample_id")
         throughput_df.loc["field_unique"] = pd.crosstab(
-            um["sample_type"], um["expt_name"], margins="All"
+            um["sample_type"], um["expt_name"], margins=True
         ).loc["field"]
+
+    throughput_df.fillna(0, inplace=True)
+    throughput_df = throughput_df.astype(int)
 
     return throughput_df
 

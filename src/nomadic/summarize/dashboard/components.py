@@ -92,7 +92,18 @@ class ThroughputSummary(SummaryDashboardComponent):
 
     def __init__(self, summary_name: str, throughput_csv: str, component_id: str):
         self.throughput_csv = throughput_csv
-        self.throughput_df = pd.read_csv(throughput_csv, index_col="sample_type")
+
+        # Read header only
+        df_header = pd.read_csv(throughput_csv, nrows=0)
+        dtypes: dict[str, type[str] | type[int]] = {
+            col: int for col in df_header.columns
+        }
+
+        dtypes["sample_type"] = str
+
+        self.throughput_df = pd.read_csv(
+            throughput_csv, index_col="sample_type", dtype=dtypes
+        )
         super().__init__(summary_name, component_id)
 
     def _define_layout(self):
