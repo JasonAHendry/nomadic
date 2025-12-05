@@ -166,26 +166,9 @@ class MetadataTableParser:
 
     # If the required columns are not found, try these alternative names, case insensitive
     ALTERNATIVE_NAMES = {
-        "barcode": ["barcodes"],
-        "sample_id": [
-            "sample",
-            "sampleid",
-            "sample-id",
-            "sample_id",
-            "sampleids",
-            "sample-ids",
-            "sample_ids",
-            "sample id",
-            "sample ids",
-        ],
-        "sample_type": [
-            "sampletype",
-            "sample-type",
-            "sample type",
-            "sampletypes",
-            "sample-types",
-            "sample types",
-        ],
+        "barcode": r"barcode[s]?",
+        "sample_id": r"sample[s]?[\-\_\s]?(id[s]?)?",
+        "sample_type": r"sample[s]?[\-\_\s]?(type[s]?)?",
     }
 
     def __init__(self, metadata_csv: str, include_unclassified: bool = True):
@@ -226,13 +209,12 @@ class MetadataTableParser:
 
         for required_column in self.REQUIRED_COLUMNS:
             if required_column not in self.df.columns:
-                for alt in [
-                    required_column,
-                    *self.ALTERNATIVE_NAMES.get(required_column, []),
-                ]:
-                    if alt in normalized_column_names:
+                for normalized_column in normalized_column_names:
+                    if re.fullmatch(
+                        self.ALTERNATIVE_NAMES[required_column], normalized_column
+                    ):
                         column_name = self.df.columns[
-                            normalized_column_names.index(alt)
+                            normalized_column_names.index(normalized_column)
                         ]
                         warnings.warn(
                             f"Using column '{column_name}' as '{required_column}' in metadata CSV."
