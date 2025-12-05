@@ -63,6 +63,20 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     default=False,
     help="If set, no master metadata CSV needs to be provided. This is not recommended, as it's better to be explicit about the samples to be included, but it can be used to quickly get an overview of the data in the workspace.",
 )
+@click.option(
+    "--qc-min-coverage",
+    type=int,
+    default=50,
+    show_default=True,
+    help="Minimum coverage threshold for quality control. Amplicons with less than this coverage will be marked as low coverage.",
+)
+@click.option(
+    "--qc-max-contam",
+    type=float,
+    default=0.1,
+    show_default=True,
+    help="Maximum contamination fraction for quality control. Samples with contamination above this fraction will be marked as contaminated. Contamination is defined as the mean coverage of negative controls being more than this fraction of the sample coverage.",
+)
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
@@ -72,6 +86,8 @@ def summarize(
     prevalence_by: tuple[str],
     settings_file: Path,
     no_master_metadata: bool,
+    qc_min_coverage: int,
+    qc_max_contam: float,
 ):
     """
     Summarize a set of experiments to evaluate quality control and
@@ -115,6 +131,8 @@ def summarize(
             show_dashboard=dashboard,
             prevalence_by=list(prevalence_by),
             no_master_metadata=no_master_metadata,
+            qc_min_coverage=qc_min_coverage,
+            qc_max_contam=qc_max_contam,
         )
     except MetadataFormatError as e:
         raise click.BadParameter(

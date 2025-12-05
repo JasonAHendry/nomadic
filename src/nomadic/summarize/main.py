@@ -412,6 +412,8 @@ def main(
     show_dashboard: bool = True,
     prevalence_by: list[str],
     no_master_metadata: bool = False,
+    qc_min_coverage: int,
+    qc_max_contam: float,
 ) -> None:
     """
     Define the main function for the summary analysis
@@ -543,10 +545,8 @@ def main(
 
     # Now let's evaluate coverage
     coverage_df = get_region_coverage_dataframe(expt_dirs, inventory_metadata)
-    MIN_COV = 50
-    MAX_CONTAM = 0.1
     calc_quality_control_columns(
-        coverage_df, min_coverage=MIN_COV, max_contam=MAX_CONTAM
+        coverage_df, min_coverage=qc_min_coverage, max_contam=qc_max_contam
     )
 
     log.info("Amplicon-Sample QC Statistics:")
@@ -555,8 +555,12 @@ def main(
     n_lowcov = field_coverage_df["fail_lowcov"].sum()
     n_contam = field_coverage_df["fail_contam"].sum()
     n_pass = field_coverage_df["passing"].sum()
-    log.info(f"  Coverage below <{MIN_COV}x: {n_lowcov} ({100 * n_lowcov / n:.2f}%)")
-    log.info(f"  Contamination >{MAX_CONTAM}: {n_contam} ({100 * n_contam / n:.2f}%)")
+    log.info(
+        f"  Coverage below <{qc_min_coverage}x: {n_lowcov} ({100 * n_lowcov / n:.2f}%)"
+    )
+    log.info(
+        f"  Contamination >{qc_max_contam}: {n_contam} ({100 * n_contam / n:.2f}%)"
+    )
     log.info(f"  Passing QC: {n_pass} ({100 * n_pass / n:.2f}%)")
     add_quality_control_status_column(coverage_df)
     log.info(str(coverage_df["status"].value_counts()))
