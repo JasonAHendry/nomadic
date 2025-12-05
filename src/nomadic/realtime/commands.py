@@ -11,7 +11,11 @@ from nomadic.util.cli import (
     complete_experiment_name,
     load_default_function_for,
 )
-from nomadic.util.config import default_config_path, load_config
+from nomadic.util.config import (
+    default_config_path,
+    get_nested_config_value,
+    load_config,
+)
 from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import (
     Workspace,
@@ -242,10 +246,11 @@ def get_metadata_path(experiment_name, metadata_path, workspace):
         ]
 
         config_path = os.path.join(workspace.path, default_config_path)
-        shared_folder = (
-            load_config(config_path).get("defaults", None).get("shared_folder", None)
+        shared_folder = get_nested_config_value(
+            load_config(config_path), ["share", "defaults", "target_dir"]
         )
         if shared_folder is not None:
+            click.echo(f"Found shared folder ({shared_folder})...")
             stub = os.path.join(
                 shared_folder, workspace.get_name(), "metadata", f"{experiment_name}"
             )
@@ -262,10 +267,11 @@ def get_metadata_path(experiment_name, metadata_path, workspace):
                 break
 
     if metadata_path is None or not os.path.isfile(metadata_path):
-        raise click.BadParameter(
-            message=f"Metadata file not found. Did you create your metadata file in `{workspace.get_metadata_dir()}` and does the name match `{experiment_name}`?",
-        )
-
+        msg = f"Metadata file not found. Did you create your metadata file in `{workspace.get_metadata_dir()}`"
+        if shared_folder:
+            msg += f", or in `{shared_folder}`"
+        msg += f", and does the name match `{experiment_name}`?"
+        raise click.BadParameter(message=msg)
     return metadata_path
 
 
