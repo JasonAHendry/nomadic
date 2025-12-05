@@ -1,6 +1,95 @@
-import pandas as pd
+import enum
 
+import pandas as pd
 from statsmodels.stats.proportion import proportion_confint
+
+
+class Status(enum.Enum):
+    PASSING = "passing"
+    FAILING = "failing"
+    NOT_SEQUENCED = "not_sequenced"
+
+
+def calc_samples_summary(
+    master_metadata_df: pd.DataFrame, replicates_qc_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Calculates a summary of which samples have how many replicates that are passing or failing,
+    and if it has at least one passing replicate, it is concidered as passing.
+
+    This can be used to get a list of to be resequenced samples.
+    """
+    samples_summary_df = (
+        replicates_qc_df.groupby(["sample_id"])
+        .agg(
+            n_replicates=pd.NamedAgg("barcode", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+        )
+        .reset_index()
+    )
+    samples_summary_df = (
+        samples_summary_df.merge(
+            master_metadata_df[["sample_id"]], how="right", on="sample_id"
+        )
+        .fillna({"n_replicates": 0, "n_passing": 0})
+        .astype({"n_replicates": int, "n_passing": int})
+    )
+    samples_summary_df["status"] = samples_summary_df.apply(
+        lambda row: Status.PASSING.value
+        if row["n_passing"] > 0
+        else Status.FAILING.value
+        if row["n_replicates"] > 0
+        else Status.NOT_SEQUENCED.value,
+        axis=1,
+    )
+    samples_summary_df.sort_values(
+        by=["n_passing", "n_replicates", "sample_id"],
+        inplace=True,
+        ascending=[False, False, True],
+    )
+
+    return samples_summary_df
+
+
+def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
+    """
+    Calculates a summary of which samples have how many replicates per amplicon that are passing or failing,
+    and if it has at least one passing replicate over that amplicon, it is concidered as passing.
+
+    This can be used to understand if there are certain amplicons of samples that have no coverage yet
+    and make decisions on resampling, that are more fine granular than per sample.
+    """
+    samples_by_amplicons_summary_df = (
+        replicates_amplicon_qc_df.groupby(["sample_id", "name"])
+        .agg(
+            n_replicates=pd.NamedAgg("barcode", "count"),
+            n_passing=pd.NamedAgg("passing", "sum"),
+        )
+        .reset_index()
+    )
+    samples_by_amplicons_summary_df = (
+        samples_by_amplicons_summary_df.merge(
+            master_metadata[["sample_id"]], how="right", on="sample_id"
+        )
+        .fillna({"n_replicates": 0, "n_passing": 0})
+        .astype({"n_replicates": int, "n_passing": int})
+    )
+    samples_by_amplicons_summary_df["status"] = samples_by_amplicons_summary_df.apply(
+        lambda row: Status.PASSING.value
+        if row["n_passing"] > 0
+        else Status.FAILING.value
+        if row["n_replicates"] > 0
+        else Status.NOT_SEQUENCED.value,
+        axis=1,
+    )
+    samples_by_amplicons_summary_df.sort_values(
+        by=["n_passing", "n_replicates", "sample_id"],
+        inplace=True,
+        ascending=[False, False, True],
+    )
+
+    return samples_by_amplicons_summary_df
+
 
 variants_group_columns = [
     "gene",

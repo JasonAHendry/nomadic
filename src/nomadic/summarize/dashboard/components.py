@@ -11,6 +11,7 @@ from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 
 from nomadic.summarize.compute import (
+    Status,
     compute_variant_prevalence,
     compute_variant_prevalence_per,
     gene_deletion_prevalence_by,
@@ -134,9 +135,9 @@ class ThroughputSummary(SummaryDashboardComponent):
 
 
 SAMPLE_COLORS = {
-    "missing": "#636EFA",
-    "failing": "#EF553B",
-    "passing": "#00CC96",
+    Status.NOT_SEQUENCED.value: "#636EFA",
+    Status.FAILING.value: "#EF553B",
+    Status.PASSING.value: "#00CC96",
 }
 
 
@@ -168,7 +169,7 @@ class SamplesPie(SummaryDashboardComponent):
             data=[
                 go.Pie(
                     values=self.df.values,
-                    labels=self.df.index,
+                    labels=[t(label) for label in self.df.index],
                     sort=False,
                     hole=0.3,
                     textinfo="label+percent+value",
@@ -212,19 +213,21 @@ class AmpliconsBarplot(SummaryDashboardComponent):
         df = pd.read_csv(samples_amplicons_csv)
         # Store inputs
         plot_df = pd.crosstab(df["name"], df["status"])
-        n_missing = (df["status"] == "missing").sum()
-        missing = [n_missing] * len(plot_df.index)
+        n_not_sequenced = (df["status"] == Status.NOT_SEQUENCED.value).sum()
+        not_sequenced = [n_not_sequenced] * len(plot_df.index)
         # Generate figure
         fig = go.Figure(
             data=[
                 go.Bar(
                     x=plot_df.index,
-                    y=missing if column == "missing" else plot_df[column],
+                    y=not_sequenced
+                    if status == Status.NOT_SEQUENCED
+                    else plot_df[status.value],
                     texttemplate="%{y}",
-                    name=column,
-                    marker=dict(color=SAMPLE_COLORS[column]),
+                    name=t(status.value),
+                    marker=dict(color=SAMPLE_COLORS[status.value]),
                 )
-                for column in ["passing", "failing", "missing"]
+                for status in Status
             ]
         )
 

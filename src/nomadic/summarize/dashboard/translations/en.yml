@@ -1,4 +1,7 @@
 en:
+  passing: "Passing QC"
+  failing: "Failing QC"
+  not_sequenced: "Not sequenced"
   mean_cov_field: "Mean coverage field samples"
   mean_cov_neg: "Mean coverage negative controls"
   per_field_passing: "Field samples passing QC (%%)"

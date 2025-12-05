@@ -12,6 +12,8 @@ from nomadic.dashboard.main import (
     find_regions,
 )
 from nomadic.summarize.compute import (
+    calc_amplicons_summary,
+    calc_samples_summary,
     compute_variant_prevalence,
     compute_variant_prevalence_per,
     filter_false_positives,
@@ -361,87 +363,6 @@ def load_and_concat_variants(expt_dirs: list[str]) -> pd.DataFrame:
         full_variant_dfs.append(mdf)
 
     return pd.concat(full_variant_dfs)
-
-
-def calc_samples_summary(
-    master_metadata_df: pd.DataFrame, replicates_qc_df: pd.DataFrame
-) -> pd.DataFrame:
-    """
-    Calculates a summary of which samples have how many replicates that are passing or failing,
-    and if it has at least one passing replicate, it is concidered as passing.
-
-    This can be used to get a list of to be resequenced samples.
-    """
-    samples_summary_df = (
-        replicates_qc_df.groupby(["sample_id"])
-        .agg(
-            n_replicates=pd.NamedAgg("barcode", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-        )
-        .reset_index()
-    )
-    samples_summary_df = (
-        samples_summary_df.merge(
-            master_metadata_df[["sample_id"]], how="right", on="sample_id"
-        )
-        .fillna({"n_replicates": 0, "n_passing": 0})
-        .astype({"n_replicates": int, "n_passing": int})
-    )
-    samples_summary_df["status"] = samples_summary_df.apply(
-        lambda row: "passing"
-        if row["n_passing"] > 0
-        else "failing"
-        if row["n_replicates"] > 0
-        else "missing",
-        axis=1,
-    )
-    samples_summary_df.sort_values(
-        by=["n_passing", "n_replicates", "sample_id"],
-        inplace=True,
-        ascending=[False, False, True],
-    )
-
-    return samples_summary_df
-
-
-def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
-    """
-    Calculates a summary of which samples have how many replicates per amplicon that are passing or failing,
-    and if it has at least one passing replicate over that amplicon, it is concidered as passing.
-
-    This can be used to understand if there are certain amplicons of samples that have no coverage yet
-    and make decisions on resampling, that are more fine granular than per sample.
-    """
-    samples_by_amplicons_summary_df = (
-        replicates_amplicon_qc_df.groupby(["sample_id", "name"])
-        .agg(
-            n_replicates=pd.NamedAgg("barcode", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-        )
-        .reset_index()
-    )
-    samples_by_amplicons_summary_df = (
-        samples_by_amplicons_summary_df.merge(
-            master_metadata[["sample_id"]], how="right", on="sample_id"
-        )
-        .fillna({"n_replicates": 0, "n_passing": 0})
-        .astype({"n_replicates": int, "n_passing": int})
-    )
-    samples_by_amplicons_summary_df["status"] = samples_by_amplicons_summary_df.apply(
-        lambda row: "passing"
-        if row["n_passing"] > 0
-        else "failing"
-        if row["n_replicates"] > 0
-        else "missing",
-        axis=1,
-    )
-    samples_by_amplicons_summary_df.sort_values(
-        by=["n_passing", "n_replicates", "sample_id"],
-        inplace=True,
-        ascending=[False, False, True],
-    )
-
-    return samples_by_amplicons_summary_df
 
 
 def replicates_qc(
