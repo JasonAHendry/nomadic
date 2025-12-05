@@ -407,7 +407,7 @@ def main(
     *,
     expt_dirs: tuple[str],
     summary_name: str,
-    meta_data_path: Optional[Path],
+    metadata_path: Optional[Path],
     settings_file_path: Path,
     show_dashboard: bool = True,
     prevalence_by: list[str],
@@ -427,7 +427,7 @@ def main(
 
     """
 
-    assert (meta_data_path is not None) or no_master_metadata
+    assert (metadata_path is not None) or no_master_metadata
 
     output_dir = produce_dir(
         "summaries", summary_name
@@ -438,7 +438,7 @@ def main(
     log.info("Input parameters:")
     log.info(f"  Summary Name: {summary_name}")
     if not no_master_metadata:
-        log.info(f"  Master metadata: {meta_data_path}")
+        log.info(f"  Master metadata: {metadata_path}")
     else:
         log.info("  No master metadata will be used.")
     log.info(f"  Setting file: {settings_file_path}")
@@ -480,8 +480,8 @@ def main(
     shared_columns.difference_update(fixed_columns)
     # for now we use the master metadata file
     inventory_metadata = pd.concat([df[fixed_columns] for df in dfs])
-    if meta_data_path is not None and not no_master_metadata:
-        master_metadata = pd.read_csv(meta_data_path).rename(
+    if metadata_path is not None and not no_master_metadata:
+        master_metadata = pd.read_csv(metadata_path).rename(
             columns=get_master_columns_mapping(settings)
         )
     else:

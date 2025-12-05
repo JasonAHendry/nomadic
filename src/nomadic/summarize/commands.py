@@ -110,7 +110,7 @@ def summarize(
         main(
             expt_dirs=experiment_dirs,
             summary_name=summary_name,
-            meta_data_path=metadata_csv,
+            metadata_path=metadata_csv,
             settings_file_path=settings_file,
             show_dashboard=dashboard,
             prevalence_by=list(prevalence_by),
