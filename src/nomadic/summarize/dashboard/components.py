@@ -13,7 +13,6 @@ from dash.dependencies import Input, Output
 from nomadic.summarize.compute import (
     Status,
     compute_variant_prevalence,
-    compute_variant_prevalence_per,
     gene_deletion_prevalence_by,
 )
 from i18n import t
@@ -483,9 +482,7 @@ class PrevalenceBarplot(SummaryDashboardComponent):
             if by == "All":
                 plot_df = compute_variant_prevalence(analysis_df)
             else:
-                plot_df = compute_variant_prevalence_per(
-                    analysis_df, self.master_df, [by]
-                )
+                plot_df = compute_variant_prevalence(analysis_df, self.master_df, [by])
             plot_df.sort_values(["gene", "chrom", "pos"], inplace=True)
 
             data = []
@@ -606,7 +603,7 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
         def _update(target_gene, col_by):
             """Called every time an input changes"""
 
-            df = compute_variant_prevalence_per(
+            df = compute_variant_prevalence(
                 self.analysis_df.query("gene == @target_gene"), self.master_df, [col_by]
             )
 
@@ -862,7 +859,7 @@ class MapComponent(SummaryDashboardComponent):
             gene, aa_change = target_mutation.split("-")
 
             if region_by is not None:
-                df = compute_variant_prevalence_per(
+                df = compute_variant_prevalence(
                     self.analysis_df.query("gene == @gene and aa_change == @aa_change"),
                     self.master_df,
                     [region_by],
@@ -936,7 +933,7 @@ class MapComponent(SummaryDashboardComponent):
                 coords_location_col = "location"
 
                 # Group by location to get sample counts and average prevalence
-                site_data = compute_variant_prevalence_per(
+                site_data = compute_variant_prevalence(
                     self.analysis_df.query("gene == @gene and aa_change == @aa_change"),
                     self.master_df,
                     [master_location_col],

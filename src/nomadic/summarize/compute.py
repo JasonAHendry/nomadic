@@ -4,6 +4,21 @@ import pandas as pd
 from statsmodels.stats.proportion import proportion_confint
 
 
+# These columns are used to define unique variants
+VARIANTS_GROUP_COLUMNS = [
+    "gene",
+    "chrom",
+    "pos",
+    # "ref",
+    # The alt might differ for multiallelic sites
+    # "alt",
+    "aa_change",
+    "aa_pos",
+    "mut_type",
+    "mutation",
+]
+
+
 class Status(enum.Enum):
     PASSING = "passing"
     FAILING = "failing"
@@ -91,95 +106,50 @@ def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
     return samples_by_amplicons_summary_df
 
 
-variants_group_columns = [
-    "gene",
-    "chrom",
-    "pos",
-    # "ref",
-    # The alt might differ for multiallelic sites
-    # "alt",
-    "aa_change",
-    "aa_pos",
-    "mut_type",
-    "mutation",
-]
-
-
-def filter_false_positives(variants_df: pd.DataFrame):
+def filter_false_positives(
+    variants_df: pd.DataFrame, min_obs: int = 1, min_wsaf: float = 0.15
+):
     """Filter out likely false positive variant calls.
 
-    Removes variants where only one mutation is called and the
-    maximum WSAF is below 15%.
+    Remove variants that have only been observed `min_obs` times across all samples in
+    the analysis set, and with a WSAF below `min_wsaf`
+
+    This removes likely false-positive mutations, which are usually rare and at low
+    WSAF.
+
     """
-    N_MUT = 1
-    WSAF_CUTOFF = 0.15
 
     mut = variants_df[variants_df["gt_int"].isin([1, 2])]
     df = variants_df.merge(
-        mut.groupby(variants_group_columns).agg(
+        mut.groupby(VARIANTS_GROUP_COLUMNS).agg(
             n_mut=pd.NamedAgg("gt_int", len), wsaf_max=pd.NamedAgg("wsaf", "max")
         ),
-        on=variants_group_columns,
+        on=VARIANTS_GROUP_COLUMNS,
     )
-    df = df[~(df["n_mut"].le(N_MUT) & df["wsaf_max"].lt(WSAF_CUTOFF))].drop(
+    df = df[~(df["n_mut"].le(min_obs) & df["wsaf_max"].lt(min_wsaf))].drop(
         columns=["n_mut", "wsaf_max"]
     )
     return df
 
 
-def compute_variant_prevalence(variants_df: pd.DataFrame) -> pd.DataFrame:
+def compute_variant_prevalence(
+    variants_df: pd.DataFrame,
+    master_df: pd.DataFrame = None,
+    additional_groups: list[str] = [],
+) -> pd.DataFrame:
     """
     Compute the prevalence of each mutation in `variants_df`
     """
 
+    if master_df is not None and additional_groups:
+        variants_df = variants_df.merge(
+            master_df[["sample_id", *additional_groups]], on="sample_id", how="left"
+        )
+
     prev_df = (
         variants_df.groupby(
-            variants_group_columns,
+            VARIANTS_GROUP_COLUMNS + additional_groups,
         )
-        .agg(
-            n_samples=pd.NamedAgg("gt_int", len),
-            n_passed=pd.NamedAgg("gt_int", lambda x: sum(x != -1)),
-            n_wt=pd.NamedAgg("gt_int", lambda x: sum(x == 0)),
-            n_mixed=pd.NamedAgg("gt_int", lambda x: sum(x == 1)),
-            n_mut=pd.NamedAgg("gt_int", lambda x: sum(x == 2)),
-        )
-        .reset_index()
-    )
-
-    # Compute frequencies
-    prev_df["per_wt"] = 100 * prev_df["n_wt"] / prev_df["n_passed"]
-    prev_df["per_mixed"] = 100 * prev_df["n_mixed"] / prev_df["n_passed"]
-    prev_df["per_mut"] = 100 * prev_df["n_mut"] / prev_df["n_passed"]
-
-    # Compute prevalence
-    prev_df["prevalence"] = prev_df["per_mixed"] + prev_df["per_mut"]
-
-    # Compute prevalence 95% confidence intervals
-    low, high = proportion_confint(
-        prev_df["n_mut"] + prev_df["n_mixed"],
-        prev_df["n_passed"],
-        alpha=0.05,
-        method="beta",
-    )
-    prev_df["prevalence_lowci"] = 100 * low
-    prev_df["prevalence_highci"] = 100 * high
-
-    return prev_df
-
-
-def compute_variant_prevalence_per(
-    variants_df, master_df, fields: list[str]
-) -> pd.DataFrame:
-    """
-    Compute the prevalence of each mutation in `variants_df` and groups by `fields`
-    from `master_df`.
-    """
-    variants_df = variants_df.merge(
-        master_df[["sample_id", *fields]], on="sample_id", how="left"
-    )
-
-    prev_df = (
-        variants_df.groupby([*variants_group_columns, *fields])
         .agg(
             n_samples=pd.NamedAgg("gt_int", len),
             n_passed=pd.NamedAgg("gt_int", lambda x: sum(x != -1)),

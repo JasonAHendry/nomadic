@@ -14,7 +14,6 @@ from nomadic.summarize.compute import (
     calc_amplicons_summary,
     calc_samples_summary,
     compute_variant_prevalence,
-    compute_variant_prevalence_per,
     filter_false_positives,
     gene_deletion_prevalence_by,
     gene_deletions,
@@ -634,9 +633,7 @@ def main(
     prev_df.to_csv(f"{output_dir}/summary.variants.prevalence.csv", index=False)
 
     for col in prevalence_by:
-        prev_by_col_df = compute_variant_prevalence_per(
-            analysis_df, master_metadata, [col]
-        )
+        prev_by_col_df = compute_variant_prevalence(analysis_df, master_metadata, [col])
         prev_by_col_df.to_csv(
             f"{output_dir}/summary.variants.prevalence-{col}.csv", index=False
         )
