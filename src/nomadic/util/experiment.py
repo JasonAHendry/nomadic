@@ -2,8 +2,10 @@ import glob
 import os
 import json
 import shutil
+import pandas as pd
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Any
+from dataclasses import dataclass
 
 from nomadic.util.dirs import produce_dir
 from nomadic.util.metadata import MetadataTableParser, ExtendedMetadataTableParser
@@ -154,6 +156,22 @@ class ExperimentDirectories:
 # --------------------------------------------------------------------------------
 
 
+@dataclass
+class ExperimentOutputs:
+    """Store information about outputs in `expt_dir`"""
+
+    expt_dir: str  # TODO: change to Path
+    metadata: pd.DataFrame
+    regions: RegionBEDParser
+    summary_files: SummaryFiles
+    settings: dict[str, Any]
+
+    # Variant calling outputs
+    caller: str
+    has_complete_vcf: bool
+    has_filtered_vcf: bool
+
+
 def find_metadata(
     expt_dir: str, Parser: MetadataTableParser = MetadataTableParser
 ) -> MetadataTableParser:
@@ -198,66 +216,55 @@ def find_regions(expt_dir: str) -> RegionBEDParser:
     )
 
 
-class ExperimentOutputChecker:
-    """Check that all the relevant output files of an experiment present"""
+def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:
+    """For a given `expt_dir` check what experiment outputs exist
 
-    def __init__(self, expt_dir: str):
-        # Confirm experiment directory exists
-        if not os.path.isdir(expt_dir):
-            raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
-        self.expt_dir = expt_dir
+    Will raise exceptions if data required for summarising is missing.
 
-        # Load metadata
-        parser = find_metadata(expt_dir, Parser=ExtendedMetadataTableParser)
-        self.metadata = parser.df
-        self.metadata.insert(0, "expt_name", os.path.basename(self.expt_dir))
+    """
 
-        # Load regions
-        self.regions = find_regions(expt_dir)
+    # Existence of directory
+    if not os.path.isdir(expt_dir):
+        raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
 
-        # Other file checks
-        self._check_summary_files()
-        self._check_vcf_files()
-        self._load_settings()
-        self._set_variant_caller()
+    # Existence of metadata
+    parser = find_metadata(expt_dir, Parser=ExtendedMetadataTableParser)
+    metadata = parser.df
+    metadata.insert(0, "expt_name", os.path.basename(expt_dir))
 
-    def _check_summary_files(self):
-        # Define the summary file paths
-        self.summary_files = get_summary_files(Path(self.expt_dir))
+    # Existence of regions
+    regions = find_regions(expt_dir)
 
-        # Check if they are the legacy files, pretty ugly
-        self.summary_files_legacy = self.summary_files.read_mapping.endswith(
-            "bam_flagstats.csv"
-        )
+    # Existence of summary Files
+    summary_files = get_summary_files(Path(expt_dir))
+    for file in summary_files:
+        if "depth" in file:
+            # depth files are optional, TODO: not so robust
+            continue
+        if "fastq" in file:
+            # fastq files are optional
+            continue
+        if not os.path.exists(file):
+            raise FileNotFoundError(f"Missing '{file}' file in {expt_dir}.")
 
-        # Check they exist
-        for file in self.summary_files:
-            if "depth" in file:
-                # depth files are optional, TODO: not so robust
-                continue
-            if "fastq" in file:
-                # fastq files are optional
-                continue
-            if not os.path.exists(file):
-                raise FileNotFoundError(f"Missing '{file}' file in {self.expt_dir}.")
+    # Existence of settings / caller
+    settings_path = f"{expt_dir}/metadata/settings.json"
+    if not os.path.exists(settings_path):
+        settings = None
+        caller = "bcftools"  # if no settings, was using bcftools
+    else:
+        settings = json.load(open(settings_path, "r"))
+        caller = settings["caller"]
 
-    def _check_vcf_files(self):
-        vcf_dir = f"{self.expt_dir}/vcfs"
-        self.vcf_dir_exists = os.path.exists(vcf_dir)
-        self.vcf_complete_exists = os.path.exists(f"{vcf_dir}/summary.variants.vcf.gz")
-        self.vcf_filtered_exists = os.path.exists(
-            f"{vcf_dir}/summary.variants.filtered.annotated.vcf.gz"
-        )
-
-    def _load_settings(self):
-        settings_path = f"{self.expt_dir}/metadata/settings.json"
-        if not os.path.exists(settings_path):
-            self.settings = None
-        else:
-            self.settings = json.load(open(settings_path, "r"))
-
-    def _set_variant_caller(self):
-        if self.settings is None:
-            self.caller = "bcftools"
-        else:
-            self.caller = self.settings["caller"]
+    return ExperimentOutputs(
+        expt_dir=expt_dir,
+        metadata=metadata,
+        regions=regions,
+        summary_files=summary_files,
+        settings=settings,
+        caller=caller,
+        has_complete_vcf=os.path.exists(f"{expt_dir}/vcfs/summary.variants.vcf.gz"),
+        has_filtered_vcf=os.path.exists(
+            f"{expt_dir}/vcfs/summary.variants.filtered.annotated.vcf.gz"
+        ),
+    )

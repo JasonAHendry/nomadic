@@ -18,9 +18,11 @@ from nomadic.summarize.compute import (
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
+from nomadic.util.regions import RegionBEDParser
 from nomadic.util.experiment import (
     get_summary_files,
-    ExperimentOutputChecker,
+    check_experiment_outputs,
+    ExperimentOutputs,
 )
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.summary import Settings, get_master_columns_mapping, load_settings
@@ -32,7 +34,7 @@ from nomadic.util.summary import Settings, get_master_columns_mapping, load_sett
 # --------------------------------------------------------------------------------
 
 
-def check_regions_consistent(expts: ExperimentOutputChecker) -> None:
+def check_regions_consistent(expt_regions: list[RegionBEDParser]) -> None:
     """
     Check that the regions are consistent across all experiment directories
 
@@ -40,20 +42,20 @@ def check_regions_consistent(expts: ExperimentOutputChecker) -> None:
     - Might make sense to *extract* the region that was used and save it;
 
     """
-    region_sets = [expt.regions for expt in expts]
-    base = region_sets[0]
-    for r in region_sets:
+    base = expt_regions[0]
+    for r in expt_regions:
         if not (r.df == base.df).all().all():
             raise ValueError(
                 "Different regions used across experiments, this is not supported. Check region BED files are the same."
             )
 
 
-def check_calling_consistent(expts: ExperimentOutputChecker) -> None:
+def check_calling_consistent(expt_callers: list[str]) -> None:
     """
-    Check that the same variant caller was used
+    Check that the same variant caller was used across all experiments,
+    where `expt_callers` is a list of used variant callers
     """
-    caller_counts = Counter([expt.caller for expt in expts])
+    caller_counts = Counter([caller for caller in expt_callers])
     if len(caller_counts) > 1:
         raise ValueError(
             "Found more than one variant caller used across experiments: "
@@ -466,13 +468,14 @@ def main(
     log.info(f"  Found {len(expt_dirs)} experiment directories.")
 
     # Check experiments are complete
-    expts = [ExperimentOutputChecker(expt_dir) for expt_dir in expt_dirs]
+    expts = [check_experiment_outputs(expt_dir) for expt_dir in expt_dirs]
+    print(expts)
     log.info("  All experiments are complete.")
 
     # Check experiments are consistent
-    check_regions_consistent(expts)
+    check_regions_consistent([expt.regions for expt in expts])
     log.info("  All experiments use the same regions.")
-    caller = check_calling_consistent(expts)
+    caller = check_calling_consistent([expt.caller for expt in expts])
     log.info(f"  All experiments use same variant caller: {caller}")
 
     settings: Settings = Settings()
