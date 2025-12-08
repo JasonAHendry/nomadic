@@ -28,6 +28,7 @@ requirements:
     - python >=3.10
     - numpy
     - pandas
+    - openpyxl
     - seaborn
     - click
     - platformdirs
