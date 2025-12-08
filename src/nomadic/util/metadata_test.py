@@ -137,3 +137,65 @@ def test_metadata_column_corrections(csv_path):
         "GB4 (NB04)",
         "HB3 (NB05)",
     ]
+
+
+def test_simple_excel_loading():
+    metadata_path = test_files_folder + "metadata/good_simple.xlsx"
+    metadata = MetadataTableParser(metadata_path)
+    assert "barcode" in metadata.df.columns
+    assert "sample_id" in metadata.df.columns
+    assert metadata.df.shape == (5, 5)
+
+    assert metadata.df["barcode"].tolist() == [
+        "barcode01",
+        "barcode02",
+        "barcode03",
+        "barcode04",
+        "barcode05",
+    ]
+    assert metadata.df["sample_id"].tolist() == [
+        "3D7 (NB01)",
+        "Dd2 (NB02)",
+        "CamC580Y (NB03)",
+        "GB4 (NB04)",
+        "HB3 (NB05)",
+    ]
+    assert metadata.barcodes == [
+        "barcode01",
+        "barcode02",
+        "barcode03",
+        "barcode04",
+        "barcode05",
+        "unclassified",
+    ]
+
+
+def test_nomads_worksheet_excel_loading():
+    metadata_path = test_files_folder + "metadata/NOMADS_Library_Worksheet_good.xlsx"
+    metadata = MetadataTableParser(metadata_path)
+    assert "barcode" in metadata.df.columns
+    assert "sample_id" in metadata.df.columns
+    assert metadata.df.shape == (5, 4)
+
+    assert metadata.df["barcode"].tolist() == [
+        "barcode01",
+        "barcode02",
+        "barcode03",
+        "barcode04",
+        "barcode05",
+    ]
+    assert metadata.df["sample_id"].tolist() == [
+        "3D7 (NB01)",
+        "Dd2 (NB02)",
+        "CamC580Y (NB03)",
+        "GB4 (NB04)",
+        "HB3 (NB05)",
+    ]
+    assert metadata.barcodes == [
+        "barcode01",
+        "barcode02",
+        "barcode03",
+        "barcode04",
+        "barcode05",
+        "unclassified",
+    ]
