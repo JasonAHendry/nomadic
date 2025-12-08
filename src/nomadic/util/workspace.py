@@ -98,12 +98,6 @@ class Workspace:
         """
         return os.path.join(self.get_metadata_dir(), f"{experiment_name}.xlsx")
 
-    def get_master_metadata_csv(self, summary_name: str):
-        """
-        Get the path to the master metadata CSV file for summaries.
-        """
-        return os.path.join(self.get_metadata_dir(), f"{summary_name}.csv")
-
     def get_bed_file(self, panel_name: str):
         """
         Get the path to the BED file for a given panel name.
