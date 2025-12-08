@@ -118,6 +118,7 @@ class MetadataTableParser:
         ext = ext.lower()
         if ext == ".xlsx":
             xlsx = pd.ExcelFile(self.path, engine="openpyxl")
+            # name in nomadic excel template, and in the (legacy) warehouse template
             target_sheets = ["nomadic", "rxn_metadata"]
             # Find first matching sheetname or use first sheet
             sheet_names = [
