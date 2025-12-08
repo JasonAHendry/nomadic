@@ -13,7 +13,7 @@ from nomadic.util.cli import (
 )
 from nomadic.util.config import (
     default_config_path,
-    get_nested_config_value,
+    get_config_value,
     load_config,
 )
 from nomadic.util.exceptions import MetadataFormatError
@@ -246,7 +246,7 @@ def get_metadata_path(experiment_name, metadata_path, workspace):
         ]
 
         config_path = os.path.join(workspace.path, default_config_path)
-        shared_folder = get_nested_config_value(
+        shared_folder = get_config_value(
             load_config(config_path), ["share", "defaults", "target_dir"]
         )
         if shared_folder is not None:
