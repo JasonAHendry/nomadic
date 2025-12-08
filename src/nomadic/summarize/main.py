@@ -2,14 +2,12 @@ import os
 from typing import Iterable, Optional
 from warnings import warn
 from enum import StrEnum, auto
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
 import numpy as np
 
-from nomadic.dashboard.main import (
-    find_regions,
-)
 from nomadic.summarize.compute import (
     calc_amplicons_summary,
     calc_samples_summary,
@@ -20,22 +18,21 @@ from nomadic.summarize.compute import (
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
-from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.experiment import (
-    check_complete_experiment,
-    get_metadata_csv,
     get_summary_files,
+    ExperimentOutputChecker,
 )
 from nomadic.util.logging_config import LoggingFascade
-from nomadic.util.metadata import ExtendedMetadataTableParser
 from nomadic.util.summary import Settings, get_master_columns_mapping, load_settings
 
 
 # --------------------------------------------------------------------------------
-# Check complete experiment
+# Check for completion and consistency across experiments
 #
 # --------------------------------------------------------------------------------
-def check_regions_consistent(expt_dirs: tuple[str]) -> None:
+
+
+def check_regions_consistent(expts: ExperimentOutputChecker) -> None:
     """
     Check that the regions are consistent across all experiment directories
 
@@ -43,14 +40,45 @@ def check_regions_consistent(expt_dirs: tuple[str]) -> None:
     - Might make sense to *extract* the region that was used and save it;
 
     """
-    region_sets = [find_regions(expt_dir) for expt_dir in expt_dirs]
-
+    region_sets = [expt.regions for expt in expts]
     base = region_sets[0]
     for r in region_sets:
         if not (r.df == base.df).all().all():
             raise ValueError(
                 "Different regions used across experiments, this is not supported. Check region BED files are the same."
             )
+
+
+def check_calling_consistent(expts: ExperimentOutputChecker) -> None:
+    """
+    Check that the same variant caller was used
+    """
+    caller_counts = Counter([expt.caller for expt in expts])
+    if len(caller_counts) > 1:
+        raise ValueError(
+            "Found more than one variant caller used across experiments: "
+            + f"{', '.join([f'{v} experiment(s) used {c}' for c, v in caller_counts.items()])}."
+        )
+    return caller_counts.most_common()[0][0]
+
+
+def get_shared_metadata_columns(
+    metadata_dfs: list[pd.DataFrame],
+    fixed_columns: list[str] = ["expt_name", "barcode", "sample_id", "sample_type"],
+) -> list[str]:
+    """Get metadata columns that are shared acrossa all experiments"""
+
+    shared_columns = set(metadata_dfs[0].columns)
+    for df in metadata_dfs[1:]:
+        shared_columns.intersection_update(df.columns)
+    shared_columns.difference_update(fixed_columns)  # why am I doing this?
+    return shared_columns
+
+
+# --------------------------------------------------------------------------------
+# Throughput
+#
+# --------------------------------------------------------------------------------
 
 
 def compute_throughput(metadata: pd.DataFrame, add_unique: bool = True) -> pd.DataFrame:
@@ -417,14 +445,6 @@ def main(
     """
     Define the main function for the summary analysis
 
-    TODO:
-    - Ideas for location?
-      - Either force a specific column name; e.g. site
-      - Or allow for the user to indicate the name
-      - Easiest is to require either lat/lon; or a file mapping to lat/lon.
-    - It is nice to allow arbitrary grouping by columns that are valid for prevalence plot
-    - The best is probably to enable certain panels / analyses IF certain columns are present
-      in the shared metadata; for example parasitemia
 
     """
 
@@ -444,43 +464,34 @@ def main(
         log.info("  No master metadata will be used.")
     log.info(f"  Setting file: {settings_file_path}")
     log.info(f"  Found {len(expt_dirs)} experiment directories.")
-    for expt_dir in expt_dirs:
-        check_complete_experiment(expt_dir)
+
+    # Check experiments are complete
+    expts = [ExperimentOutputChecker(expt_dir) for expt_dir in expt_dirs]
     log.info("  All experiments are complete.")
 
-    settings: Settings = Settings()
+    # Check experiments are consistent
+    check_regions_consistent(expts)
+    log.info("  All experiments use the same regions.")
+    caller = check_calling_consistent(expts)
+    log.info(f"  All experiments use same variant caller: {caller}")
 
+    settings: Settings = Settings()
     if settings_file_path.exists():
         settings = load_settings(settings_file_path)
         log.info(f"  Loaded summary settings from {settings_file_path}.")
 
     # CHECK METADATA IS VALID
-    # TODO:
-    # - Should I already interrogate geospatial information?
-    # - Where should I compute throughput information?
-    dfs = []
-    for expt_dir in expt_dirs:
-        metadata_csv = get_metadata_csv(expt_dir)
-        try:
-            parser = ExtendedMetadataTableParser(metadata_csv)
-            parser.df.insert(0, "expt_name", os.path.basename(expt_dir))
-        except MetadataFormatError as e:
-            raise MetadataFormatError(
-                f"Metadata format issue in experiment directory {expt_dir}: {e}"
-            ) from e
-        if not dfs:
-            shared_columns = set(parser.df.columns)
-        shared_columns.intersection_update(parser.df.columns)
-        dfs.append(parser.df)
-        # Should I not take all common columns?
+    FIXED_COLUMNS = ["expt_name", "barcode", "sample_id", "sample_type"]
+    shared_columns = get_shared_metadata_columns(
+        [expt.metadata for expt in expts], fixed_columns=FIXED_COLUMNS
+    )
     log.info("  All metadata tables pass completion checks.")
     log.info(
-        f"  Found {len(shared_columns)} shared columns across all metadata files: {', '.join(shared_columns)}"
+        f"  Found {len(shared_columns)} non-essential shared columns across all metadata files: {', '.join(shared_columns)}"
     )
-    fixed_columns = ["expt_name", "barcode", "sample_id", "sample_type"]
-    shared_columns.difference_update(fixed_columns)
+
     # for now we use the master metadata file
-    inventory_metadata = pd.concat([df[fixed_columns] for df in dfs])
+    inventory_metadata = pd.concat([expt.metadata[FIXED_COLUMNS] for expt in expts])
     if metadata_path is not None and not no_master_metadata:
         master_metadata = pd.read_csv(metadata_path).rename(
             columns=get_master_columns_mapping(settings)
@@ -488,7 +499,7 @@ def main(
     else:
         # create metadata from experiment meta data files
         shared_columns = ["sample_id"] + list(shared_columns)
-        master_metadata = pd.concat([df[shared_columns] for df in dfs])
+        master_metadata = pd.concat([expt.metadata[shared_columns] for expt in expts])
 
     master_metadata = master_metadata.astype(
         {"sample_id": "str"}
@@ -526,10 +537,6 @@ def main(
     )
     inventory_metadata.to_csv(f"{output_dir}/inventory.csv", index=False)
     inventory_metadata = inventory_metadata.query("status != 'unknown'")
-
-    # Check regions are consistent
-    check_regions_consistent(expt_dirs)
-    log.info("  All experiments use the same regions.")
 
     # Throughput data
     # TODO: Need to make a real decision about how to handle duplicated sample IDs

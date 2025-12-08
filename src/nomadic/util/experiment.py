@@ -1,19 +1,23 @@
 import glob
 import os
+import json
 import shutil
 from pathlib import Path
 from typing import NamedTuple
 
 from nomadic.util.dirs import produce_dir
-from nomadic.util.exceptions import MetadataFormatError
-from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.metadata import MetadataTableParser, ExtendedMetadataTableParser
 from nomadic.util.regions import RegionBEDParser
 
 
+# --------------------------------------------------------------------------------
+# Handle summary file names: legacy and current
+#
+# --------------------------------------------------------------------------------
+
+
 class SummaryFiles(NamedTuple):
-    """
-    Named tuple to hold paths to summary files.
-    """
+    """Define summary file names / paths"""
 
     fastqs_processed: str
     read_mapping: str
@@ -23,8 +27,8 @@ class SummaryFiles(NamedTuple):
 
 
 # Currently used summary file names
-default_config_path = "config/defaults.json"
-summary_files = SummaryFiles(
+DEFAULT_CONFIG_PATH = "config/defaults.json"
+SUMMARY_NAMES = SummaryFiles(
     fastqs_processed="summary.fastqs_processed.csv",
     read_mapping="summary.read_mapping.csv",
     region_coverage="summary.region_coverage.csv",
@@ -33,13 +37,37 @@ summary_files = SummaryFiles(
 )
 
 # Legacy summary file names for backward compatibility
-legacy_summary_files = SummaryFiles(
+SUMMARY_NAMES_LEGACY = SummaryFiles(
     fastqs_processed="summary.fastq.csv",
     read_mapping="summary.bam_flagstats.csv",
     region_coverage="summary.bedcov.csv",
     depth_profiles="summary.depth.csv",
     variants="summary.variants.csv",
 )
+
+
+def get_summary_files(expt_dir: Path) -> SummaryFiles:
+    """
+    Determine whether the summary files are use the legacy or current names,
+    and return a SummaryFiles object with the appropriate file names
+
+    """
+
+    if not expt_dir.exists():
+        raise FileNotFoundError(f"Experiment path does not exist: {expt_dir}")
+
+    if (expt_dir / SUMMARY_NAMES_LEGACY.read_mapping).exists():
+        # Detect legacy format using *one* of the differentiating file names
+        format_used = SUMMARY_NAMES_LEGACY
+    else:
+        format_used = SUMMARY_NAMES
+    return SummaryFiles(*[str(expt_dir / field) for field in format_used])
+
+
+# --------------------------------------------------------------------------------
+# Define experiment directories
+#
+# --------------------------------------------------------------------------------
 
 
 class ExperimentDirectories:
@@ -120,117 +148,116 @@ class ExperimentDirectories:
                 shutil.copy(regions.path, self.regions_bed)
 
 
-def get_summary_files(exp_path: Path) -> SummaryFiles:
-    if not exp_path.exists():
-        raise FileNotFoundError(f"Experiment path does not exist: {exp_path}")
-    if (exp_path / legacy_summary_files.read_mapping).exists():
-        # Use legacy summary files if the old format exists
-        return SummaryFiles(
-            fastqs_processed=str(exp_path / legacy_summary_files.fastqs_processed),
-            read_mapping=str(exp_path / legacy_summary_files.read_mapping),
-            region_coverage=str(exp_path / legacy_summary_files.region_coverage),
-            depth_profiles=str(exp_path / legacy_summary_files.depth_profiles),
-            variants=str(exp_path / legacy_summary_files.variants),
-        )
-    else:
-        return SummaryFiles(
-            fastqs_processed=str(exp_path / summary_files.fastqs_processed),
-            read_mapping=str(exp_path / summary_files.read_mapping),
-            region_coverage=str(exp_path / summary_files.region_coverage),
-            depth_profiles=str(exp_path / summary_files.depth_profiles),
-            variants=str(exp_path / summary_files.variants),
-        )
+# --------------------------------------------------------------------------------
+# Checks on experiment outputs
+#
+# --------------------------------------------------------------------------------
 
 
-def check_complete_experiment(expt_dir: str) -> None:
+def find_metadata(
+    expt_dir: str, Parser: MetadataTableParser = MetadataTableParser
+) -> MetadataTableParser:
     """
-    Check if an experiment is complete; in reality, it would be nice, at this point, to load an object
-    that represents all the files I'd want to work with, e.g. the experiment directories class
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location and load it
+
     """
 
-    if not os.path.isdir(expt_dir):
-        raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
+    # In most cases, should match experiment name
+    csv = f"{expt_dir}/metadata/{os.path.basename(expt_dir)}.csv"
+    if os.path.exists(csv):
+        return Parser(csv)
 
-    # We can use this for now, but of course this is getting messy
-    try:
-        _ = find_metadata(expt_dir)
-        _ = find_regions(expt_dir)
-    except MetadataFormatError as e:
-        raise MetadataFormatError(
-            f"Metadata or regions file issue in experiment directory {expt_dir}: {e}"
-        ) from e
+    csv = glob.glob(f"{expt_dir}/metadata/*.csv")
+    if len(csv) == 1:
+        return Parser(csv[0])
 
-    used_summary_files = None
-    for file_format in [summary_files, legacy_summary_files]:
-        if not os.path.exists(f"{expt_dir}/{file_format.read_mapping}"):
-            continue
+    raise ValueError(
+        f"Found {len(csv)} *.csv files in '{expt_dir}/metadata', cannot determine which is metadata."
+    )
 
-        used_summary_files = file_format
-        for file in used_summary_files:
+
+def find_regions(expt_dir: str) -> RegionBEDParser:
+    """
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location
+
+    """
+
+    bed = [
+        f
+        for f in glob.glob(f"{expt_dir}/metadata/*.bed")
+        if f.endswith(".bed") and not f.endswith(".lowcomplexity_mask.bed")
+    ]
+
+    if len(bed) == 1:
+        return RegionBEDParser(bed[0])
+
+    raise FileNotFoundError(
+        f"Expected one region BED file (*.bed) at '{expt_dir}/metadata', but found {len(bed)}."
+    )
+
+
+class ExperimentOutputChecker:
+    """Check that all the relevant output files of an experiment present"""
+
+    def __init__(self, expt_dir: str):
+        # Confirm experiment directory exists
+        if not os.path.isdir(expt_dir):
+            raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
+        self.expt_dir = expt_dir
+
+        # Load metadata
+        parser = find_metadata(expt_dir, Parser=ExtendedMetadataTableParser)
+        self.metadata = parser.df
+        self.metadata.insert(0, "expt_name", os.path.basename(self.expt_dir))
+
+        # Load regions
+        self.regions = find_regions(expt_dir)
+
+        # Other file checks
+        self._check_summary_files()
+        self._check_vcf_files()
+        self._load_settings()
+        self._set_variant_caller()
+
+    def _check_summary_files(self):
+        # Define the summary file paths
+        self.summary_files = get_summary_files(Path(self.expt_dir))
+
+        # Check if they are the legacy files, pretty ugly
+        self.summary_files_legacy = self.summary_files.read_mapping.endswith(
+            "bam_flagstats.csv"
+        )
+
+        # Check they exist
+        for file in self.summary_files:
             if "depth" in file:
-                # depth files are optional
+                # depth files are optional, TODO: not so robust
                 continue
             if "fastq" in file:
                 # fastq files are optional
                 continue
+            if not os.path.exists(file):
+                raise FileNotFoundError(f"Missing '{file}' file in {self.expt_dir}.")
 
-            if not os.path.exists(f"{expt_dir}/{file}"):
-                raise FileNotFoundError(f"Missing '{file}' file in {expt_dir}.")
-
-    if not used_summary_files:
-        raise FileNotFoundError(f"Could not find any summary files in {expt_dir}.")
-
-    # TODO: at the moment we don't require VCFs to be present as we don't use them at the moment
-    # if not os.path.exists(f"{expt_dir}/vcfs"):
-    #     raise FileNotFoundError(f"Could not find VCF directory in {expt_dir}.")
-
-
-def find_metadata(input_dir: str) -> MetadataTableParser:
-    """
-    Given an experiment directory, search for the metadata CSV file in thee
-    expected location
-
-    TODO this function is probably not needed anymore, could combine it with get_metadata_csv
-    """
-
-    csv = get_metadata_csv(expt_dir=input_dir)
-    return MetadataTableParser(csv)
-
-
-def get_metadata_csv(expt_dir: str) -> str:
-    """
-    Get the metadata CSV file
-    """
-    # In most cases, should match experiment name
-    metadata_csv = f"{expt_dir}/metadata/{os.path.basename(expt_dir)}.csv"
-    if os.path.exists(metadata_csv):
-        return metadata_csv
-    metadata_csv = glob.glob(f"{expt_dir}/metadata/*.csv")
-    if len(metadata_csv) == 1:
-        return metadata_csv[0]
-    raise ValueError(
-        f"Found {len(metadata_csv)} *.csv files in '{expt_dir}/metadata', cannot determine which is metadata."
-    )
-
-
-def find_regions(input_dir: str) -> RegionBEDParser:
-    """
-    Given an experiment directory, search for the metadata CSV file in thee
-    expected location
-
-    TODO: Bad duplication from above, can write inner function
-    """
-
-    metadata_dir = os.path.join(input_dir, "metadata")
-    beds = [
-        f"{metadata_dir}/{file}"
-        for file in os.listdir(metadata_dir)
-        if file.endswith(".bed") and not file.endswith(".lowcomplexity_mask.bed")
-    ]  # TODO: what about no-suffix files?
-
-    if len(beds) != 1:  # Could alternatively load and LOOK
-        raise FileNotFoundError(
-            f"Expected one region BED file (*.bed) at {metadata_dir}, but found {len(beds)}."
+    def _check_vcf_files(self):
+        vcf_dir = f"{self.expt_dir}/vcfs"
+        self.vcf_dir_exists = os.path.exists(vcf_dir)
+        self.vcf_complete_exists = os.path.exists(f"{vcf_dir}/summary.variants.vcf.gz")
+        self.vcf_filtered_exists = os.path.exists(
+            f"{vcf_dir}/summary.variants.filtered.annotated.vcf.gz"
         )
 
-    return RegionBEDParser(beds[0])
+    def _load_settings(self):
+        settings_path = f"{self.expt_dir}/metadata/settings.json"
+        if not os.path.exists(settings_path):
+            self.settings = None
+        else:
+            self.settings = json.load(open(settings_path, "r"))
+
+    def _set_variant_caller(self):
+        if self.settings is None:
+            self.caller = "bcftools"
+        else:
+            self.caller = self.settings["caller"]
