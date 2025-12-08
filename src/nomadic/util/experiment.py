@@ -1,6 +1,5 @@
 import os
 import shutil
-from pathlib import Path
 from typing import NamedTuple
 
 from nomadic.util.dirs import produce_dir
@@ -139,7 +138,7 @@ class ExperimentDirectories:
         and store their paths as attributes
         """
         if metadata is not None:
-            self.metadata_csv = f"{self.metadata_dir}/{Path(metadata.path).stem}.csv"
+            self.metadata_csv = f"{self.metadata_dir}/sample-info.csv"
             if not os.path.exists(self.metadata_csv):
                 metadata.df.to_csv(self.metadata_csv, index=False)
 

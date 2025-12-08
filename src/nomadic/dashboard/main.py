@@ -15,6 +15,13 @@ def find_metadata(input_dir: str) -> MetadataTableParser:
     """
 
     metadata_dir = os.path.join(input_dir, "metadata")
+
+    # first check if the file with standard name exists
+    standard_path = os.path.join(metadata_dir, "sample-info.csv")
+    if os.path.isfile(standard_path):
+        return MetadataTableParser(standard_path)
+
+    # Now try to find any CSV file
     csvs = [
         f"{metadata_dir}/{file}"
         for file in os.listdir(metadata_dir)
