@@ -1,5 +1,4 @@
 import os
-import shutil
 from dataclasses import dataclass
 from datetime import date
 from importlib.resources import files
@@ -82,10 +81,12 @@ def copy_example_metadata(workspace):
     example_metadata_xlsx = files("nomadic.start").joinpath(
         "data", "NOMADS_Library_Worksheet.xlsx"
     )
-    shutil.copy(
-        example_metadata_xlsx,
-        os.path.join(workspace.get_metadata_dir(), example_metadata_xlsx.name),
+    data_xlsx = example_metadata_xlsx.read_bytes()
+    dest_path_xlsx = os.path.join(
+        workspace.get_metadata_dir(), example_metadata_xlsx.name
     )
+    with open(dest_path_xlsx, "wb") as bin_file:
+        bin_file.write(data_xlsx)
 
 
 def copy_bed_files(workspace: Workspace, *, organism_name):
