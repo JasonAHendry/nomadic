@@ -119,10 +119,15 @@ class MetadataTableParser:
         if ext == ".xlsx":
             xlsx = pd.ExcelFile(self.path, engine="openpyxl")
             target_sheets = ["nomadic", "rxn_metadata"]
-            sheet_name = next(
-                (s for s in target_sheets if s in xlsx.sheet_names), xlsx.sheet_names[0]
+            # Find first matching sheetname or use first sheet
+            sheet_names = [
+                sheetname
+                for sheetname in target_sheets
+                if sheetname in xlsx.sheet_names
+            ] + [xlsx.sheet_names[0]]
+            data = pd.read_excel(
+                self.path, sheet_name=sheet_names[0], engine="openpyxl"
             )
-            data = pd.read_excel(self.path, sheet_name=sheet_name, engine="openpyxl")
             data.dropna(how="all", inplace=True)
             self.df = data
         else:
