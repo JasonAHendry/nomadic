@@ -11,11 +11,6 @@ from nomadic.util.cli import (
     complete_experiment_name,
     load_default_function_for,
 )
-from nomadic.util.config import (
-    default_config_path,
-    get_config_value,
-    load_config,
-)
 from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import (
     Workspace,
@@ -245,19 +240,15 @@ def get_metadata_path(experiment_name, metadata_path, workspace):
             workspace.get_metadata_xlsx(experiment_name),
         ]
 
-        config_path = os.path.join(workspace.path, default_config_path)
-        shared_folder = get_config_value(
-            load_config(config_path), ["share", "defaults", "target_dir"]
-        )
+        shared_folder = workspace.get_shared_folder()
         if shared_folder is not None:
             click.echo(f"Found shared folder ({shared_folder})...")
-            stub = os.path.join(
-                shared_folder, workspace.get_name(), "metadata", f"{experiment_name}"
-            )
+            shared_workspace = Workspace(shared_folder)
+            # Currently not checking if it actually is a workspace, to not require some of the folders that are not needed here
             files.extend(
                 [
-                    stub + ".csv",
-                    stub + ".xlsx",
+                    shared_workspace.get_metadata_csv(experiment_name),
+                    shared_workspace.get_metadata_xlsx(experiment_name),
                 ]
             )
 
