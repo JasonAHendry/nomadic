@@ -37,7 +37,16 @@ def write_config(config: dict, config_path: str) -> None:
         dump(config, f, Dumper=Dumper, default_flow_style=False)
 
 
-def get_nested_config_value(d: dict, keys: list, default=None) -> str | None:
+def set_config_value(dict: dict, path: list[str], value):
+    for key in path[:-1]:
+        if key not in dict:
+            dict[key] = {}
+        dict = dict[key]
+
+    dict[path[-1]] = value
+
+
+def get_config_value(d: dict, keys: list, default=None):
     """
     Identify a nested value in a dictionary given a list of keys.
 

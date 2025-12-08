@@ -2,7 +2,12 @@ import os
 from pathlib import Path
 import click
 
-from nomadic.util.config import load_config, default_config_path, write_config
+from nomadic.util.config import (
+    load_config,
+    default_config_path,
+    set_config_value,
+    write_config,
+)
 from nomadic.util.workspace import check_if_workspace
 
 
@@ -46,16 +51,8 @@ def share(workspace_path: str, target_dir: Path):
     else:
         config = {}
 
-    set_config_item(config, "share.defaults.target_dir", str(target_dir.resolve()))
+    set_config_value(
+        config, ["share", "defaults", "target_dir"], str(target_dir.resolve())
+    )
 
     write_config(config, config_path)
-
-
-def set_config_item(dict: dict, path: str, value):
-    items = path.split(".")
-    for key in items[:-1]:
-        if key not in dict:
-            dict[key] = {}
-        dict = dict[key]
-
-    dict[items[-1]] = value
