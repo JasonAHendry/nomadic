@@ -22,7 +22,6 @@ from nomadic.util.regions import RegionBEDParser
 from nomadic.util.experiment import (
     get_summary_files,
     check_experiment_outputs,
-    ExperimentOutputs,
 )
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.summary import Settings, get_master_columns_mapping, load_settings
@@ -42,6 +41,9 @@ def check_regions_consistent(expt_regions: list[RegionBEDParser]) -> None:
     - Might make sense to *extract* the region that was used and save it;
 
     """
+    if len(expt_regions) == 0:
+        # Nothing to check
+        return
     base = expt_regions[0]
     for r in expt_regions:
         if not (r.df == base.df).all().all():
@@ -50,11 +52,13 @@ def check_regions_consistent(expt_regions: list[RegionBEDParser]) -> None:
             )
 
 
-def check_calling_consistent(expt_callers: list[str]) -> None:
+def check_calling_consistent(expt_callers: list[str]) -> Optional[str]:
     """
     Check that the same variant caller was used across all experiments,
     where `expt_callers` is a list of used variant callers
     """
+    if len(expt_callers) == 0:
+        return None
     caller_counts = Counter([caller for caller in expt_callers])
     if len(caller_counts) > 1:
         raise ValueError(
@@ -74,7 +78,7 @@ def get_shared_metadata_columns(
     for df in metadata_dfs[1:]:
         shared_columns.intersection_update(df.columns)
     shared_columns.difference_update(fixed_columns)  # why am I doing this?
-    return shared_columns
+    return list(shared_columns)
 
 
 # --------------------------------------------------------------------------------

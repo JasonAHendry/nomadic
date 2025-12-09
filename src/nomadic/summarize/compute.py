@@ -1,4 +1,5 @@
 import enum
+from typing import Optional
 
 import pandas as pd
 from statsmodels.stats.proportion import proportion_confint
@@ -134,14 +135,22 @@ def filter_false_positives(
 
 def compute_variant_prevalence(
     variants_df: pd.DataFrame,
-    master_df: pd.DataFrame = None,
-    additional_groups: list[str] = [],
+    master_df: Optional[pd.DataFrame] = None,
+    additional_groups: Optional[list[str]] = None,
 ) -> pd.DataFrame:
     """
     Compute the prevalence of each mutation in `variants_df`
     """
+    if additional_groups is None:
+        additional_groups = []
 
-    if master_df is not None and additional_groups:
+    if additional_groups:
+        assert master_df is not None, (
+            "master_df must be provided if additional_groups are used"
+        )
+        assert all(group in master_df.columns for group in additional_groups), (
+            "all additional_groups must be columns in master_df"
+        )
         variants_df = variants_df.merge(
             master_df[["sample_id", *additional_groups]], on="sample_id", how="left"
         )
