@@ -518,14 +518,6 @@ def main(
     inventory_metadata["sample_id"] = inventory_metadata["sample_id"].str.strip()
     master_metadata["sample_id"] = master_metadata["sample_id"].str.strip()
 
-    # In case sample IDs are numbers, we want to strip leading zeros (this was a problem in Zambia data)
-    inventory_metadata["sample_id"] = inventory_metadata["sample_id"].str.lstrip("0")
-    master_metadata["sample_id"] = master_metadata["sample_id"].str.lstrip("0")
-
-    # Do we want to have metadata in result files?
-    # inventory_metadata = pd.merge(
-    #     left=inventory_metadata, right=master_metadata, on=["sample_id"], how="left"
-    # )
     unknown_samples = calc_unknown_samples(inventory_metadata, master_metadata)
     if unknown_samples:
         warn(
@@ -546,7 +538,6 @@ def main(
     inventory_metadata = inventory_metadata.query("status != 'unknown'")
 
     # Throughput data
-    # TODO: Need to make a real decision about how to handle duplicated sample IDs
     log.info("Overall sequencing throughput:")
     throughput_df = compute_throughput(inventory_metadata)
     log.info(f"  Positive controls: {throughput_df.loc['pos', 'All']}")
