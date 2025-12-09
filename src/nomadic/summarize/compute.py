@@ -209,7 +209,7 @@ def gene_deletions(coverage_df: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
     # Minimum coverage to consider a gene deleted
     DELETION_COVERAGE_THRESHOLD = 5
 
-    coverage_df = coverage_df[coverage_df["sample_type"] == "field"]
+    coverage_df = coverage_df[coverage_df["sample_type"] == "field"].copy()
     coverage_df["gene"] = coverage_df["name"].str.split("-").str[0]
 
     # QC: only analyze samples with sufficient control amplicon coverage

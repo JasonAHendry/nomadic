@@ -433,7 +433,7 @@ class SummaryDashboardBuilder(ABC):
         )
 
         regions = {
-            path.split("/")[-1].split(".")[0].split("-")[1]: path for path in geojsons
+            path.split("/")[-1].split(".")[0].split("-")[-1]: path for path in geojsons
         }
 
         region_dropdown = dcc.Dropdown(

@@ -1,4 +1,6 @@
+import glob
 import os
+import shutil
 from typing import Iterable, Optional
 from warnings import warn
 from enum import StrEnum, auto
@@ -17,6 +19,7 @@ from nomadic.summarize.compute import (
     gene_deletions,
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
+from nomadic.util.workspace import Workspace
 from nomadic.util.dirs import produce_dir
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.experiment import (
@@ -438,6 +441,8 @@ def replicates_amplicon_qc(coverage_df):
 
 def main(
     *,
+    workspace: Workspace,
+    output_dir: Path,
     expt_dirs: tuple[str],
     summary_name: str,
     metadata_path: Optional[Path],
@@ -456,9 +461,7 @@ def main(
 
     assert (metadata_path is not None) or no_master_metadata
 
-    output_dir = produce_dir(
-        "summaries", summary_name
-    )  # TODO allow to change output dir
+    produce_dir(str(output_dir))
 
     # PARSE EXPERIMENT DIRECTORIES
     log = LoggingFascade(logger_name="nomadic")
@@ -667,7 +670,23 @@ def main(
             f"{output_dir}/summary.gene-deletions.prevalence-{col}.csv", index=False
         )
 
-    master_metadata.to_csv(f"{output_dir}/{summary_name}.metadata.csv", index=False)
+    master_metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
+
+    # Copy relevant files
+    for file in glob.glob(f"{workspace.get_metadata_dir()}/{summary_name}*.geojson"):
+        shutil.copy(file, f"{output_dir}/{file.split('-')[-1]}")
+    coords_file = f"{workspace.get_metadata_dir()}/{summary_name}.coords.csv"
+    if os.path.isfile(coords_file):
+        shutil.copy(
+            coords_file,
+            os.path.join(output_dir, "coords.csv"),
+        )
+    summary_settings_file = workspace.get_summary_settings_file(summary_name)
+    if os.path.isfile(summary_settings_file):
+        shutil.copy(
+            summary_settings_file,
+            os.path.join(output_dir, "settings.yaml"),
+        )
 
     # --------------------------------------------------------------------------------
     # Dashboard
@@ -675,23 +694,35 @@ def main(
     # --------------------------------------------------------------------------------
 
     if show_dashboard:
-        dashboard = BasicSummaryDashboard(
-            summary_name,
-            throughput_csv=f"{output_dir}/summary.throughput.csv",
-            samples_csv=f"{output_dir}/summary.samples_qc.csv",
-            samples_amplicons_csv=f"{output_dir}/summary.samples_amplicons_qc.csv",
-            coverage_csv=f"{output_dir}/summary.experiments_qc.csv",
-            analysis_csv=f"{output_dir}/summary.variants.analysis_set.csv",
-            gene_deletions_csv=f"{output_dir}/summary.gene_deletions.csv",
-            master_csv=f"{output_dir}/{summary_name}.metadata.csv",
-            geojson_glob=f"metadata/{summary_name}-*.geojson",
-            location_coords_csv=f"metadata/{summary_name}.coords.csv",
-            settings=settings,
-        )
-        print("Done.")
+        view(output_dir, summary_name)
 
-        print("")
-        print("Launching dashboard (press CNTRL+C to exit):")
-        print("")
-        debug = bool(os.getenv("NOMADIC_DEBUG"))
-        dashboard.run(debug=debug, auto_open=not debug)
+
+def view(input_dir: Path, summary_name: str) -> None:
+    """
+    View the summary dashboard for a given summary
+    """
+    settings: Settings = Settings()
+    settings_file = Path(f"{input_dir}/settings.yaml")
+    if settings_file.exists():
+        settings = load_settings(settings_file)
+
+    dashboard = BasicSummaryDashboard(
+        summary_name,
+        throughput_csv=f"{input_dir}/summary.throughput.csv",
+        samples_csv=f"{input_dir}/summary.samples_qc.csv",
+        samples_amplicons_csv=f"{input_dir}/summary.samples_amplicons_qc.csv",
+        coverage_csv=f"{input_dir}/summary.experiments_qc.csv",
+        analysis_csv=f"{input_dir}/summary.variants.analysis_set.csv",
+        gene_deletions_csv=f"{input_dir}/summary.gene_deletions.csv",
+        master_csv=f"{input_dir}/metadata.csv",
+        geojson_glob=f"{input_dir}/*.geojson",
+        location_coords_csv=f"{input_dir}/coords.csv",
+        settings=settings,
+    )
+    print("Done.")
+
+    print("")
+    print("Launching dashboard (press CNTRL+C to exit):")
+    print("")
+    debug = bool(os.getenv("NOMADIC_DEBUG"))
+    dashboard.run(debug=debug, auto_open=not debug)

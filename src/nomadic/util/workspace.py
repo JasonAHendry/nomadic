@@ -73,6 +73,12 @@ class Workspace:
         """
         return os.path.join(self.get_results_dir(), experiment_name)
 
+    def get_summary_dir(self, summary_name: str):
+        """
+        Get the summary directory of the workspace.
+        """
+        return os.path.join(self.path, "summaries", summary_name)
+
     def get_beds_dir(self):
         """
         Get the beds directory of the workspace.

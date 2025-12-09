@@ -51,6 +51,13 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     help="Whether to start the web dashboard to look at the summary.",
 )
 @click.option(
+    "--only-dashboard",
+    type=bool,
+    is_flag=True,
+    default=False,
+    help="If set, only open the summary dashboard in the web browser. Can not be combined with --no-dashboard.",
+)
+@click.option(
     "-s",
     "--settings-file",
     type=click.Path(exists=True, dir_okay=False, file_okay=True, path_type=Path),
@@ -77,12 +84,20 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     show_default=True,
     help="Maximum contamination fraction for quality control. Samples with contamination above this fraction will be marked as contaminated. Contamination is defined as the mean coverage of negative controls being more than this fraction of the sample coverage.",
 )
+@click.option(
+    "--output-dir",
+    "-o",
+    type=click.Path(dir_okay=True, file_okay=False, path_type=Path),
+    help="Path to the output directory where the summary will be stored. By default, this is <workspace>/summaries/<summary_name>.",
+)
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
     workspace_path: str,
+    output_dir: Path,
     metadata_csv: Path,
     dashboard: bool,
+    only_dashboard: bool,
     prevalence_by: tuple[str],
     settings_file: Path,
     no_master_metadata: bool,
@@ -105,6 +120,17 @@ def summarize(
     if summary_name is None:
         summary_name = workspace.get_name()
 
+    if only_dashboard and not dashboard:
+        raise click.BadParameter(
+            param_hint="--dashboard-only",
+            message="--dashboard-only can not be used together with --no-dashboard.",
+        )
+
+    if only_dashboard:
+        from .main import view
+
+        return view(Path(workspace.get_summary_dir(summary_name)), summary_name)
+
     if metadata_csv is None and not no_master_metadata:
         metadata_csv = Path(workspace.get_master_metadata_csv(summary_name))
 
@@ -120,10 +146,15 @@ def summarize(
     if len(experiment_dirs) == 0:
         experiment_dirs = workspace.get_experiment_dirs()
 
+    if output_dir is None:
+        output_dir = Path(workspace.get_summary_dir(summary_name))
+
     from .main import main
 
     try:
         main(
+            workspace=workspace,
+            output_dir=output_dir,
             expt_dirs=experiment_dirs,
             summary_name=summary_name,
             metadata_path=metadata_csv,
