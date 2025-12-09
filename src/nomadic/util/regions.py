@@ -1,3 +1,4 @@
+import os
 import seaborn as sns
 
 from matplotlib.colors import rgb2hex
@@ -19,6 +20,7 @@ class RegionBEDParser:
         """Load the BED file, assign colors to regions"""
 
         self.path = bed_path
+        self.name = os.path.basename(bed_path).split(".")[0]
         self.df = load_bed_as_dataframe(bed_path)
 
         self.n_regions = self.df.shape[0]

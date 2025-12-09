@@ -434,11 +434,6 @@ class QualityControl(SummaryDashboardComponent):
 
 
 class PrevalenceBarplot(SummaryDashboardComponent):
-    GENE_SETS = {
-        "Resistance": ["crt", "dhps", "dhfr", "kelch13", "mdr1"],
-        "Diversity": ["ama1", "csp"],
-    }
-
     def __init__(
         self,
         summary_name: str,
@@ -447,6 +442,7 @@ class PrevalenceBarplot(SummaryDashboardComponent):
         component_id: str,
         radio_id: str,
         radio_id_by: str,
+        amplicon_sets: dict[str, list[str]],
     ) -> None:
         """
         Initialisation loads the coverage data and prepares for plotting;
@@ -461,6 +457,8 @@ class PrevalenceBarplot(SummaryDashboardComponent):
 
         self.radio_id = radio_id
         self.radio_id_by = radio_id_by
+
+        self.amplicon_sets = amplicon_sets
         super().__init__(summary_name, component_id)
 
     def _define_layout(self):
@@ -472,13 +470,11 @@ class PrevalenceBarplot(SummaryDashboardComponent):
             Input(self.radio_id, "value"),
             Input(self.radio_id_by, "value"),
         )
-        def _update(gene_set: str, by: str):
+        def _update(amplicons: list[str], by: str):
             """Called whenver the input changes"""
 
-            genes = self.GENE_SETS[gene_set]  # noqa: F841 later used in query
+            analysis_df = self.analysis_df.query("amplicon in @amplicons")
 
-            # Limit to key genes
-            analysis_df = self.analysis_df.query("gene in @genes")
             if by == "All":
                 plot_df = compute_variant_prevalence(analysis_df)
             else:
@@ -581,10 +577,10 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
         analysis_csv: str,
         master_csv: str,
         component_id: str,
-        gene_dropdown_id: str,
+        amplicon_dropdown_id: str,
         col_dropdown_id: str,
     ):
-        self.gene_dropdown_id = gene_dropdown_id
+        self.amplicon_dropdown_id = amplicon_dropdown_id
         self.col_dropdown_id = col_dropdown_id
         self.analysis_df = pd.read_csv(analysis_csv)
         self.master_df = pd.read_csv(master_csv)
@@ -597,14 +593,16 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
     def callback(self, app: Dash) -> None:
         @app.callback(
             Output(self.component_id, "figure"),
-            Input(self.gene_dropdown_id, "value"),
+            Input(self.amplicon_dropdown_id, "value"),
             Input(self.col_dropdown_id, "value"),
         )
-        def _update(target_gene, col_by):
+        def _update(target_amplicon, col_by):
             """Called every time an input changes"""
 
             df = compute_variant_prevalence(
-                self.analysis_df.query("gene == @target_gene"), self.master_df, [col_by]
+                self.analysis_df.query("amplicon == @target_amplicon"),
+                self.master_df,
+                [col_by],
             )
 
             plot_df = pd.pivot_table(
@@ -658,7 +656,7 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
                 hovermode="y unified",
                 paper_bgcolor="white",  # Sets the background color of the paper
                 plot_bgcolor="white",
-                title=dict(text=target_gene),
+                title=dict(text=target_amplicon),
                 margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
                 xaxis=dict(
                     showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True

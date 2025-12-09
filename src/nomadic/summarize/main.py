@@ -19,6 +19,7 @@ from nomadic.summarize.compute import (
     gene_deletions,
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
+from nomadic.util.panel import get_panel_settings
 from nomadic.util.workspace import Workspace
 from nomadic.util.dirs import produce_dir
 from nomadic.util.regions import RegionBEDParser
@@ -482,8 +483,16 @@ def main(
     # Check experiments are consistent
     check_regions_consistent([expt.regions for expt in expts])
     log.info("  All experiments use the same regions.")
+    if expts:
+        panel_name = expts[0].regions.name
+    else:
+        panel_name = "Unknown"
+    log.info(f"  Panel used: {panel_name}")
     caller = check_calling_consistent([expt.caller for expt in expts])
     log.info(f"  All experiments use same variant caller: {caller}")
+
+    panel_settings = get_panel_settings(panel_name)
+    log.info(f"  Loaded panel settings for panel '{panel_settings.name}'.")
 
     settings: Settings = Settings()
     if settings_file_path.exists():
@@ -623,12 +632,12 @@ def main(
     )
 
     log.info("Filtering to analysis set...")
-    remove_genes = ["hrp2", "hrp3"]  # noqa: F841 later used in query
-    remove_mutations = ["crt-N75K"]  # noqa: F841 later used in query
+    remove_amplicons = panel_settings.excluded_amplicons  # noqa: F841 later used in query
+    remove_mutations = panel_settings.filtered_mutations  # noqa: F841 later used in query
     analysis_df = (
         variant_df.query("status == 'pass'")
         .query("mut_type == 'missense'")
-        .query("gene not in @remove_genes")
+        .query("amplicon not in @remove_amplicons")
         .query("mutation not in @remove_mutations")
     )
 
@@ -651,16 +660,17 @@ def main(
     #
     # --------------------------------------------------------------------------------
 
-    log.info("Calculate gene deletions...")
-    gene_deletion_df = gene_deletions(coverage_df, ["hrp2", "hrp3"])
-    gene_deletion_df.to_csv(f"{output_dir}/summary.gene_deletions.csv", index=False)
+    if panel_settings.deletion_genes:
+        log.info("Calculate gene deletions...")
+        gene_deletion_df = gene_deletions(coverage_df, panel_settings.deletion_genes)
+        gene_deletion_df.to_csv(f"{output_dir}/summary.gene_deletions.csv", index=False)
 
-    prev_gen_deletions_df = gene_deletion_prevalence_by(
-        gene_deletion_df, master_metadata, []
-    )
-    prev_gen_deletions_df.to_csv(
-        f"{output_dir}/summary.gene-deletions.prevalence.csv", index=False
-    )
+        prev_gen_deletions_df = gene_deletion_prevalence_by(
+            gene_deletion_df, master_metadata, []
+        )
+        prev_gen_deletions_df.to_csv(
+            f"{output_dir}/summary.gene-deletions.prevalence.csv", index=False
+        )
 
     for col in prevalence_by:
         prev_gen_deletion_by_col_df = gene_deletion_prevalence_by(
@@ -672,7 +682,14 @@ def main(
 
     master_metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
 
+    log.info("Copy relevant files to summary output directory...")
+
     # Copy relevant files
+    if expts:
+        shutil.copy(
+            expts[0].regions.path,
+            os.path.join(output_dir, os.path.basename(expts[0].regions.path)),
+        )
     for file in glob.glob(f"{workspace.get_metadata_dir()}/{summary_name}*.geojson"):
         shutil.copy(file, f"{output_dir}/{file.split('-')[-1]}")
     coords_file = f"{workspace.get_metadata_dir()}/{summary_name}.coords.csv"
@@ -687,6 +704,8 @@ def main(
             summary_settings_file,
             os.path.join(output_dir, "settings.yaml"),
         )
+
+    log.info("Summary analysis complete.")
 
     # --------------------------------------------------------------------------------
     # Dashboard
@@ -704,7 +723,22 @@ def view(input_dir: Path, summary_name: str) -> None:
     settings: Settings = Settings()
     settings_file = Path(f"{input_dir}/settings.yaml")
     if settings_file.exists():
+        print(f"Loading settings from {settings_file}...")
         settings = load_settings(settings_file)
+
+    bed_files = glob.glob(f"{input_dir}/*.bed")
+    if bed_files:
+        panel_name = os.path.basename(bed_files[0]).split(".")[0]
+        print(f"Use panel name from regions BED file: {panel_name}")
+        amplicons = RegionBEDParser(bed_files[0]).names
+    else:
+        raise ValueError("No regions BED file found in summary directory.")
+
+    panel_settings = get_panel_settings(panel_name)
+    amplicon_sets = panel_settings.amplicon_sets
+    deletion_genes = panel_settings.deletion_genes
+
+    print("Load data...")
 
     dashboard = BasicSummaryDashboard(
         summary_name,
@@ -718,8 +752,10 @@ def view(input_dir: Path, summary_name: str) -> None:
         geojson_glob=f"{input_dir}/*.geojson",
         location_coords_csv=f"{input_dir}/coords.csv",
         settings=settings,
+        amplicons=amplicons,
+        amplicon_sets=amplicon_sets,
+        deletion_genes=deletion_genes,
     )
-    print("Done.")
 
     print("")
     print("Launching dashboard (press CNTRL+C to exit):")

@@ -5,7 +5,7 @@ import os
 import threading
 from abc import ABC, abstractmethod
 import webbrowser
-from dash import Dash, html, dcc
+from dash import Dash, Input, Output, callback, html, dcc
 
 from i18n import t
 import i18n
@@ -193,18 +193,33 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.quality_control)
         self.layout.append(quality_row)
 
-    def _add_prevalence_row(self, analysis_csv: str, master_csv: str) -> None:
+    def _add_prevalence_row(
+        self,
+        analysis_csv: str,
+        master_csv: str,
+        amplicon_names: list[str],
+        amplicon_sets: dict[str, list[str]],
+    ) -> None:
         """
         Add a panel that shows prevalence calls
 
         """
-        dropdown_genset = dcc.Dropdown(
-            id="prevalence-dropdown-gene-set",
-            options=list(PrevalenceBarplot.GENE_SETS.keys()),
-            value=list(PrevalenceBarplot.GENE_SETS.keys())[0],
-            style=dict(width="300px"),
-            clearable=False,
-        )
+        if amplicon_sets:
+            dropdown_amplicon_set = dcc.Dropdown(
+                id="prevalence-dropdown-amplicon-set",
+                options=list(amplicon_sets.keys()),
+                value=list(amplicon_sets.keys())[0],
+                style=dict(width="300px"),
+                clearable=False,
+            )
+        else:
+            dropdown_amplicon_set = dcc.Dropdown(
+                id="prevalence-dropdown-amplicon-set",
+                options=["All"],
+                value="All",
+                style=dict(width="300px"),
+                clearable=False,
+            )
 
         cols = cols_to_group_by(master_csv, analysis_csv, max_cat=10)
 
@@ -219,11 +234,30 @@ class SummaryDashboardBuilder(ABC):
         self.prevalence_bars = PrevalenceBarplot(
             self.summary_name,
             component_id="prevalence-bars",
-            radio_id="prevalence-dropdown-gene-set",
+            radio_id="amplicons-dropdown",
             radio_id_by="prevalence-dropdown-by",
             analysis_csv=analysis_csv,
             master_csv=master_csv,
+            amplicon_sets=amplicon_sets,
         )
+
+        @callback(
+            Output("amplicons-dropdown", "options"),
+            Input("prevalence-dropdown-amplicon-set", "value"),
+        )
+        def update_amplicons_options(amplicon_set):
+            if amplicon_set == "All":
+                return amplicon_names
+            return amplicon_sets[amplicon_set]
+
+        @callback(
+            Output("amplicons-dropdown", "value"),
+            Input("prevalence-dropdown-amplicon-set", "value"),
+        )
+        def update_amplicons_value(amplicon_set):
+            if amplicon_set == "All":
+                return amplicon_names
+            return amplicon_sets[amplicon_set]
 
         prevalence_row = html.Div(
             className="prevalence-row",
@@ -234,8 +268,18 @@ class SummaryDashboardBuilder(ABC):
                     children=[
                         html.Div(
                             children=[
-                                html.Label("Select gene set:"),
-                                dropdown_genset,
+                                html.Label("Select amplicon set:"),
+                                dropdown_amplicon_set,
+                            ]
+                        ),
+                        html.Div(
+                            children=[
+                                html.Label("Select amplicons:"),
+                                dcc.Dropdown(
+                                    id="amplicons-dropdown",
+                                    multi=True,
+                                    style=dict(width="300px"),
+                                ),
                             ]
                         ),
                         html.Div(
@@ -257,15 +301,25 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.prevalence_bars)
         self.layout.append(prevalence_row)
 
-    def _add_prevalence_by_col_row(self, analysis_csv: str, master_csv: str) -> None:
+    def _add_prevalence_by_col_row(
+        self,
+        analysis_csv: str,
+        master_csv: str,
+        amplicon_names: list[str],
+        amplicon_sets: dict[str, list[str]],
+    ) -> None:
         """
         Add a panel that shows prevalence calls by cols
 
         """
-        gen_dropdown = dcc.Dropdown(
-            id="gene-dropdown",
-            options=PrevalenceBarplot.GENE_SETS["Resistance"],
-            value=PrevalenceBarplot.GENE_SETS["Resistance"][0],
+
+        if "Resistance" in amplicon_sets:
+            amplicon_names = amplicon_sets["Resistance"]
+
+        amplicon_dropdown = dcc.Dropdown(
+            id="amplicon-dropdown",
+            options=amplicon_names,
+            value=amplicon_names[0],
             style=dict(width="300px"),
             clearable=False,
         )
@@ -289,7 +343,7 @@ class SummaryDashboardBuilder(ABC):
             analysis_csv=analysis_csv,
             master_csv=master_csv,
             component_id="prevalence-heatmap",
-            gene_dropdown_id="gene-dropdown",
+            amplicon_dropdown_id="amplicon-dropdown",
             col_dropdown_id="col-dropdown",
         )
         prevalence_row = html.Div(
@@ -301,8 +355,8 @@ class SummaryDashboardBuilder(ABC):
                     children=[
                         html.Div(
                             children=[
-                                html.Label("Select gene:"),
-                                gen_dropdown,
+                                html.Label("Select amplicon:"),
+                                amplicon_dropdown,
                             ]
                         ),
                         html.Div(
@@ -382,6 +436,7 @@ class SummaryDashboardBuilder(ABC):
         location_coords_csv: str,
         map_center: tuple[float, float] | None,
         map_zoom_level: int | None,
+        amplicon_sets: dict[str, list[str]],
     ) -> None:
         """
         Add a panel that shows a choropleth map of drug resistance marker prevalence
@@ -399,8 +454,12 @@ class SummaryDashboardBuilder(ABC):
         """
         # Get mutations and their prevalence for resistance genes
         analysis_df = pd.read_csv(analysis_csv)
-        resistance_genes = PrevalenceBarplot.GENE_SETS["Resistance"]
-        resistance_df = analysis_df[analysis_df["gene"].isin(resistance_genes)]
+        if "Resistance" in amplicon_sets:
+            resistance_df = analysis_df[
+                analysis_df["amplicon"].isin(amplicon_sets["Resistance"])
+            ]
+        else:
+            resistance_df = analysis_df
         prevalence_df = compute_variant_prevalence(resistance_df)
 
         # Create a dictionary with mutation info and prevalence
@@ -509,6 +568,9 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         analysis_csv: str,
         gene_deletions_csv: str,
         master_csv: str,
+        amplicons: list[str],
+        amplicon_sets: dict[str, list[str]],
+        deletion_genes: list[str],
         geojson_glob: str,
         settings: Settings,
         location_coords_csv: str,
@@ -534,6 +596,9 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.geojson_glob = geojson_glob
         self.location_coords_csv = location_coords_csv
         self.map_center, self.map_zoom_level = get_map_settings(settings)
+        self.amplicon_names = amplicons
+        self.amplicon_sets = amplicon_sets
+        self.deletion_genes = deletion_genes
 
     def _gen_layout(self):
         """
@@ -543,9 +608,14 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self._add_throughput_banner(self.throughput_csv)
         self._add_samples(self.samples_csv, self.samples_amplicons_csv)
         self._add_experiment_qc(self.coverage_csv)
-        self._add_prevalence_row(self.analysis_csv, self.master_csv)
-        self._add_prevalence_by_col_row(self.analysis_csv, self.master_csv)
-        self._add_gene_deletion_row(self.gene_deletions_csv, self.master_csv)
+        self._add_prevalence_row(
+            self.analysis_csv, self.master_csv, self.amplicon_names, self.amplicon_sets
+        )
+        self._add_prevalence_by_col_row(
+            self.analysis_csv, self.master_csv, self.amplicon_names, self.amplicon_sets
+        )
+        if self.deletion_genes:
+            self._add_gene_deletion_row(self.gene_deletions_csv, self.master_csv)
 
         if glob.glob(self.geojson_glob) or os.path.exists(self.location_coords_csv):
             self._add_map_row(
@@ -555,6 +625,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
                 self.location_coords_csv,
                 self.map_center,
                 self.map_zoom_level,
+                self.amplicon_sets,
             )
 
 
