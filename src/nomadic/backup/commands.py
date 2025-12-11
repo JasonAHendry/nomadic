@@ -32,7 +32,9 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     "-t",
     "--target_dir",
     "target_dir",
-    type=str,
+    type=click.Path(
+        dir_okay=True, file_okay=False
+    ),  # Use path here to enable autocomplete, even though not only paths are allowed
     required=True,
     help=(
         "Path to root target backup folder, local or an SSH target like user@host:/path. "

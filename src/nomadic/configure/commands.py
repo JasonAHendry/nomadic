@@ -36,7 +36,9 @@ def configure():
     "-t",
     "--target_dir",
     "target_dir",
-    type=click.Path(),  # Use path here to enable autocomplete, even though not only paths are allowed
+    type=click.Path(
+        dir_okay=True, file_okay=False
+    ),  # Use path here to enable autocomplete, even though not only paths are allowed
     help=(
         "Path to target folder or an SSH target like user@host:/path. "
         "The shared files will go inside of that folder into a folder with the name of the workspace."
@@ -88,7 +90,9 @@ def share(workspace_path: str, target_dir: str):
     "-t",
     "--target_dir",
     "target_dir",
-    type=click.Path(),  # Use path here to enable autocomplete, even though not only paths are allowed
+    type=click.Path(
+        dir_okay=True, file_okay=False
+    ),  # Use path here to enable autocomplete, even though not only paths are allowed
     help=(
         "Path to target folder or an SSH target like user@host:/path. "
         "The shared files will go inside of that folder into a folder with the name of the workspace."
