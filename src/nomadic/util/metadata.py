@@ -1,9 +1,14 @@
+import os
 import re
-from typing import Optional
 import warnings
+from typing import List, Optional
+
 import pandas as pd
-from typing import List
+
 from .exceptions import MetadataFormatError
+
+
+STANDARD_METADATA_FILENAME = "samples.csv"
 
 
 def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";", "\t"]):
@@ -105,15 +110,14 @@ class MetadataTableParser:
         ],
     }
 
-    def __init__(self, metadata_csv: str, include_unclassified: bool = True):
+    def __init__(self, metadata_path: str, include_unclassified: bool = True):
         """
         Load and sanity check the metadata table
 
         """
 
-        self.csv = metadata_csv
-        self.df = pd.read_csv(self.csv, delimiter=get_csv_delimiter(self.csv))
-
+        self.path = metadata_path
+        self._load_metadata(metadata_path)
         self._correct_columns()
         self._check_entries_unique()
         self._correct_all_barcodes()
@@ -124,6 +128,25 @@ class MetadataTableParser:
         if include_unclassified:
             self.required_metadata.loc["unclassified"] = ["unclassified"]
             self.barcodes.append("unclassified")
+
+    def _load_metadata(self, path: str):
+        _, ext = os.path.splitext(path)
+        ext = ext.lower()
+        if ext == ".xlsx":
+            xlsx = pd.ExcelFile(path, engine="openpyxl")
+            # name in nomadic excel template, and in the (legacy) warehouse template
+            target_sheets = ["nomadic", "rxn_metadata"]
+            # Find first matching sheetname or use first sheet
+            sheet_names = [
+                sheetname
+                for sheetname in target_sheets
+                if sheetname in xlsx.sheet_names
+            ] + [xlsx.sheet_names[0]]
+            data = pd.read_excel(path, sheet_name=sheet_names[0], engine="openpyxl")
+            data.dropna(how="all", inplace=True)
+            self.df = data
+        else:
+            self.df = pd.read_csv(path, delimiter=get_csv_delimiter(path))
 
     def get_sample_id(self, barcode: str) -> Optional[str]:
         if barcode == "unclassified":
@@ -183,3 +206,33 @@ class MetadataTableParser:
 
     def _correct_all_barcodes(self) -> List[str]:
         self.df["barcode"] = [correct_barcode_format(b) for b in self.df["barcode"]]
+
+
+def find_metadata(input_dir: str) -> MetadataTableParser:
+    """
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location
+
+    """
+
+    metadata_dir = os.path.join(input_dir, "metadata")
+
+    # first check if the file with standard name exists
+    standard_path = os.path.join(metadata_dir, STANDARD_METADATA_FILENAME)
+    if os.path.isfile(standard_path):
+        return MetadataTableParser(standard_path)
+
+    # Now try to find any CSV file
+    csvs = [
+        f"{metadata_dir}/{file}"
+        for file in os.listdir(metadata_dir)
+        if file.endswith(".csv")
+        and not file.startswith("._")  # ignore AppleDouble files
+    ]  # TODO: what about no-suffix files?
+
+    if len(csvs) != 1:  # Could alternatively load and LOOK
+        raise FileNotFoundError(
+            f"Expected one metadata CSV file (*.csv) at {metadata_dir}, but found {len(csvs)}."
+        )
+
+    return MetadataTableParser(csvs[0])

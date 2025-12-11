@@ -1,10 +1,10 @@
-from nomadic.util.dirs import produce_dir
-from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.regions import RegionBEDParser
-
 import os
 import shutil
 from typing import NamedTuple
+
+from nomadic.util.dirs import produce_dir
+from nomadic.util.metadata import STANDARD_METADATA_FILENAME, MetadataTableParser
+from nomadic.util.regions import RegionBEDParser
 
 
 class SummaryFiles(NamedTuple):
@@ -138,7 +138,7 @@ class ExperimentDirectories:
         and store their paths as attributes
         """
         if metadata is not None:
-            self.metadata_csv = f"{self.metadata_dir}/{os.path.basename(metadata.csv)}"
+            self.metadata_csv = f"{self.metadata_dir}/{STANDARD_METADATA_FILENAME}"
             if not os.path.exists(self.metadata_csv):
                 metadata.df.to_csv(self.metadata_csv, index=False)
 

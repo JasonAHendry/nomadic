@@ -1,7 +1,9 @@
 import os
-import click
 from pathlib import Path
 
+import click
+
+from nomadic.util.config import get_config_value, load_config, default_config_path
 from nomadic.util.dirs import produce_dir
 
 
@@ -91,6 +93,12 @@ class Workspace:
         """
         return os.path.join(self.get_metadata_dir(), f"{experiment_name}.csv")
 
+    def get_metadata_xlsx(self, experiment_name: str):
+        """
+        Get the path to the metadata XLSX file for a given experiment.
+        """
+        return os.path.join(self.get_metadata_dir(), f"{experiment_name}.xlsx")
+
     def get_bed_file(self, panel_name: str):
         """
         Get the path to the BED file for a given panel name.
@@ -119,3 +127,21 @@ class Workspace:
             for name in os.listdir(self.get_results_dir())
             if os.path.isdir(os.path.join(self.get_results_dir(), name))
         ]
+
+    def get_shared_folder(self) -> str | None:
+        """
+        Get the shared folder path from the workspace configuration, if it exists.
+        """
+
+        config_path = os.path.join(self.path, default_config_path)
+        shared_folder = get_config_value(
+            load_config(config_path), ["share", "defaults", "target_dir"]
+        )
+        if (
+            shared_folder is not None
+            and isinstance(shared_folder, str)
+            and os.path.isdir(shared_folder)
+        ):
+            return shared_folder
+
+        return None

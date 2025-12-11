@@ -12,18 +12,30 @@ def complete_experiment_name(ctx: click.Context, param, incomplete):
     """Complete experiment names based on existing metadatafiles in the workspace."""
     workspace_path = ctx.params.get("workspace_path", "./")
     metadata_path = Workspace(workspace_path).get_metadata_dir()
+    experiments = []
     if os.path.exists(metadata_path):
-        experiments = [
-            f.removesuffix(".csv")
-            for f in os.listdir(metadata_path)
-            if f.endswith(".csv")
-        ]
-        return [
-            click.shell_completion.CompletionItem(experiment)
-            for experiment in experiments
-            if experiment.startswith(incomplete)
-        ]
-    return []
+        experiments.extend(list_experiment_names(metadata_path))
+    shared_folder = Workspace(workspace_path).get_shared_folder()
+    if shared_folder:
+        shared_metadata_path = os.path.join(
+            shared_folder, Workspace(shared_folder).get_metadata_dir()
+        )
+        if os.path.exists(shared_metadata_path):
+            experiments.extend(list_experiment_names(shared_metadata_path))
+    experiments = list(set(experiments))  # Remove duplicates
+    return [
+        click.shell_completion.CompletionItem(experiment)
+        for experiment in experiments
+        if experiment.startswith(incomplete)
+    ]
+
+
+def list_experiment_names(metadata_folder: str) -> list[str]:
+    return [
+        f.removesuffix(".csv").removesuffix(".xlsx")
+        for f in os.listdir(metadata_folder)
+        if f.endswith(".csv") or f.endswith(".xlsx")
+    ]
 
 
 def complete_bed_file(ctx: click.Context, param, incomplete):

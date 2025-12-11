@@ -1,12 +1,11 @@
 import os
-from importlib.resources import files
 from dataclasses import dataclass
+from importlib.resources import files
 
 import click
 
 from nomadic.util.config import default_config_path, write_config
 from nomadic.util.workspace import Workspace
-
 
 # --------------------------------------------------------------------------------
 # Workspace definitions for different organisms
@@ -68,14 +67,24 @@ def setup_organism(
 
 
 def copy_example_metadata(workspace):
-    click.echo("Copying example metadata file.")
-    example_metadata_file = files("nomadic.start").joinpath(
-        "data", "0000-00-00_example.csv"
+    click.echo("Copying example metadata files.")
+    example_metadata_csv = files("nomadic.start").joinpath(
+        "data", "2020-05-15_example.csv"
     )
-    data = example_metadata_file.read_text()
-    dest_path = os.path.join(workspace.get_metadata_dir(), "0000-00-00_example.csv")
+    data = example_metadata_csv.read_text()
+    dest_path = os.path.join(workspace.get_metadata_dir(), "2020-05-15_example.csv")
     with open(dest_path, "w") as text_file:
         text_file.write(data)
+
+    example_metadata_xlsx = files("nomadic.start").joinpath(
+        "data", "NOMADS_Library_Worksheet.xlsx"
+    )
+    data_xlsx = example_metadata_xlsx.read_bytes()
+    dest_path_xlsx = os.path.join(
+        workspace.get_metadata_dir(), example_metadata_xlsx.name
+    )
+    with open(dest_path_xlsx, "wb") as bin_file:
+        bin_file.write(data_xlsx)
 
 
 def copy_bed_files(workspace: Workspace, *, organism_name):
