@@ -1,6 +1,5 @@
 import os
 from dataclasses import dataclass
-from datetime import date
 from importlib.resources import files
 
 import click
@@ -69,12 +68,11 @@ def setup_organism(
 
 def copy_example_metadata(workspace):
     click.echo("Copying example metadata files.")
-    output_fn_stub = str(date.today()) + "_example_expt"
     example_metadata_csv = files("nomadic.start").joinpath(
-        "data", "0000-00-00_example.csv"
+        "data", "2020-05-15_example.csv"
     )
     data = example_metadata_csv.read_text()
-    dest_path = os.path.join(workspace.get_metadata_dir(), output_fn_stub + ".csv")
+    dest_path = os.path.join(workspace.get_metadata_dir(), "2020-05-15_example.csv")
     with open(dest_path, "w") as text_file:
         text_file.write(data)
 
