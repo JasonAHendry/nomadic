@@ -6,11 +6,11 @@ import click
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.commands import (
-    get_metadata_path,
-    get_minknow_fastq_dirs,
-    get_output_path,
-    get_region_path,
-    get_workspace,
+    find_metadata_file,
+    find_minknow_fastq_dirs,
+    determine_output_path,
+    find_region_file,
+    find_workspace,
 )
 from nomadic.util.cli import (
     complete_bed_file,
@@ -127,11 +127,11 @@ def process(
     """
     (Re)Process data that was produced by MinKNOW
     """
-    workspace = get_workspace(workspace_path)
-    output = get_output_path(experiment_name, output, workspace)
-    metadata_csv = get_metadata_path(experiment_name, metadata_csv, workspace)
-    region_bed = get_region_path(region_bed, workspace)
-    minknow_dir, fastq_dir = get_minknow_fastq_dirs(
+    workspace = find_workspace(workspace_path)
+    output = determine_output_path(experiment_name, output, workspace)
+    metadata_csv = find_metadata_file(experiment_name, metadata_csv, workspace)
+    region_bed = find_region_file(region_bed, workspace)
+    minknow_dir, fastq_dir = find_minknow_fastq_dirs(
         experiment_name, minknow_dir, fastq_dir
     )
 

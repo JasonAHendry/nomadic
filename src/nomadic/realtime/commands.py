@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from shutil import rmtree
+from typing import Optional
 
 import click
 
@@ -141,11 +142,11 @@ def realtime(
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
     """
-    workspace = get_workspace(workspace_path)
-    output = get_output_path(experiment_name, output, workspace)
-    metadata_path = get_metadata_path(experiment_name, metadata_path, workspace)
-    region_bed = get_region_path(region_bed, workspace)
-    minknow_dir, fastq_dir = get_minknow_fastq_dirs(
+    workspace = find_workspace(workspace_path)
+    output = determine_output_path(experiment_name, output, workspace)
+    metadata_path = find_metadata_file(experiment_name, metadata_path, workspace)
+    region_bed = find_region_file(region_bed, workspace)
+    minknow_dir, fastq_dir = find_minknow_fastq_dirs(
         experiment_name, minknow_dir, fastq_dir
     )
 
@@ -195,7 +196,10 @@ def realtime(
         ) from e
 
 
-def get_minknow_fastq_dirs(experiment_name, minknow_dir, fastq_dir):
+def find_minknow_fastq_dirs(
+    experiment_name: str, minknow_dir: Path, fastq_dir
+) -> tuple[Optional[Path], str]:
+    """Finds the minknow and fastqdir folders to use"""
     if fastq_dir is None:
         return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
     else:
@@ -203,7 +207,7 @@ def get_minknow_fastq_dirs(experiment_name, minknow_dir, fastq_dir):
         return None, fastq_dir
 
 
-def validate_reference(reference_name):
+def validate_reference(reference_name: str):
     if reference_name is None:
         raise click.BadParameter(
             param_hint="-r/--reference_name",
@@ -216,7 +220,8 @@ def validate_reference(reference_name):
         )
 
 
-def get_region_path(region_bed, workspace):
+def find_region_file(region_bed: str, workspace: Workspace) -> str:
+    """Tries to find the region bed file to use and signals to the user the right feedback if it can't be found."""
     if not os.path.isfile(region_bed):
         if not looks_like_a_bed_filepath(region_bed):
             # Assume it's a panel name
@@ -233,7 +238,10 @@ def get_region_path(region_bed, workspace):
     return region_bed
 
 
-def get_metadata_path(experiment_name, metadata_path, workspace):
+def find_metadata_file(
+    experiment_name: str, metadata_path: Optional[str], workspace: Workspace
+) -> str:
+    """Finds the metadata file to use and gives feedback to the user if it can't be found"""
     if metadata_path is None:
         files = [
             workspace.get_metadata_csv(experiment_name),
@@ -266,13 +274,13 @@ def get_metadata_path(experiment_name, metadata_path, workspace):
     return metadata_path
 
 
-def get_output_path(experiment_name, output, workspace):
+def determine_output_path(experiment_name, output, workspace):
     if output is None:
         output = workspace.get_output_dir(experiment_name)
     return output
 
 
-def get_workspace(workspace_path):
+def find_workspace(workspace_path):
     if not check_if_workspace(workspace_path):
         raise click.BadParameter(
             param_hint="-w/--workspace",
