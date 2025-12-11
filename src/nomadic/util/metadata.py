@@ -8,6 +8,9 @@ import pandas as pd
 from .exceptions import MetadataFormatError
 
 
+STANDARD_METADATA_FILENAME = "samples.csv"
+
+
 def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";", "\t"]):
     """
     Determine which delimiter is being used in a CSV
@@ -203,3 +206,33 @@ class MetadataTableParser:
 
     def _correct_all_barcodes(self) -> List[str]:
         self.df["barcode"] = [correct_barcode_format(b) for b in self.df["barcode"]]
+
+
+def find_metadata(input_dir: str) -> MetadataTableParser:
+    """
+    Given an experiment directory, search for the metadata CSV file in thee
+    expected location
+
+    """
+
+    metadata_dir = os.path.join(input_dir, "metadata")
+
+    # first check if the file with standard name exists
+    standard_path = os.path.join(metadata_dir, STANDARD_METADATA_FILENAME)
+    if os.path.isfile(standard_path):
+        return MetadataTableParser(standard_path)
+
+    # Now try to find any CSV file
+    csvs = [
+        f"{metadata_dir}/{file}"
+        for file in os.listdir(metadata_dir)
+        if file.endswith(".csv")
+        and not file.startswith("._")  # ignore AppleDouble files
+    ]  # TODO: what about no-suffix files?
+
+    if len(csvs) != 1:  # Could alternatively load and LOOK
+        raise FileNotFoundError(
+            f"Expected one metadata CSV file (*.csv) at {metadata_dir}, but found {len(csvs)}."
+        )
+
+    return MetadataTableParser(csvs[0])

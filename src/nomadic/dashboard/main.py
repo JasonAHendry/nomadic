@@ -2,39 +2,9 @@ import os
 
 from nomadic.realtime.dashboard.builders import CallingRTDashboard, MappingRTDashboard
 from nomadic.util.experiment import ExperimentDirectories
-from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.metadata import find_metadata
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.settings import load_settings
-
-
-def find_metadata(input_dir: str) -> MetadataTableParser:
-    """
-    Given an experiment directory, search for the metadata CSV file in thee
-    expected location
-
-    """
-
-    metadata_dir = os.path.join(input_dir, "metadata")
-
-    # first check if the file with standard name exists
-    standard_path = os.path.join(metadata_dir, "sample-info.csv")
-    if os.path.isfile(standard_path):
-        return MetadataTableParser(standard_path)
-
-    # Now try to find any CSV file
-    csvs = [
-        f"{metadata_dir}/{file}"
-        for file in os.listdir(metadata_dir)
-        if file.endswith(".csv")
-        and not file.startswith("._")  # ignore AppleDouble files
-    ]  # TODO: what about no-suffix files?
-
-    if len(csvs) != 1:  # Could alternatively load and LOOK
-        raise FileNotFoundError(
-            f"Expected one metadata CSV file (*.csv) at {metadata_dir}, but found {len(csvs)}."
-        )
-
-    return MetadataTableParser(csvs[0])
 
 
 def find_regions(input_dir: str) -> RegionBEDParser:
