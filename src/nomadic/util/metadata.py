@@ -114,26 +114,7 @@ class MetadataTableParser:
         """
 
         self.path = metadata_path
-        _, ext = os.path.splitext(self.path)
-        ext = ext.lower()
-        if ext == ".xlsx":
-            xlsx = pd.ExcelFile(self.path, engine="openpyxl")
-            # name in nomadic excel template, and in the (legacy) warehouse template
-            target_sheets = ["nomadic", "rxn_metadata"]
-            # Find first matching sheetname or use first sheet
-            sheet_names = [
-                sheetname
-                for sheetname in target_sheets
-                if sheetname in xlsx.sheet_names
-            ] + [xlsx.sheet_names[0]]
-            data = pd.read_excel(
-                self.path, sheet_name=sheet_names[0], engine="openpyxl"
-            )
-            data.dropna(how="all", inplace=True)
-            self.df = data
-        else:
-            self.df = pd.read_csv(self.path, delimiter=get_csv_delimiter(self.path))
-
+        self._load_metadata(metadata_path)
         self._correct_columns()
         self._check_entries_unique()
         self._correct_all_barcodes()
@@ -144,6 +125,25 @@ class MetadataTableParser:
         if include_unclassified:
             self.required_metadata.loc["unclassified"] = ["unclassified"]
             self.barcodes.append("unclassified")
+
+    def _load_metadata(self, path: str):
+        _, ext = os.path.splitext(path)
+        ext = ext.lower()
+        if ext == ".xlsx":
+            xlsx = pd.ExcelFile(path, engine="openpyxl")
+            # name in nomadic excel template, and in the (legacy) warehouse template
+            target_sheets = ["nomadic", "rxn_metadata"]
+            # Find first matching sheetname or use first sheet
+            sheet_names = [
+                sheetname
+                for sheetname in target_sheets
+                if sheetname in xlsx.sheet_names
+            ] + [xlsx.sheet_names[0]]
+            data = pd.read_excel(path, sheet_name=sheet_names[0], engine="openpyxl")
+            data.dropna(how="all", inplace=True)
+            self.df = data
+        else:
+            self.df = pd.read_csv(path, delimiter=get_csv_delimiter(path))
 
     def get_sample_id(self, barcode: str) -> Optional[str]:
         if barcode == "unclassified":
