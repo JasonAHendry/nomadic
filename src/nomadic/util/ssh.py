@@ -5,14 +5,17 @@ import shlex
 import click
 
 
-def is_ssh_target(s: str) -> bool:
+def is_ssh_target(text: str) -> bool:
     """Checks if a string is an SSH target of the form user@host:/path or host:/path."""
     # matches user@host:/path or host:/path
-    return re.match(r"^(?:[^@:\\s]+@)?[^@:\\s]+:/", s) is not None
+    return re.match(r"^([^@:\s]+@)?[^@:\s]+:/[^:]*$", text) is not None
 
 
 def split_ssh_target(t: str) -> tuple[str, str]:
-    """Splits an SSH target into (user@host, /absolute/path)."""
+    """Splits an SSH target into (user@host, /absolute/path).
+
+    Only pass strings that match is_ssh_target
+    """
     idx = t.find(":")
     host = t[:idx]
     path = t[idx + 1 :]
