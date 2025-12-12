@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 from typing import Optional
 
 import click
 import click.shell_completion
 
+from nomadic.util.ssh import is_ssh_target, remote_dir_exists
 from nomadic.util.workspace import Workspace
 from nomadic.util.config import load_config, default_config_path
 
@@ -78,3 +80,24 @@ def load_default_function_for(command: str):
         return value
 
     return click_callback
+
+
+def validate_target(ctx, param, value) -> Path | str:
+    if is_ssh_target(value):
+        ok, msg = remote_dir_exists(value)
+        if not ok:
+            raise click.BadParameter(
+                message=f"Remote target '{value}' does not exist: {msg}",
+            )
+        return value
+    else:
+        path = Path(value)
+        if not path.exists():
+            raise click.BadParameter(
+                message=f"'{path}' does not exist.",
+            )
+        if not path.is_dir():
+            raise click.BadParameter(
+                message=f"'{path}' is not a directory.",
+            )
+        return path
