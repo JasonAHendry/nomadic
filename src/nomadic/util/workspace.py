@@ -1,5 +1,7 @@
+from itertools import chain
 import os
 from pathlib import Path
+from typing import Optional
 
 import click
 
@@ -7,17 +9,23 @@ from nomadic.util.config import get_config_value, load_config, default_config_pa
 from nomadic.util.dirs import produce_dir
 
 
-def check_if_workspace(path: str) -> bool:
+def find_workspace_root(path: Path) -> Optional[Path]:
+    for parent in chain([path], path.resolve().parents):
+        if check_if_workspace_root(parent):
+            return parent
+    return None
+
+
+def check_if_workspace_root(path: Path) -> bool:
     """
     Check if the given path is a valid Nomadic workspace.
     A valid workspace contains a 'results', 'beds' and 'metadata' directory.
     """
     return (
-        os.path.exists(path)
-        and os.path.isdir(path)
-        and os.path.exists(os.path.join(path, "results"))
-        and os.path.exists(os.path.join(path, "beds"))
-        and os.path.exists(os.path.join(path, "metadata"))
+        path.is_dir()
+        and (path / "results").is_dir()
+        and (path / "beds").is_dir()
+        and (path / "metadata").is_dir()
     )
 
 
@@ -115,6 +123,9 @@ class Workspace:
             if file.endswith(".bed")
         ]
 
+    def get_config_path(self):
+        return os.path.join(self.path, default_config_path)
+
     def get_experiment_names(self):
         """
         Get a list of available experiment names in the workspace.
@@ -132,11 +143,13 @@ class Workspace:
         """
         Get the shared folder path from the workspace configuration, if it exists.
         """
-
-        config_path = os.path.join(self.path, default_config_path)
-        shared_folder = get_config_value(
-            load_config(config_path), ["share", "defaults", "target_dir"]
-        )
+        config_path = self.get_config_path()
+        if os.path.exists(config_path) and os.path.isfile(config_path):
+            shared_folder = get_config_value(
+                load_config(config_path), ["share", "defaults", "target_dir"]
+            )
+        else:
+            shared_folder = None
         if (
             shared_folder is not None
             and isinstance(shared_folder, str)

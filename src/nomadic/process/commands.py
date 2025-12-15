@@ -1,38 +1,30 @@
 import os
 from pathlib import Path
 from shutil import rmtree
+from typing import Optional
 
 import click
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.commands import (
+    determine_output_path,
     find_metadata_file,
     find_minknow_fastq_dirs,
-    determine_output_path,
     find_region_file,
-    find_workspace,
 )
 from nomadic.util.cli import (
     complete_bed_file,
     complete_experiment_name,
     load_default_function_for,
+    workspace_option,
 )
+from nomadic.util.workspace import Workspace
 
 
 @click.command(
     short_help="(Re)process data from a completed run.",
 )
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default="current directory",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the workspace where all input/output files (beds, metadata, results) are stored. "
-    "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
-    "as they are predefined in the workspace config or can be loaded from the workspace",
-)
+@workspace_option(optional=True)
 @click.argument(
     "experiment_name",
     type=str,
@@ -113,7 +105,7 @@ from nomadic.util.cli import (
 def process(
     experiment_name,
     output,
-    workspace_path,
+    workspace: Optional[Workspace],
     minknow_dir,
     fastq_dir,
     metadata_csv,
@@ -127,7 +119,22 @@ def process(
     """
     (Re)Process data that was produced by MinKNOW
     """
-    workspace = find_workspace(workspace_path)
+    are_none = [
+        value
+        for value in [
+            (output, "--output"),
+            (metadata_csv, "--metadata_csv"),
+            (region_bed, "--region_bed", reference_name, "--reference_name"),
+        ]
+        if value[0] is None
+    ]
+    if len(are_none) > 0 and workspace is None:
+        # if any of those command line options is not set explicitly, we need a workspace to resolve them.
+        raise click.BadParameter(
+            param_hint="-w/--workspace",
+            message=f"Current directory is not a workspace. Please use nomadic start to create a new workspace, or navigate to your workspace, or set {are_none[0][1]} explicit.",
+        )
+
     output = determine_output_path(experiment_name, output, workspace)
     metadata_csv = find_metadata_file(experiment_name, metadata_csv, workspace)
     region_bed = find_region_file(region_bed, workspace)
@@ -150,7 +157,6 @@ def process(
     main(
         experiment_name,
         output,
-        workspace_path,
         fastq_dir,
         minknow_dir,
         metadata_csv,

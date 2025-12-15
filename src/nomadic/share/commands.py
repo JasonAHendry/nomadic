@@ -3,27 +3,23 @@ from pathlib import Path
 
 import click
 
-from nomadic.util.cli import load_default_function_for, validate_target
-from nomadic.util.sync import (
-    print_sync_summary,
-    sync_status,
-    share_minknow_data,
-    share_nomadic_workspace,
+from nomadic.util.cli import (
+    load_default_function_for,
+    validate_target,
+    workspace_option,
 )
 from nomadic.util.ssh import is_ssh_target
-from nomadic.util.workspace import Workspace, check_if_workspace
+from nomadic.util.sync import (
+    print_sync_summary,
+    share_minknow_data,
+    share_nomadic_workspace,
+    sync_status,
+)
+from nomadic.util.workspace import Workspace
 
 
 @click.command(short_help="Share (lightweight) summary of a workspace.")
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default="current directory",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    help="Path to the nomadic workspace you want to share",
-)
+@workspace_option()
 @click.option(
     callback=load_default_function_for("share"),
     expose_value=False,
@@ -86,7 +82,7 @@ def share(
     target_dir: Path | str,
     minknow_base_dir: Path,
     include_minknow: bool,
-    workspace_path: Path,
+    workspace: Workspace,
     checksum: bool,
     update: bool,
     verbose: bool,
@@ -95,12 +91,6 @@ def share(
     Share summary nomadic workspace and associated minknow data to another folder
     e.g. a cloud synchronised folder for sharing.
     """
-    if not check_if_workspace(str(workspace_path)):
-        raise click.BadParameter(
-            param_hint="-w/--workspace",
-            message=f"'{workspace_path.resolve()}' is not a workspace.",
-        )
-
     if (
         ctx.get_parameter_source("minknow_base_dir")
         is not click.core.ParameterSource.DEFAULT
@@ -118,7 +108,6 @@ def share(
                 message=f"'{minknow_base_dir.resolve()}' is not a directory.",
             )
 
-    workspace = Workspace(str(workspace_path))
     failure_reasons = defaultdict(list)
 
     # Add workspace name to shared dir so multiple workspaces can be shared to same location

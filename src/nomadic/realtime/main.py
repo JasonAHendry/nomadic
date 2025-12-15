@@ -22,7 +22,6 @@ WAIT_INTERVAL = 5
 def main(
     expt_name: str,
     output: str,
-    workspace: str,
     fastq_dir: str,
     minknow_dir: Optional[Path],
     metadata_path: str,
@@ -44,7 +43,6 @@ def main(
     log = LoggingFascade(logger_name="nomadic", verbose=verbose)
     log.info("Input parameters:")
     log.info(f"  Experiment Name: {expt_name}")
-    log.info(f"  Workspace: {workspace}")
     log.info(f"  Output dir: {output}")
     log.info(f"  Minknow dir: {minknow_dir}")
     log.info(f"  FASTQ (.fastq): {fastq_dir}")

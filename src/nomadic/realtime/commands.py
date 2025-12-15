@@ -8,14 +8,15 @@ import click
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util import minknow
 from nomadic.util.cli import (
+    BadParameterWithSource,
     complete_bed_file,
     complete_experiment_name,
     load_default_function_for,
+    workspace_option,
 )
 from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import (
     Workspace,
-    check_if_workspace,
     looks_like_a_bed_filepath,
 )
 
@@ -23,17 +24,7 @@ from nomadic.util.workspace import (
 @click.command(
     short_help="Run analysis in real-time.",
 )
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default="current directory",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the workspace where all input/output files (beds, metadata, results) are stored. "
-    "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
-    "as they are predefined in the workspace config or can be loaded from the workspace",
-)
+@workspace_option(optional=True)
 @click.argument(
     "experiment_name",
     type=str,
@@ -124,9 +115,9 @@ from nomadic.util.workspace import (
     help="Increase logging verbosity. Helpful for debugging.",
 )
 def realtime(
-    experiment_name,
+    experiment_name: str,
     output,
-    workspace_path,
+    workspace: Optional[Workspace],
     minknow_dir,
     fastq_dir,
     metadata_path,
@@ -142,7 +133,22 @@ def realtime(
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
     """
-    workspace = find_workspace(workspace_path)
+    are_none = [
+        value
+        for value in [
+            (output, "--output"),
+            (metadata_path, "--metadata_path"),
+            (region_bed, "--region_bed", reference_name, "--reference_name"),
+        ]
+        if value[0] is None
+    ]
+    if len(are_none) > 0 and workspace is None:
+        # if any of those command line options is not set explicitly, we need a workspace to resolve them.
+        raise click.BadParameter(
+            param_hint="-w/--workspace",
+            message=f"Current directory is not a workspace. Please use nomadic start to create a new workspace, navigate to your workspace, or set {are_none[0][1]} explicit.",
+        )
+
     output = determine_output_path(experiment_name, output, workspace)
     metadata_path = find_metadata_file(experiment_name, metadata_path, workspace)
     region_bed = find_region_file(region_bed, workspace)
@@ -178,7 +184,6 @@ def realtime(
         main(
             experiment_name,
             output,
-            workspace_path,
             fastq_dir,
             minknow_dir,
             metadata_path,
@@ -209,12 +214,12 @@ def find_minknow_fastq_dirs(
 
 def validate_reference(reference_name: str):
     if reference_name is None:
-        raise click.BadParameter(
+        raise BadParameterWithSource(
             param_hint="-r/--reference_name",
             message="Reference genome must be specified. Use -r/--reference_name to select a reference genome.",
         )
     elif reference_name not in REFERENCE_COLLECTION:
-        raise click.BadParameter(
+        raise BadParameterWithSource(
             param_hint="-r/--reference_name",
             message=f"Reference genome '{reference_name}' is not available. Available references: {', '.join(REFERENCE_COLLECTION.keys())}.",
         )
@@ -227,11 +232,13 @@ def find_region_file(region_bed: str, workspace: Workspace) -> str:
             # Assume it's a panel name
             region_bed = workspace.get_bed_file(region_bed)
             if not os.path.isfile(region_bed):
-                raise click.BadParameter(
+                raise BadParameterWithSource(
+                    param_hint="-b/--region_bed",
                     message=f"Region BED file not found at {region_bed}. Possible panel names: {workspace.get_panel_names()}.",
                 )
         else:
-            raise click.BadParameter(
+            raise BadParameterWithSource(
+                param_hint="-b/--region_bed",
                 message=f"Region BED file not found at {region_bed}.",
             )
 
@@ -274,18 +281,10 @@ def find_metadata_file(
     return metadata_path
 
 
-def determine_output_path(experiment_name, output, workspace):
+def determine_output_path(
+    experiment_name: str, output: Optional[str], workspace: Workspace
+):
     if output is None:
         output = workspace.get_output_dir(experiment_name)
+
     return output
-
-
-def find_workspace(workspace_path):
-    if not check_if_workspace(workspace_path):
-        raise click.BadParameter(
-            param_hint="-w/--workspace",
-            message=f"Workspace '{workspace_path}' does not exist or is not a workspace. Please use nomadic start to create a new workspace, or navigate to your workspace",
-        )
-
-    workspace = Workspace(workspace_path)
-    return workspace

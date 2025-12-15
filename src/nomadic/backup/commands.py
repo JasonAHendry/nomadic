@@ -3,27 +3,23 @@ from pathlib import Path
 
 import click
 
-from nomadic.util.cli import load_default_function_for, validate_target
+from nomadic.util.cli import (
+    load_default_function_for,
+    validate_target,
+    workspace_option,
+)
+from nomadic.util.ssh import is_ssh_target
 from nomadic.util.sync import (
     backup_minknow_data,
     backup_nomadic_workspace,
     print_sync_summary,
     sync_status,
 )
-from nomadic.util.ssh import is_ssh_target
-from nomadic.util.workspace import Workspace, check_if_workspace
+from nomadic.util.workspace import Workspace
 
 
 @click.command(short_help="Backup a workspace.")
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default="current directory",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
-    help="Path to the nomadic workspace you want to back up.",
-)
+@workspace_option()
 @click.option(
     callback=load_default_function_for("backup"),
     expose_value=False,
@@ -76,7 +72,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 def backup(
     ctx: click.Context,
     target_dir: Path | str,
-    workspace_path: Path,
+    workspace: Workspace,
     include_minknow: bool,
     minknow_base_dir: Path,
     verbose: bool,
@@ -85,13 +81,6 @@ def backup(
     """
     Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive.
     """
-
-    if not check_if_workspace(str(workspace_path)):
-        raise click.BadParameter(
-            param_hint="-w/--workspace",
-            message=f"'{workspace_path.resolve()}' is not a workspace.",
-        )
-
     if (
         ctx.get_parameter_source("minknow_base_dir")
         is not click.core.ParameterSource.DEFAULT
@@ -108,8 +97,6 @@ def backup(
                 param_hint="-k/--minknow_dir",
                 message=f"'{minknow_base_dir.resolve()}' is not a directory.",
             )
-
-    workspace = Workspace(str(workspace_path))
 
     # Add workspace name to shared dir so multiple workspaces can be shared to same location
     if isinstance(target_dir, Path):
