@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from shutil import rmtree
+from typing import Optional
 
 import click
 
@@ -8,31 +9,21 @@ from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.realtime.commands import (
     find_metadata_file,
     find_minknow_fastq_dirs,
-    determine_output_path,
     find_region_file,
-    find_workspace,
 )
 from nomadic.util.cli import (
     complete_bed_file,
     complete_experiment_name,
     load_default_function_for,
+    workspace_option,
 )
+from nomadic.util.workspace import Workspace
 
 
 @click.command(
     short_help="(Re)process data from a completed run.",
 )
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default="current directory",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the workspace where all input/output files (beds, metadata, results) are stored. "
-    "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
-    "as they are predefined in the workspace config or can be loaded from the workspace",
-)
+@workspace_option(optional=True)
 @click.argument(
     "experiment_name",
     type=str,
@@ -74,7 +65,7 @@ from nomadic.util.cli import (
     "-b",
     "--region_bed",
     type=click.Path(),
-    required=False,
+    required=True,
     help="Path to BED file specifying genomic regions of interest or name of panel, e.g. 'nomads8' or 'nomadsMVP'.",
     shell_complete=complete_bed_file,
 )
@@ -83,12 +74,13 @@ from nomadic.util.cli import (
     "--reference_name",
     type=click.Choice(REFERENCE_COLLECTION),
     help="Choose a reference genome to be used in real-time analysis.",
+    required=True,
 )
 @click.option(
     "-c",
     "--caller",
     help="Call biallelic SNPs in real-time with the indicated variant caller. If this flag is omitted, no variant calling is performed.",
-    default=None,
+    default="",
     type=click.Choice(["bcftools", "delve"]),
 )
 @click.option(
@@ -111,27 +103,51 @@ from nomadic.util.cli import (
     help="Increase logging verbosity. Helpful for debugging.",
 )
 def process(
-    experiment_name,
-    output,
-    workspace_path,
-    minknow_dir,
-    fastq_dir,
-    metadata_csv,
-    region_bed,
-    reference_name,
-    caller,
-    overwrite,
-    resume,
-    verbose,
+    experiment_name: str,
+    output: Optional[str],
+    workspace: Optional[Workspace],
+    minknow_dir: Path,
+    fastq_dir: Optional[str],
+    metadata_csv: Optional[str],
+    region_bed: str,
+    reference_name: str,
+    caller: str,
+    overwrite: bool,
+    resume: bool,
+    verbose: bool,
 ):
     """
     (Re)Process data that was produced by MinKNOW
     """
-    workspace = find_workspace(workspace_path)
-    output = determine_output_path(experiment_name, output, workspace)
-    metadata_csv = find_metadata_file(experiment_name, metadata_csv, workspace)
+    are_none = [
+        value
+        for value in [
+            (output, "--output"),
+            (metadata_csv, "--metadata_csv"),
+            (region_bed, "--region_bed", reference_name, "--reference_name"),
+        ]
+        if value[0] is None
+    ]
+    if len(are_none) > 0 and workspace is None:
+        # if any of those command line options is not set explicitly, we need a workspace to resolve them.
+        raise click.BadParameter(
+            param_hint="-w/--workspace",
+            message=f"Current directory is not a workspace. Please use nomadic start to create a new workspace, navigate to your workspace, or set {are_none[0][1]} explicit.",
+        )
+
+    if output is None:
+        assert (
+            workspace is not None
+        )  # The check at the beginning of the function ensures that workspace should not be None
+        output = workspace.get_output_dir(experiment_name)
+    if metadata_csv is None:
+        assert (
+            workspace is not None
+        )  # The check at the beginning of the function ensures that workspace should not be None
+        metadata_csv = find_metadata_file(experiment_name, workspace)
+
     region_bed = find_region_file(region_bed, workspace)
-    minknow_dir, fastq_dir = find_minknow_fastq_dirs(
+    minknow_dir_found, fastq_dir_found = find_minknow_fastq_dirs(
         experiment_name, minknow_dir, fastq_dir
     )
 
@@ -150,9 +166,8 @@ def process(
     main(
         experiment_name,
         output,
-        workspace_path,
-        fastq_dir,
-        minknow_dir,
+        fastq_dir_found,
+        minknow_dir_found,
         metadata_csv,
         region_bed,
         reference_name,
