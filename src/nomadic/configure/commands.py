@@ -70,9 +70,9 @@ def share(workspace: Workspace, target_dir: str):
     ),  # Use path here to enable autocomplete, even though not only paths are allowed
     help=(
         "Path to target folder or an SSH target like user@host:/path. "
-        "The shared files will go inside of that folder into a folder with the name of the workspace."
+        "The backed up files will go inside of that folder into a folder with the name of the workspace."
     ),
-    prompt="Set the target into which to share",
+    prompt="Set the target into which to backup",
 )
 def backup(workspace: Workspace, target_dir: str):
     config_path = workspace.get_config_path()
