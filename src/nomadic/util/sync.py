@@ -165,6 +165,8 @@ def share_minknow_data(
     update: bool = True,
 ):
     click.echo(f"Sharing minknow data to {target_base_dir}")
+    # Latest output minknow folder specifications can be found here:
+    # https://nanoporetech.github.io/ont-output-specifications/latest/minknow/output_structure/
     sync_minknow_data(
         target_base_dir=target_base_dir,
         minknow_base_dir=minknow_base_dir,
