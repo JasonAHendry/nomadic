@@ -553,6 +553,10 @@ def main(
     inventory_metadata.to_csv(f"{output_dir}/inventory.csv", index=False)
     inventory_metadata = inventory_metadata.query("status != 'unknown'")
 
+    if len(inventory_metadata.query("sample_type == 'field'")) == 0:
+        log.info("No known field samples, exiting...")
+        return
+
     # Throughput data
     log.info("Overall sequencing throughput:")
     throughput_df = compute_throughput(inventory_metadata)
