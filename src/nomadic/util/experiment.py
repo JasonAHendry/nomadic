@@ -8,6 +8,7 @@ from typing import NamedTuple, Any
 from dataclasses import dataclass
 
 from nomadic.util.dirs import produce_dir
+from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.metadata import MetadataTableParser, ExtendedMetadataTableParser
 from nomadic.util.regions import RegionBEDParser
 
@@ -228,7 +229,10 @@ def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:
         raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
 
     # Existence of metadata
-    parser = find_metadata(expt_dir, Parser=ExtendedMetadataTableParser)
+    try:
+        parser = find_metadata(expt_dir, Parser=ExtendedMetadataTableParser)
+    except MetadataFormatError as e:
+        raise MetadataFormatError(f"Error in metadata for '{expt_dir}': {e}")
     metadata = parser.df
     metadata.insert(0, "expt_name", os.path.basename(expt_dir))
 
