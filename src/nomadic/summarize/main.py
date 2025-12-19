@@ -477,7 +477,6 @@ def main(
 
     # Check experiments are complete
     expts = [check_experiment_outputs(expt_dir) for expt_dir in expt_dirs]
-    print(expts)
     log.info("  All experiments are complete.")
 
     # Check experiments are consistent
