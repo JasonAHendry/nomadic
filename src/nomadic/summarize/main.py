@@ -517,7 +517,12 @@ def main(
     else:
         # create metadata from experiment meta data files
         shared_columns = ["sample_id"] + list(shared_columns)
-        master_metadata = pd.concat([expt.metadata[shared_columns] for expt in expts])
+        master_metadata = pd.concat(
+            [
+                expt.metadata.query("sample_type == 'field'")[shared_columns]
+                for expt in expts
+            ]
+        )
 
     master_metadata = master_metadata.astype(
         {"sample_id": "str"}
