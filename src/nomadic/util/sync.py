@@ -8,7 +8,7 @@ import click
 from nomadic.util import minknow
 from nomadic.util.dirs import produce_dir
 from nomadic.util.settings import load_settings, settings_filepath
-from nomadic.util.ssh import remote_dir_exists, ensure_remote_dir, is_ssh_target
+from nomadic.util.ssh import ensure_remote_dir, is_ssh_target, remote_dir_exists
 from nomadic.util.workspace import Workspace
 
 
@@ -171,10 +171,10 @@ def share_minknow_data(
         workspace=workspace,
         failure_reasons=failure_reasons,
         exclusions=[
-            "fastq_fail/",
-            "fastq_pass/",
+            "fastq_*/",
+            "fast5_*/",
             "other_reports/",
-            "pod5/",
+            "pod5*/",
             "sequencing_summary_*.txt",
         ],
         checksum=checksum,
