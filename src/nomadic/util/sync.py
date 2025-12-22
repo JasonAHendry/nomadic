@@ -173,9 +173,10 @@ def share_minknow_data(
         workspace=workspace,
         failure_reasons=failure_reasons,
         exclusions=[
-            "fastq_*/",
-            "fast5_*/",
-            "other_reports/",
+            "fastq*/",
+            "fast5*/",
+            "bam*/",
+            "/other_reports/",
             "pod5*/",
             "sequencing_summary_*.txt",
         ],
