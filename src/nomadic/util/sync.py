@@ -8,7 +8,7 @@ import click
 from nomadic.util import minknow
 from nomadic.util.dirs import produce_dir
 from nomadic.util.settings import load_settings, settings_filepath
-from nomadic.util.ssh import remote_dir_exists, ensure_remote_dir, is_ssh_target
+from nomadic.util.ssh import ensure_remote_dir, is_ssh_target, remote_dir_exists
 from nomadic.util.workspace import Workspace
 
 
@@ -165,16 +165,19 @@ def share_minknow_data(
     update: bool = True,
 ):
     click.echo(f"Sharing minknow data to {target_base_dir}")
+    # Latest output minknow folder specifications can be found here:
+    # https://nanoporetech.github.io/ont-output-specifications/latest/minknow/output_structure/
     sync_minknow_data(
         target_base_dir=target_base_dir,
         minknow_base_dir=minknow_base_dir,
         workspace=workspace,
         failure_reasons=failure_reasons,
         exclusions=[
-            "fastq_fail/",
-            "fastq_pass/",
-            "other_reports/",
-            "pod5/",
+            "fastq*/",
+            "fast5*/",
+            "bam*/",
+            "/other_reports/",
+            "pod5*/",
             "sequencing_summary_*.txt",
         ],
         checksum=checksum,
