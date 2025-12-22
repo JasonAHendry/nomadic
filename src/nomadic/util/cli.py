@@ -11,7 +11,12 @@ from nomadic.util.workspace import (
     find_workspace_root,
     check_if_workspace_root,
 )
-from nomadic.util.config import load_config, default_config_path
+from nomadic.util.config import (
+    InvalidConfigError,
+    get_command_defaults,
+    load_config,
+    default_config_path,
+)
 
 WORKSPACE_OPTION_KEY = "workspace"
 
@@ -122,8 +127,24 @@ def load_defaults_from_config(ctx: click.Context, command: Optional[str] = None)
     config_path = os.path.join(workspace.path, default_config_path)
     if os.path.isfile(config_path):
         config = load_config(config_path)
-        defaults = config.get("defaults", {})
-        defaults = defaults | config.get(command, {}).get("defaults", {})
+        if not config:
+            # When empty dict or non, the config is empty
+            return
+        if not isinstance(config, dict):
+            if not ctx.resilient_parsing:
+                raise click.UsageError(
+                    f"Invalid config at {config_path}: config is not a dict."
+                )
+            else:
+                return
+        try:
+            defaults = get_command_defaults(config, command)
+        except InvalidConfigError as e:
+            if not ctx.resilient_parsing:
+                raise click.UsageError(f"Invalid config at {config_path}: {e}")
+            else:
+                return
+
         if defaults:
             if not ctx.resilient_parsing:
                 # Don't print defaults if parsing is resilient, as this is used for shell completion

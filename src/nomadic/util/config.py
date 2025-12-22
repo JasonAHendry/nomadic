@@ -1,4 +1,5 @@
 from functools import reduce
+from typing import Optional
 
 from yaml import dump, load
 
@@ -9,6 +10,12 @@ except ImportError:
     from yaml import Dumper, Loader
 
 default_config_path = ".config.yaml"
+
+
+class InvalidConfigError(Exception):
+    """Raised when the config is invalid"""
+
+    pass
 
 
 def load_config(config_path: str) -> dict:
@@ -62,3 +69,25 @@ def get_config_value(d: dict, keys: list, default=None):
         reduce(lambda acc, k: acc.get(k, {}) if isinstance(acc, dict) else {}, keys, d)
         or default
     )
+
+
+def get_command_defaults(config: dict, command: Optional[str]) -> dict:
+    defaults = must_get_dict(config, "defaults", "defaults should be a dict")
+    if command is not None:
+        command_config = must_get_dict(
+            config, command, f"{command} config should be a dict"
+        )
+        command_defaults = must_get_dict(
+            command_config, "defaults", f"{command} defaults should be a dict"
+        )
+        defaults = defaults | command_defaults
+    return defaults
+
+
+def must_get_dict(d: dict, key: str, message: str) -> dict:
+    value = d.get(key, {})
+    if value is None:
+        value = {}
+    if not isinstance(value, dict):
+        raise InvalidConfigError(message)
+    return value

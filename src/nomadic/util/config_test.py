@@ -1,6 +1,11 @@
 import pytest
 
-from nomadic.util.config import get_config_value, set_config_value
+from nomadic.util.config import (
+    InvalidConfigError,
+    get_command_defaults,
+    get_config_value,
+    set_config_value,
+)
 
 
 @pytest.mark.parametrize(
@@ -28,3 +33,33 @@ def test_set_config_value_table(keys, value, expected):
     set_config_value(d, keys, value)
     assert get_config_value(d, keys) == value
     assert d == expected
+
+
+@pytest.mark.parametrize(
+    "config, command, expected",
+    [
+        ({}, None, {}),
+        ({}, "test", {}),
+        ({"defaults": None}, "test", {}),
+        ({"defaults": {"foo": "bar"}}, "test", {"foo": "bar"}),
+        (
+            {"defaults": {"foo": "bar"}, "test": {"defaults": {"this": "that"}}},
+            "test",
+            {"foo": "bar", "this": "that"},
+        ),
+    ],
+)
+def test_get_command_defaults(config, command, expected):
+    assert get_command_defaults(config, command) == expected
+
+
+@pytest.mark.parametrize(
+    "config, command",
+    [
+        ({"defaults": 5}, None),
+        ({"defaults": {}, "test": 5}, "test"),
+    ],
+)
+def test_get_command_defaults_invalid_configs(config, command):
+    with pytest.raises(InvalidConfigError):
+        get_command_defaults(config, command)
