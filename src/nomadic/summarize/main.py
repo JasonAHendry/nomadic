@@ -728,6 +728,7 @@ def view(input_dir: Path, summary_name: str) -> None:
     """
     View the summary dashboard for a given summary
     """
+    print(f'View summary dashboard for "{summary_name}".')
     settings: Settings = Settings()
     settings_file = Path(f"{input_dir}/settings.yaml")
     if settings_file.exists():
@@ -746,7 +747,7 @@ def view(input_dir: Path, summary_name: str) -> None:
     amplicon_sets = panel_settings.amplicon_sets
     deletion_genes = panel_settings.deletion_genes
 
-    print("Load data...")
+    print(f"Load data from {input_dir}...")
 
     dashboard = BasicSummaryDashboard(
         summary_name,
