@@ -17,7 +17,6 @@ from nomadic.util.cli import (
 from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import (
     Workspace,
-    check_if_workspace_root,
     looks_like_a_bed_filepath,
 )
 
