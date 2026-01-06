@@ -76,10 +76,10 @@ def complete_experiment_name(ctx: click.Context, param, incomplete):
     experiments = []
     if os.path.exists(metadata_path):
         experiments.extend(list_experiment_names(metadata_path))
-    shared_folder = workspace.get_shared_folder()
-    if shared_folder:
+    shared_workspace = workspace.get_shared_workspace()
+    if shared_workspace:
         shared_metadata_path = os.path.join(
-            shared_folder, Workspace(shared_folder).get_metadata_dir()
+            shared_workspace, Workspace(shared_workspace).get_metadata_dir()
         )
         if os.path.exists(shared_metadata_path):
             experiments.extend(list_experiment_names(shared_metadata_path))

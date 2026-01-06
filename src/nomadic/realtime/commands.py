@@ -250,14 +250,11 @@ def find_metadata_file(experiment_name: str, workspace: Workspace) -> str:
         workspace.get_metadata_xlsx(experiment_name),
     ]
 
-    shared_folder = workspace.get_shared_folder()
-    if shared_folder is not None:
-        # append current workspace name if shared_folder is not a workspace
-        if not check_if_workspace_root(Path(shared_folder)):
-            shared_folder = os.path.join(shared_folder, str(workspace.get_name()))
+    shared_workspace = workspace.get_shared_workspace()
+    if shared_workspace is not None:
+        click.echo(f"Found shared workspace ({shared_workspace})...")
 
-        click.echo(f"Found shared folder ({shared_folder})...")
-        shared_workspace = Workspace(shared_folder)
+        shared_workspace = Workspace(shared_workspace)
         files.extend(
             [
                 shared_workspace.get_metadata_csv(experiment_name),
@@ -272,8 +269,8 @@ def find_metadata_file(experiment_name: str, workspace: Workspace) -> str:
 
     if metadata_path is None or not os.path.isfile(metadata_path):
         msg = f"Metadata file not found. Did you create your metadata file in `{workspace.get_metadata_dir()}`"
-        if shared_folder:
-            msg += f", or in `{shared_folder}`"
+        if shared_workspace:
+            msg += f", or in `{shared_workspace}`"
         msg += f", and does the name match `{experiment_name}`?"
         raise click.BadParameter(message=msg)
     return metadata_path

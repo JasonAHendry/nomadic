@@ -139,22 +139,23 @@ class Workspace:
             if os.path.isdir(os.path.join(self.get_results_dir(), name))
         ]
 
-    def get_shared_folder(self) -> str | None:
+    def get_shared_workspace(self) -> str | None:
         """
-        Get the shared folder path from the workspace configuration, if it exists.
+        Get the shared workspace path from the workspace configuration, if it exists.
         """
         config_path = self.get_config_path()
-        if os.path.exists(config_path) and os.path.isfile(config_path):
-            shared_folder = get_config_value(
-                load_config(config_path), ["share", "defaults", "target_dir"]
-            )
-        else:
-            shared_folder = None
-        if (
-            shared_folder is not None
-            and isinstance(shared_folder, str)
-            and os.path.isdir(shared_folder)
-        ):
-            return shared_folder
+        if not os.path.exists(config_path) or not os.path.isfile(config_path):
+            return None
+
+        shared_folder = get_config_value(
+            load_config(config_path), ["share", "defaults", "target_dir"]
+        )
+
+        if not isinstance(shared_folder, str) or not os.path.isdir(shared_folder):
+            return None
+
+        shared_workspace = os.path.join(shared_folder, self.get_name())
+        if os.path.isdir(shared_workspace):
+            return shared_workspace
 
         return None
