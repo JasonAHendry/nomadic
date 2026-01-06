@@ -252,8 +252,8 @@ def find_metadata_file(experiment_name: str, workspace: Workspace) -> str:
     shared_workspace = workspace.get_shared_workspace()
     if shared_workspace is not None:
         click.echo(f"Found shared workspace ({shared_workspace})...")
-
         shared_workspace = Workspace(shared_workspace)
+        # Currently not checking if it actually is a workspace, to not require some of the folders that are not needed here
         files.extend(
             [
                 shared_workspace.get_metadata_csv(experiment_name),
