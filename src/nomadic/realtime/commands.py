@@ -17,6 +17,7 @@ from nomadic.util.cli import (
 from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import (
     Workspace,
+    check_if_workspace_root,
     looks_like_a_bed_filepath,
 )
 
@@ -251,9 +252,12 @@ def find_metadata_file(experiment_name: str, workspace: Workspace) -> str:
 
     shared_folder = workspace.get_shared_folder()
     if shared_folder is not None:
+        # append current workspace name if shared_folder is not a workspace
+        if not check_if_workspace_root(Path(shared_folder)):
+            shared_folder = os.path.join(shared_folder, str(workspace.get_name()))
+
         click.echo(f"Found shared folder ({shared_folder})...")
         shared_workspace = Workspace(shared_folder)
-        # Currently not checking if it actually is a workspace, to not require some of the folders that are not needed here
         files.extend(
             [
                 shared_workspace.get_metadata_csv(experiment_name),
