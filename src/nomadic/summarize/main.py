@@ -1,9 +1,11 @@
 import os
+import subprocess
 from typing import Iterable, Optional
 from warnings import warn
 from enum import StrEnum, auto
 from collections import Counter
 from pathlib import Path
+from shlex import quote as q
 
 import pandas as pd
 import numpy as np
@@ -19,11 +21,13 @@ from nomadic.summarize.compute import (
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
 from nomadic.util.regions import RegionBEDParser
+from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.experiment import (
     get_summary_files,
     check_experiment_outputs,
-    ExperimentOutputs,
 )
+from nomadic.util.vcf import VariantAnnotator
+from nomadic.util.wrappers import bcftools
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.summary import Settings, get_master_columns_mapping, load_settings
 
@@ -34,7 +38,7 @@ from nomadic.util.summary import Settings, get_master_columns_mapping, load_sett
 # --------------------------------------------------------------------------------
 
 
-def check_regions_consistent(expt_regions: list[RegionBEDParser]) -> None:
+def check_consistent_regions(expt_regions: list[RegionBEDParser]) -> None:
     """
     Check that the regions are consistent across all experiment directories
 
@@ -48,9 +52,10 @@ def check_regions_consistent(expt_regions: list[RegionBEDParser]) -> None:
             raise ValueError(
                 "Different regions used across experiments, this is not supported. Check region BED files are the same."
             )
+    return base
 
 
-def check_calling_consistent(expt_callers: list[str]) -> None:
+def check_consistent_calling(expt_callers: list[str]) -> None:
     """
     Check that the same variant caller was used across all experiments,
     where `expt_callers` is a list of used variant callers
@@ -62,6 +67,20 @@ def check_calling_consistent(expt_callers: list[str]) -> None:
             + f"{', '.join([f'{v} experiment(s) used {c}' for c, v in caller_counts.items()])}."
         )
     return caller_counts.most_common()[0][0]
+
+
+def check_consistent_reference(expt_refs: list[str]) -> None:
+    """
+    Check that the same reference genome was used across all experiments,
+    where `expt_refs` is a list of used reference genomes
+    """
+    ref_counts = Counter([ref for ref in expt_refs])
+    if len(ref_counts) > 1:
+        raise ValueError(
+            "Found more than one reference genome used across experiments: "
+            + f"{', '.join([f'{v} experiment(s) used {c}' for c, v in ref_counts.items()])}."
+        )
+    return ref_counts.most_common()[0][0]
 
 
 def get_shared_metadata_columns(
@@ -469,14 +488,15 @@ def main(
 
     # Check experiments are complete
     expts = [check_experiment_outputs(expt_dir) for expt_dir in expt_dirs]
-    print(expts)
     log.info("  All experiments are complete.")
 
     # Check experiments are consistent
-    check_regions_consistent([expt.regions for expt in expts])
-    log.info("  All experiments use the same regions.")
-    caller = check_calling_consistent([expt.caller for expt in expts])
-    log.info(f"  All experiments use same variant caller: {caller}")
+    summary_ref_name = check_consistent_reference([expt.ref_name for expt in expts])
+    log.info(f"  All experiments use same reference genome: {summary_ref_name}.")
+    summary_regions = check_consistent_regions([expt.regions for expt in expts])
+    log.info(f"  All experiments use the same {summary_regions.n_regions} regions.")
+    summary_caller = check_consistent_calling([expt.caller for expt in expts])
+    log.info(f"  All experiments use same variant caller: {summary_caller}.")
 
     settings: Settings = Settings()
     if settings_file_path.exists():
@@ -611,7 +631,96 @@ def main(
     # --------------------------------------------------------------------------------
 
     log.info("Loading variants...")
-    variant_df = load_and_concat_variants(expt_dirs)
+    # variant_df = load_and_concat_variants(expt_dirs)
+
+    if all([expt.has_complete_vcf for expt in expts]):
+        # Prepare the directories
+        vcf_dir = produce_dir(output_dir, "vcfs")
+        vcf_temp_dir = produce_dir(vcf_dir, "temps")
+        vcf_temp_listfile = f"{vcf_temp_dir}/files.txt"
+        with open(vcf_temp_listfile, "w") as file:
+            for expt in expts:
+                expt_name = os.path.basename(expt.expt_dir)
+                print(expt.expt_dir, expt_name)
+
+                # Identify the VCF path
+                input_vcf_path = f"{expt.expt_dir}/vcfs/summary.variants.vcf.gz"
+                print(input_vcf_path, os.path.exists(input_vcf_path))
+
+                # Outputs
+                temp_vcf_path = f"{vcf_temp_dir}/{expt_name}.reheader.vcf.gz"
+                temp_samplenames_path = f"{vcf_temp_dir}/{expt_name}.reheader.txt"
+
+                # Move and reheader all of the VCF files
+                print("Reheader and move..")
+                cmd = (
+                    f"bcftools query -l {q(input_vcf_path)} |"
+                    f" sed {q(f's/^/{expt_name};/g')}"
+                    f" > {q(temp_samplenames_path)} &&"
+                    f" bcftools reheader -s {q(temp_samplenames_path)}"
+                    f" -o {q(temp_vcf_path)} {q(input_vcf_path)}"
+                )
+                subprocess.run(
+                    cmd, check=True, shell=True
+                )  # shell=True needed for piping
+                bcftools.index(temp_vcf_path)
+
+                # Store them
+                file.write(f"{temp_vcf_path}\n")
+
+        # Now time for merging
+        print("Merging...")
+        output_vcf = f"{output_dir}/summary.variants.vcf.gz"
+        subprocess.run(
+            [
+                "bcftools",
+                "merge",
+                "-Fx",
+                "-l",
+                vcf_temp_listfile,
+                "-Oz",
+                "-o",
+                output_vcf,
+            ],
+            check=True,
+        )
+        bcftools.index(output_vcf)
+
+        # At this point, could be very worthwhile to print some `bcftools stats` information
+        # could also 'clean' the code
+        # but most important is filtering and annotating
+        # - filtering -- all the filters should be soft-filters
+
+        # Filtering
+        filtered_vcf = output_vcf.replace(".vcf.gz", ".filtered.vcf.gz")
+        cmd = (
+            "bcftools view"
+            " --apply-filters PASS"
+            " --types='snps'"
+            " --min-alleles 2"
+            f" -Oz -o {q(filtered_vcf)} {q(output_vcf)}"
+        )
+        subprocess.run(
+            cmd, check=True, shell=True
+        )  # don't need shell here, can re-write
+
+        # Annotate
+        REFERENCE_COLLECTION[summary_ref_name].confirm_downloaded()
+        annotator = VariantAnnotator(
+            input_vcf=filtered_vcf,
+            bed_path=summary_regions.path,
+            reference=REFERENCE_COLLECTION[summary_ref_name],
+            caller=summary_caller,
+            output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
+        )
+        annotator.run()
+        annotator.convert_to_csv(f"{output_dir}/summary.variants.merged.csv")
+        variant_df = load_variant_summary_csv(
+            f"{output_dir}/summary.variants.merged.csv"
+        )
+        print(variant_df.head())
+
+    return
 
     if "sample_id" in variant_df.columns:
         variant_df.drop(columns=["sample_id"], inplace=True)

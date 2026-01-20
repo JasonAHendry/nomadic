@@ -446,6 +446,8 @@ class RegionDepthProfileRT(AnalysisStepRT):
 # Variant calling and annnotation
 #
 # --------------------------------------------------------------------------------
+
+
 class CallVariantsRTDelve(AnalysisStepRT):
     step_name = "vcfs"
 
@@ -658,7 +660,7 @@ class CallVariantsRTBcftools(AnalysisStepRT):
         TODO:
         - I probably want to WRITE also to BCF
 
-        NOTES:
+        NOTES
         Here I am following recommendations of
         `bcftools` in calling with ONT reads, that is, using
         `-X ont` for `bcftools mpileup`, which sets:

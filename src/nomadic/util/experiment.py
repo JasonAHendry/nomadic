@@ -160,13 +160,14 @@ class ExperimentDirectories:
 class ExperimentOutputs:
     """Store information about outputs in `expt_dir`"""
 
-    expt_dir: str  # TODO: change to Path
+    expt_dir: str  # TODO: change to Path?
     metadata: pd.DataFrame
     regions: RegionBEDParser
     summary_files: SummaryFiles
     settings: dict[str, Any]
+    ref_name: str
 
-    # Variant calling outputs
+    # Variant calling
     caller: str
     has_complete_vcf: bool
     has_filtered_vcf: bool
@@ -250,11 +251,16 @@ def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:
     # Existence of settings / caller
     settings_path = f"{expt_dir}/metadata/settings.json"
     if not os.path.exists(settings_path):
+        # This is tricky, as information was not retained in `results` folder about
+        # caller and reference. Could be discovered elsewhere (e.g. in VCF header, or
+        # using the BED chromosome column), but painful to extract.
         settings = None
-        caller = "bcftools"  # if no settings, was using bcftools
+        caller = "bcftools"  # delve was added after settings.json
+        ref_name = None
     else:
         settings = json.load(open(settings_path, "r"))
         caller = settings["caller"]
+        ref_name = settings["reference_name"]
 
     return ExperimentOutputs(
         expt_dir=expt_dir,
@@ -262,6 +268,7 @@ def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:
         regions=regions,
         summary_files=summary_files,
         settings=settings,
+        ref_name=ref_name,
         caller=caller,
         has_complete_vcf=os.path.exists(f"{expt_dir}/vcfs/summary.variants.vcf.gz"),
         has_filtered_vcf=os.path.exists(
