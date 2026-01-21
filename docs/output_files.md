@@ -72,8 +72,3 @@ Each row contains information about the genotype, depth, quality, and within-sam
 
 
 For more information about variant calling, please see [Understanding the Dashboard](understand.md#preliminary-variant-calling).
-
-## Sharing data
-The results folder for an experiment (`results/<expt_name>`) contains all the outputs from *Nomadic*. 
-
-Only the CSV files starting `summary` and the `metadata` folder are required to relaunch the dashboard with the `nomadic dashboard` command (see [Basic Usage](basic.md)).

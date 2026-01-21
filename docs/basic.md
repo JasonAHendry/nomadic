@@ -1,41 +1,18 @@
+### To run *Nomadic* always:
 
-## Quick summary
+- Make sure you have installed *Nomadic* (see [Installation](installation.md)). 
 
-To run *Nomadic*, open a terminal window and type the following:
-
-```
-conda activate nomadic
-cd <path/to/your/workspace>
-nomadic realtime <expt_name>
-```
-
-- `<path/to/your/workspace>` should be replaced with the path to your *Nomadic* workspace.
-- `<expt_name>` should be replaced with the name of your experiment.
-    - You should have given your experiment the same name in *MinKNOW*.
-    - You should have given your metadata file this name, and put it in your workspace metadata folder (`<path/to/your/workspace>/metadata/<expt_name>.csv`).
-
-The dashboard will open in a browser window on your computer. 
-
-<!-- 1. Create a workspace if you have not already (`nomadic start pfalciparum`).
-2. Pick an experiment name (e.g. `2025-06-21_first-sequencing`)
-3. Start your sequencing run with *MinKNOW* using your experiment name.
-4. Put your metadata file in the `metadata` folder in your *Nomadic* workspace. Name the file with your experiment name (e.g. `2025-06-21_first-sequencing.csv`).
-5. Start *Nomadic*: `nomadic realtime 2025-06-21_first-sequencing` -->
-
-
-
----
-## Detailed instructions
-
-### Before starting
-Before starting make sure you have installed *Nomadic* (see [Installation](installation.md)). 
-
-Then, open a terminal window and activate the *Nomadic* environment:
+- Open a terminal window and activate the *Nomadic* environment:
 
 ```
 conda activate nomadic
 ```
 
+- Navigate to your workspace (or location you want to create one - see next section)
+
+```
+cd path/to/your/workspace
+```
 
 ### Starting a workspace
 
@@ -51,7 +28,7 @@ By default the name of the new workspace is `nomadic`. You can enter the workspa
 cd nomadic
 ```
 
-Inside of the workspace, you should see the following folders:
+Inside the workspace, you should see the following folders:
 
 | Folder | Contents |
 | --- | --- |
@@ -63,73 +40,36 @@ Inside of the workspace, you should see the following folders:
 ### Using *Nomadic* for real-time analysis
 *Nomadic* can process nanopore squencing data being produced by *MinKNOW* in real-time. To do so, follow the steps below.
 
-**Step 1: Start nanopore sequencing with *MinKNOW***
+**Step 1: Create a metadata file**
 
-Use *MinKNOW* to start nanopore sequencing. Make sure to take note of the experiment name, you will need this in later steps.
-
-
-**Step 2: Create a metadata file**
-
-Create a metadata file containing information about what barcodes you have used and their associated sample IDs. Here is an example:
-
+Create a metadata file containing information about what barcodes you used in the sequencing library and their associated sample IDs. You can do this by manually entering values into a csv (comma separated value) file:
 
 ![metadata](img/basic/metadata.png){ .centered width="75%" }
 
 Only the `barcode` and `sample_id` columns are mandatory. The rest are optional, and you are also free to include any other columns you like.
 
-Move your metadata file into the metadata folder of your *Nomadic* workspace, and give it the same experiment name you used with *MinKNOW* (`<path/to/your/workspace>/metadata/<expt_name>.csv`).
+Alternatively you can complete the Excel template ("NOMADS_Library_Worksheet.xlsx", stored in the metadata folder). The sheet guides a user through data entry including data validation checks and generates a experiment name that the file should be saved as. Post-PCR gel images can also be saved in this template for future reference.
 
+![metadata](img/basic/template.png){ .centered width="105%" }
 
-**Step 3: Run**
+The csv / excel file must be saved in the *metadata* folder of your workspace.
 
-Open a terminal window and start the nomadic conda environment:
+**Step 2: Start nanopore sequencing with *MinKNOW***
 
-```
-conda activate nomadic
-```
+Use *MinKNOW* to start nanopore sequencing. Ensure you give *MinKNOW* the **exact** experiment name you gave your metadata file.
 
-Now navigate to your workspace folder:
+**Step 3: Start *Nomadic***
 
-```
-cd <path/to/your/workspace>
-```
-
-And launch *Nomadic*:
-
+Launch *Nomadic* to start analysis, the dashboard will open in a browser window on your computer:
 
 ```
 nomadic realtime <expt_name>
 ```
 
-The dashboard will open in a browser window on your computer. 
 
 ### Using *Nomadic* to view a completed experiment
 
-Once an experiment is completed, you can still open the *Nomadic* dashboard to view your results.
-
-**Step 1. Activate the *Nomadic* environment.**
-
-
-Open a terminal window and activate the *Nomadic* environment:
-
-```
-conda activate nomadic
-```
-
-**Step 2. Navigate in terminal to your workspace.**
-
-
-If you created your workspace in your home folder, this will simply be:
-```
-cd <path/to/your/workspace>
-```
-
-**Step 3. Open the dashboard.**
-
-
-To open the dashboard of a specific experiment, you only need to know the experiment name. You can then open the dashboard by running:
+Once an experiment is completed, you can still open the *Nomadic* dashboard to view your results by running:
 ```
 nomadic dashboard <expt_name>
 ```
-Where you should replace `<expt_name>` with the name of the experiment.
-
