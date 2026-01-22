@@ -1,4 +1,5 @@
-### To run *Nomadic* always:
+## Running *Nomadic*
+Whenever you want to run *Nomadic*, first do the following:
 
 - Make sure you have installed *Nomadic* (see [Installation](installation.md)). 
 
@@ -14,7 +15,7 @@ conda activate nomadic
 cd path/to/your/workspace
 ```
 
-### Starting a workspace
+## Starting a workspace
 
 *Nomadic* creates workspaces to help organise your input data and analysis results. A workspace is just a folder on your computer where all of the input data needed to run *Nomadic*, as well as your analysis results, are stored. You can create a workspace with the following command:
 
@@ -37,7 +38,7 @@ Inside the workspace, you should see the following folders:
 | `results` | Where the results from running *Nomadic* will go. Initially it will be empty. |
 
 
-### Using *Nomadic* for real-time analysis
+## Analysing a sequencing run
 *Nomadic* can process nanopore squencing data being produced by *MinKNOW* in real-time. To do so, follow the steps below.
 
 **Step 1: Create a metadata file**
@@ -67,7 +68,7 @@ nomadic realtime <expt_name>
 ```
 
 
-### Using *Nomadic* to view a completed experiment
+## Viewing a completed experiment
 
 Once an experiment is completed, you can still open the *Nomadic* dashboard to view your results by running:
 ```
