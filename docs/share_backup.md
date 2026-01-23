@@ -17,7 +17,7 @@ The backup process will also backup all minknow data so be prepared for it to ta
 The results folder for an experiment (`results/<expt_name>`) contains all the outputs from *Nomadic*. Only the CSV files starting `summary` and the `metadata` folder are required to relaunch the dashboard with the `nomadic dashboard` command (see [Basic Usage](basic.md)). `Nomadic` allows easy sharing of your workspace by copying key summary `Nomadic` and `MinKNOW` files to a new location, e.g. a cloud synchronised folder. 
 
 ```
-nomadic backup -t <path/to/your/shared/location>
+nomadic share -t <path/to/your/shared/location>
 ```
 
 Once shared, `Nomadic` can be run by collaborators and other members of the group as needed.

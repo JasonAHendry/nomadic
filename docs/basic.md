@@ -1,7 +1,7 @@
 ## Running *Nomadic*
 Whenever you want to run *Nomadic*, first do the following:
 
-- Make sure you have installed *Nomadic* (see [Installation](installation.md)). 
+- Make sure you have installed *Nomadic* from bioconda(see [Installation](installation.md)). 
 
 - Open a terminal window and activate the *Nomadic* environment:
 
@@ -38,7 +38,7 @@ Inside the workspace, you should see the following folders:
 | `results` | Where the results from running *Nomadic* will go. Initially it will be empty. |
 
 
-## Analysing a sequencing run
+## Analysing a sequencing run in realtime
 *Nomadic* can process nanopore squencing data being produced by *MinKNOW* in real-time. To do so, follow the steps below.
 
 **Step 1: Create a metadata file**
