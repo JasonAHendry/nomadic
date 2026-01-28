@@ -62,11 +62,6 @@ def correct_barcode_format(barcode: str, try_to_fix: bool = True) -> str:
                 f"Barcode '{barcode}' has bad format: must conform to '{EXAMPLE}'."
             )
 
-        # Raise a warning
-        warnings.warn(
-            f"Barcode '{barcode}' has bad format: must conform to '{EXAMPLE}'. Trying to fix..."
-        )
-
         nums = re.findall("[0-9]+", barcode)
 
         if not nums:
