@@ -5,7 +5,6 @@ from typing import List, Optional
 
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
 
 from .exceptions import MetadataFormatError
 
@@ -140,19 +139,29 @@ class MetadataTableParser:
             sheet_names = [
                 sheetname for sheetname in target_sheets if sheetname in xlsx.sheetnames
             ] + [xlsx.sheetnames[0]]
-            # Get the sheet and extract the data from the table
+            # Get the sheet and table
             ws = xlsx[sheet_names[0]]
             tbl_name = "tbl_SeqLib"
             tbl = ws.tables[tbl_name]
-            # Identify visible column indices
             cells = ws[tbl.ref]
-            start_col = cells[0][0].column  # numeric index
+            start_col = cells[0][0].column  # 1-based worksheet column index
+
+            # Collect ALL hidden column ranges (including grouped ones) to identify only
+            # visible columns
+            hidden_ranges = [
+                (dim.min, dim.max)
+                for dim in ws.column_dimensions.values()
+                if dim.hidden is True
+            ]
             visible_cols = []
             for i in range(len(cells[0])):
-                col_letter = get_column_letter(start_col + i)
-                dim = ws.column_dimensions.get(col_letter)
-                if not (dim and dim.hidden):
+                col_idx = start_col + i
+                hidden = any(lo <= col_idx <= hi for lo, hi in hidden_ranges)
+
+                if not hidden:
                     visible_cols.append(i)
+
+            # Extract data from visible columns ONLY
             cells = ws[tbl.ref]
             rows = [[cell.value for cell in row] for row in cells]
             rows_filt = [[row[i] for i in visible_cols] for row in rows]
