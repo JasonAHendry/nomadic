@@ -4,9 +4,10 @@ import warnings
 from typing import List, Optional
 
 import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 from .exceptions import MetadataFormatError
-
 
 STANDARD_METADATA_FILENAME = "samples.csv"
 
@@ -48,6 +49,9 @@ def correct_barcode_format(barcode: str, try_to_fix: bool = True) -> str:
     MAX_BARCODE = 96
     EXPECTED = "barcode[0-9]{2}$"
     EXAMPLE = "barcode01"
+
+    if isinstance(barcode, float):
+        barcode = int(barcode)
 
     if not isinstance(barcode, str):
         barcode = str(barcode)
@@ -96,7 +100,7 @@ class MetadataTableParser:
 
     # If the required columns are not found, try these alternative names, case insensitive
     ALTERNATIVE_NAMES = {
-        "barcode": ["barcodes"],
+        "barcode": ["barcodes", "barcode#"],
         "sample_id": [
             "sample",
             "sampleid",
@@ -133,17 +137,35 @@ class MetadataTableParser:
         _, ext = os.path.splitext(path)
         ext = ext.lower()
         if ext == ".xlsx":
-            xlsx = pd.ExcelFile(path, engine="openpyxl")
+            warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+            xlsx = load_workbook(path, data_only=True)
             # name in nomadic excel template, and in the (legacy) warehouse template
-            target_sheets = ["nomadic", "rxn_metadata"]
+            target_sheets = ["Library", "rxn_metadata"]
             # Find first matching sheetname or use first sheet
             sheet_names = [
-                sheetname
-                for sheetname in target_sheets
-                if sheetname in xlsx.sheet_names
-            ] + [xlsx.sheet_names[0]]
-            data = pd.read_excel(path, sheet_name=sheet_names[0], engine="openpyxl")
+                sheetname for sheetname in target_sheets if sheetname in xlsx.sheetnames
+            ] + [xlsx.sheetnames[0]]
+            # Get the sheet and extract the data from the table
+            ws = xlsx[sheet_names[0]]
+            tbl_name = "tbl_SeqLib"
+            tbl = ws.tables[tbl_name]
+            # Identify visible column indices
+            cells = ws[tbl.ref]
+            start_col = cells[0][0].column  # numeric index
+            visible_cols = []
+            for i in range(len(cells[0])):
+                col_letter = get_column_letter(start_col + i)
+                dim = ws.column_dimensions.get(col_letter)
+                if not (dim and dim.hidden):
+                    visible_cols.append(i)
+            cells = ws[tbl.ref]
+            rows = [[cell.value for cell in row] for row in cells]
+            rows_filt = [[row[i] for i in visible_cols] for row in rows]
+            data = pd.DataFrame(rows_filt[1:], columns=rows_filt[0])
+
+            # Ensure that empty rows or those with missing sample_id are not included
             data.dropna(how="all", inplace=True)
+            data = data.dropna(subset=["Sample ID"])
             self.df = data
         else:
             self.df = pd.read_csv(path, delimiter=get_csv_delimiter(path))
