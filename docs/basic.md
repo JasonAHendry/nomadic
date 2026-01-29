@@ -39,7 +39,7 @@ Inside the workspace, you should see the following folders:
 
 
 ## Analysing a sequencing run in realtime
-*Nomadic* can process nanopore squencing data being produced by *MinKNOW* in real-time. To do so, follow the steps below.
+*Nomadic* can process nanopore squencing data being produced by *MinKNOW* in real-time. To do so, follow the steps below (steps 1 and 2 can be done in any order):
 
 **Step 1: Create a metadata file**
 
