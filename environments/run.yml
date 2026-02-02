@@ -12,6 +12,7 @@ dependencies:
   - bedtools
   - dash
   - pandas
+  - openpyxl
   - numpy
   - pysam
   - seaborn

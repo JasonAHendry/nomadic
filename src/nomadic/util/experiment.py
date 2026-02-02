@@ -9,7 +9,11 @@ from dataclasses import dataclass
 
 from nomadic.util.dirs import produce_dir
 from nomadic.util.exceptions import MetadataFormatError
-from nomadic.util.metadata import MetadataTableParser, ExtendedMetadataTableParser
+from nomadic.util.metadata import (
+    MetadataTableParser,
+    ExtendedMetadataTableParser,
+    STANDARD_METADATA_FILENAME,
+)
 from nomadic.util.regions import RegionBEDParser
 
 
@@ -141,7 +145,7 @@ class ExperimentDirectories:
         and store their paths as attributes
         """
         if metadata is not None:
-            self.metadata_csv = f"{self.metadata_dir}/{os.path.basename(metadata.csv)}"
+            self.metadata_csv = f"{self.metadata_dir}/{STANDARD_METADATA_FILENAME}"
             if not os.path.exists(self.metadata_csv):
                 metadata.df.to_csv(self.metadata_csv, index=False)
 
@@ -181,12 +185,17 @@ def find_metadata(
     expected location and load it
 
     """
+    # first check if the file with standard name exists
+    standard_path = os.path.join(expt_dir, "metadata", STANDARD_METADATA_FILENAME)
+    if os.path.isfile(standard_path):
+        return MetadataTableParser(standard_path)
 
-    # In most cases, should match experiment name
-    csv = f"{expt_dir}/metadata/{os.path.basename(expt_dir)}.csv"
+    # In legacy cases, it should have the name of the experiment
+    csv = os.path.join(expt_dir, "metadata", f"{os.path.basename(expt_dir)}.csv")
     if os.path.exists(csv):
         return Parser(csv)
 
+    # finally, look for any CSV file in the metadata directory
     csv = glob.glob(f"{expt_dir}/metadata/*.csv")
     if len(csv) == 1:
         return Parser(csv[0])
@@ -209,12 +218,12 @@ def find_regions(expt_dir: str) -> RegionBEDParser:
         if f.endswith(".bed") and not f.endswith(".lowcomplexity_mask.bed")
     ]
 
-    if len(bed) == 1:
-        return RegionBEDParser(bed[0])
+    if len(bed) != 1:
+        raise FileNotFoundError(
+            f"Expected one region BED file (*.bed) at '{expt_dir}/metadata', but found {len(bed)}."
+        )
 
-    raise FileNotFoundError(
-        f"Expected one region BED file (*.bed) at '{expt_dir}/metadata', but found {len(bed)}."
-    )
+    return RegionBEDParser(bed[0])
 
 
 def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:

@@ -10,18 +10,18 @@ from nomadic.util.cli import (
 )
 from nomadic.util.ssh import is_ssh_target
 from nomadic.util.sync import (
-    backup_minknow_data,
-    backup_nomadic_workspace,
     print_sync_summary,
+    share_minknow_data,
+    share_nomadic_workspace,
     sync_status,
 )
 from nomadic.util.workspace import Workspace
 
 
-@click.command(short_help="Backup a workspace.")
+@click.command(short_help="Share (lightweight) summary of a workspace.")
 @workspace_option()
 @click.option(
-    callback=load_default_function_for("backup"),
+    callback=load_default_function_for("share"),
     expose_value=False,
 )
 @click.option(
@@ -33,8 +33,8 @@ from nomadic.util.workspace import Workspace
     ),  # Use path here to enable autocomplete, even though not only paths are allowed
     required=True,
     help=(
-        "Path to root target backup folder, local or an SSH target like user@host:/path. "
-        "The backup will go into <target>/<workspace_name>."
+        "Path to target folder, local or an SSH target like user@host:/path. "
+        "The shared files will go inside of that folder into a folder with the name of the workspace."
     ),
     callback=validate_target,
 )
@@ -44,15 +44,15 @@ from nomadic.util.workspace import Workspace
     "minknow_base_dir",
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default="/var/lib/minknow/data",
-    show_default=True,
-    help="Path to the base minknow output directory. Only needed if the files were moved.",
+    show_default="/var/lib/minknow/data",
+    help="Path to minknow output directory (default it usually sufficient)",
 )
 @click.option(
     "--include-minknow/--exclude-minknow",
     "include_minknow",
     default=True,
     show_default=True,
-    help="Include/exclude minknow data in the backup.",
+    help="Include/exclude minknow data",
 )
 @click.option(
     "-v",
@@ -68,18 +68,28 @@ from nomadic.util.workspace import Workspace
     default=False,
     help="Use checksum check instead of file size and modification time.",
 )
+@click.option(
+    "--update/--overwrite",
+    "update",
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Update will not overwrite files that are newer.",
+)
 @click.pass_context
-def backup(
+def share(
     ctx: click.Context,
     target_dir: Path | str,
-    workspace: Workspace,
-    include_minknow: bool,
     minknow_base_dir: Path,
-    verbose: bool,
+    include_minknow: bool,
+    workspace: Workspace,
     checksum: bool,
+    update: bool,
+    verbose: bool,
 ):
     """
-    Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive.
+    Share summary nomadic workspace and associated minknow data to another folder
+    e.g. a cloud synchronised folder for sharing.
     """
     if (
         ctx.get_parameter_source("minknow_base_dir")
@@ -98,9 +108,11 @@ def backup(
                 message=f"'{minknow_base_dir.resolve()}' is not a directory.",
             )
 
+    failure_reasons = defaultdict(list)
+
     # Add workspace name to shared dir so multiple workspaces can be shared to same location
     if isinstance(target_dir, Path):
-        target_dir = target_dir / workspace.get_name()
+        target_dir = Path(target_dir) / workspace.get_name()
     elif is_ssh_target(target_dir):
         target_dir = f"{target_dir.rstrip('/')}/{workspace.get_name()}"
     else:
@@ -109,26 +121,26 @@ def backup(
             message=f"Target '{target_dir}' is not a valid local path or SSH target.",
         )
 
-    failure_reasons = defaultdict(list)
-
-    backup_nomadic_workspace(
+    share_nomadic_workspace(
         target_dir=target_dir,
         workspace=workspace,
         checksum=checksum,
         verbose=verbose,
+        update=update,
     )
 
     if include_minknow:
-        backup_minknow_data(
+        share_minknow_data(
             target_base_dir=target_dir,
             minknow_base_dir=minknow_base_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
             checksum=checksum,
             verbose=verbose,
+            update=update,
         )
     else:
-        click.echo("Skipping minknow data backup as requested.")
+        click.echo("Skipping sharing minknow data as requested.")
 
     all_backed_up, status_by_exp = sync_status(
         target_dir, workspace, include_minknow=include_minknow, verbose=verbose

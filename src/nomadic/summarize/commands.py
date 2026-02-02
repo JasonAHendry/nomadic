@@ -2,8 +2,9 @@ from pathlib import Path
 
 import click
 
+from nomadic.util.cli import workspace_option
 from nomadic.util.exceptions import MetadataFormatError
-from nomadic.util.workspace import Workspace, check_if_workspace
+from nomadic.util.workspace import Workspace
 
 
 @click.command(
@@ -14,17 +15,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
     type=click.Path(exists=True),
     nargs=-1,  # allow multiple arguments; gets passed as tuple
 )
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default="current directory",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the workspace where all input/output files (beds, metadata, results) are stored. "
-    "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
-    "as they are predefined in the workspace config or can be loaded from the workspace",
-)
+@workspace_option(optional=False)
 @click.option(
     "-m",
     "--metadata_csv",
@@ -93,7 +84,7 @@ from nomadic.util.workspace import Workspace, check_if_workspace
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
-    workspace_path: str,
+    workspace: Workspace,
     output_dir: Path,
     metadata_csv: Path,
     dashboard: bool,
@@ -110,13 +101,6 @@ def summarize(
     or if none are provided, all experiments of this workspace will be used.
 
     """
-    if not check_if_workspace(workspace_path):
-        raise click.BadParameter(
-            param_hint="-w/--workspace",
-            message=f"'{workspace_path}' is not a workspace.",
-        )
-    workspace = Workspace(workspace_path)
-
     if summary_name is None:
         summary_name = workspace.get_name()
 

@@ -14,6 +14,7 @@ dependencies:
   - jupyter
   - dash
   - pandas
+  - openpyxl
   - numpy
   - seaborn
   - click

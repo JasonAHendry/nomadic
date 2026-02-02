@@ -44,7 +44,7 @@ def main(input_dir: str):
     print("Input Parameters:")
     print(f"  Input dir: {input_dir}")
     print(f"  Experiment Name: {expt_name}")
-    print(f"  Metadata (.csv): {metadata.csv}")
+    print(f"  Metadata (.csv): {metadata.path}")
     print(f"  Regions (.bed): {regions.path}")
     print(f"  Found {len(metadata.barcodes) - 1} barcodes in this experiment.")
     print(f"  Found {regions.n_regions} regions of interest.")

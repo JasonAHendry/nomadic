@@ -1,18 +1,21 @@
-import os
 import difflib
+import os
+from typing import Optional
 
 import click
 import click.shell_completion
 
-from nomadic.util.workspace import Workspace, check_if_workspace
+from nomadic.util.cli import WORKSPACE_OPTION_KEY, workspace_option
+from nomadic.util.exceptions import MetadataFormatError
+from nomadic.util.workspace import Workspace
 
 
 def complete_experiment_name(ctx: click.Context, param, incomplete):
     """Complete experiment names based on existing folders in results directory."""
-    workspace_path = ctx.params.get("workspace_path", "./")
-    results_dir = Workspace(workspace_path).get_results_dir()
+    workspace: Optional[Workspace] = ctx.params.get(WORKSPACE_OPTION_KEY, None)
+    results_dir = workspace.get_results_dir() if workspace is not None else None
     result = []
-    if os.path.exists(results_dir):
+    if results_dir is not None and os.path.exists(results_dir):
         experiments = [
             dir
             for dir in os.listdir(results_dir)
@@ -51,21 +54,13 @@ def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
 
 
 @click.command(short_help="Just run the dashboard.")
-@click.option(
-    "-w",
-    "--workspace",
-    "workspace_path",
-    default="./",
-    show_default=True,
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
-    help="Path of the the workspace where all the files will be stored",
-)
+@workspace_option(optional=True)
 @click.argument(
     "experiment",
     type=str,
     shell_complete=complete_experiment_name,
 )
-def dashboard(workspace_path, experiment):
+def dashboard(workspace: Optional[Workspace], experiment):
     """
     Launch the dashboard without performing real-time analysis,
     used to view results of a previous experiment.
@@ -75,9 +70,7 @@ def dashboard(workspace_path, experiment):
 
     """
 
-    if check_if_workspace(workspace_path):
-        workspace = Workspace(workspace_path)
-
+    if workspace is not None:
         input_dir = workspace.get_output_dir(experiment)
     else:
         # Normalize the path to for example remove trailing slashes
@@ -86,14 +79,14 @@ def dashboard(workspace_path, experiment):
             # Probably tried to find experiment by name, so warn that workspace does not exist
             raise click.BadParameter(
                 param_hint="-w/--workspace",
-                message=f"Workspace '{workspace_path}' does not exist or is not a workspace. Please use nomadic start to create a new workspace, or navigate to your workspace",
+                message="The current directory is not a workspace. Please use nomadic start to create a new workspace, or navigate to your workspace",
             )
 
     if not os.path.exists(input_dir):
         # Normalize the path to for example remove trailing slashes
         input_dir = os.path.normpath(experiment)
         if not os.path.exists(input_dir):
-            if "/" in experiment:
+            if "/" in experiment or workspace is None:
                 # Probably tried to find experiment by path, so warn that input directory does not exist
                 raise click.BadParameter(
                     param_hint="experiment_name",
@@ -105,4 +98,13 @@ def dashboard(workspace_path, experiment):
 
     from .main import main
 
-    main(input_dir)
+    try:
+        main(input_dir)
+    except MetadataFormatError as e:
+        raise click.ClickException(
+            message=str(e),
+        ) from e
+    except FileNotFoundError as e:
+        raise click.ClickException(
+            message=str(e),
+        ) from e

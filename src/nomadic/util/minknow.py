@@ -3,7 +3,8 @@ import warnings
 from pathlib import Path
 from typing import Optional, Tuple
 
-import click
+
+from nomadic.util.cli import BadParameterWithSource
 
 
 def resolve_fastq_dir(fastq_dir_glob: str) -> Optional[str]:
@@ -55,16 +56,16 @@ def resolve_minknow_fastq_dirs(path: Path, experiment_name: str) -> Tuple[Path, 
     specific fastq_pass folder from a specific experiment
     """
     if not path.exists():
-        raise click.BadParameter(
-            param_hint="--minknow_dir",
+        raise BadParameterWithSource(
+            param_hint="-k/--minknow_dir",
             message=f"{path} does not exist.",
         )
 
     if is_minknow_base_dir(path):
         minknow_dir = path / experiment_name
     elif not is_minknow_base_dir(path.parent):
-        raise click.BadParameter(
-            param_hint="--minknow_dir",
+        raise BadParameterWithSource(
+            param_hint="-k/--minknow_dir",
             message=f"{path} does not look like a valid MinKNOW output directory.",
         )
     else:
