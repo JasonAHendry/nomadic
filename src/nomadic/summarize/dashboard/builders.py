@@ -686,9 +686,11 @@ def cols_to_group_by(
     cols.remove("sample_id")
 
     for col in cols[:]:
-        if pd.api.types.is_numeric_dtype(df[col]):
-            cols.remove(col)
-            continue
+        # Maybe not needed because nunique is covering it
+        # and we want to have year work for example
+        # if pd.api.types.is_numeric_dtype(df[col]):
+        #     cols.remove(col)
+        #     continue
         n_unique = df[col].nunique()
         if n_unique > max_cat:
             cols.remove(col)
