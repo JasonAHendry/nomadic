@@ -523,6 +523,8 @@ def main(
                 for expt in expts
             ]
         )
+        # Note, problematic if same sample ID has different metadata across experiments
+        master_metadata.drop_duplicates(subset=["sample_id"], inplace=True)
 
     master_metadata = master_metadata.astype(
         {"sample_id": "str"}
@@ -533,6 +535,15 @@ def main(
     # strip whitespaces from sample IDs
     inventory_metadata["sample_id"] = inventory_metadata["sample_id"].str.strip()
     master_metadata["sample_id"] = master_metadata["sample_id"].str.strip()
+
+    # Check no duplicate sample IDs in master metadata
+    duplicate_sample_ids = master_metadata[
+        master_metadata.duplicated(subset=["sample_id"])
+    ]["sample_id"].unique()
+    if len(duplicate_sample_ids) > 0:
+        raise ValueError(
+            f"Duplicate sample IDs found in master metadata: {', '.join(duplicate_sample_ids)}"
+        )
 
     unknown_samples = calc_unknown_samples(inventory_metadata, master_metadata)
     if unknown_samples:
@@ -680,13 +691,13 @@ def main(
             f"{output_dir}/summary.gene-deletions.prevalence.csv", index=False
         )
 
-    for col in prevalence_by:
-        prev_gen_deletion_by_col_df = gene_deletion_prevalence_by(
-            gene_deletion_df, master_metadata, [col]
-        )
-        prev_gen_deletion_by_col_df.to_csv(
-            f"{output_dir}/summary.gene-deletions.prevalence-{col}.csv", index=False
-        )
+        for col in prevalence_by:
+            prev_gen_deletion_by_col_df = gene_deletion_prevalence_by(
+                gene_deletion_df, master_metadata, [col]
+            )
+            prev_gen_deletion_by_col_df.to_csv(
+                f"{output_dir}/summary.gene-deletions.prevalence-{col}.csv", index=False
+            )
 
     master_metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
 
