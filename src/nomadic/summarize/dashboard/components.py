@@ -320,7 +320,11 @@ class QualityControl(SummaryDashboardComponent):
     ]
 
     def __init__(
-        self, summary_name: str, coverage_df: pd.DataFrame, component_id: str, dropdown_id: str
+        self,
+        summary_name: str,
+        coverage_df: pd.DataFrame,
+        component_id: str,
+        dropdown_id: str,
     ) -> None:
         """
         Initialisation loads the coverage data and prepares for plotting;
@@ -665,8 +669,8 @@ class GeneDeletionsBarplot(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        gene_deletions_csv: str,
-        master_csv: str,
+        gene_deletions_df: pd.DataFrame,
+        master_df: pd.DataFrame,
         component_id: str,
         radio_id_by: str,
     ) -> None:
@@ -675,12 +679,8 @@ class GeneDeletionsBarplot(SummaryDashboardComponent):
 
         """
 
-        self.gene_deletions_csv = gene_deletions_csv
-        self.gene_deletions_df = pd.read_csv(gene_deletions_csv)
-
-        self.master__csv = master_csv
-        self.master_df = pd.read_csv(master_csv)
-
+        self.gene_deletions_df = gene_deletions_df
+        self.master_df = master_df
         self.radio_id_by = radio_id_by
         super().__init__(summary_name, component_id)
 

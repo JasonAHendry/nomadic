@@ -402,8 +402,8 @@ class SummaryDashboardBuilder(ABC):
             self.summary_name,
             component_id="gene-deletions-bars",
             radio_id_by="gene-deletions-dropdown-by",
-            gene_deletions_csv=gene_deletions_csv,
-            master_csv=master_csv,
+            gene_deletions_df=gene_deletions_df,
+            master_df=master_df,
         )
 
         prevalence_row = html.Div(
