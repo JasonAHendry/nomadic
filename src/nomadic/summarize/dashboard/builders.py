@@ -95,7 +95,7 @@ class SummaryDashboardBuilder(ABC):
     #
     # ---------------------------------------------------------------------------
 
-    def _add_throughput_banner(self, throughput_csv: str) -> None:
+    def _add_throughput_banner(self, throughput_df: pd.DataFrame) -> None:
         """
         Add a banner which shows the logo and summarise the number of samples processed.
 
@@ -105,7 +105,7 @@ class SummaryDashboardBuilder(ABC):
         self.expt_summary = ThroughputSummary(
             summary_name=self.summary_name,
             component_id="thoughput-summary",
-            throughput_csv=throughput_csv,
+            throughput_df=throughput_df,
         )
 
         # Define banner layout
@@ -115,7 +115,9 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.expt_summary)
         self.layout.append(banner)
 
-    def _add_samples(self, samples_csv: str, samples_amplicons_csv: str) -> None:
+    def _add_samples(
+        self, samples_df: pd.DataFrame, samples_amplicons_df: pd.DataFrame
+    ) -> None:
         """
         Add a panel that shows progress of samples sequenced
 
@@ -123,12 +125,12 @@ class SummaryDashboardBuilder(ABC):
         self.samples = SamplesPie(
             summary_name=self.summary_name,
             component_id="samples-pie",
-            samples_csv=samples_csv,
+            samples_df=samples_df,
         )
         self.amplicons = AmpliconsBarplot(
             summary_name=self.summary_name,
             component_id="samples-barplot",
-            samples_amplicons_csv=samples_amplicons_csv,
+            samples_amplicons_df=samples_amplicons_df,
         )
         quality_row = html.Div(
             className="samples-row",
@@ -145,7 +147,7 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.samples)
         self.layout.append(quality_row)
 
-    def _add_experiment_qc(self, coverage_csv: str) -> None:
+    def _add_experiment_qc(self, coverage_df: pd.DataFrame) -> None:
         """
         Add a panel that shows quality control results
 
@@ -164,7 +166,7 @@ class SummaryDashboardBuilder(ABC):
             self.summary_name,
             component_id="quality-heat",
             dropdown_id="quality-dropdown",
-            coverage_csv=coverage_csv,
+            coverage_df=coverage_df,
         )
 
         quality_row = html.Div(
@@ -195,8 +197,8 @@ class SummaryDashboardBuilder(ABC):
 
     def _add_prevalence_row(
         self,
-        analysis_csv: str,
-        master_csv: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
         amplicon_names: list[str],
         amplicon_sets: dict[str, list[str]],
     ) -> None:
@@ -221,7 +223,7 @@ class SummaryDashboardBuilder(ABC):
                 clearable=False,
             )
 
-        cols = cols_to_group_by(master_csv, analysis_csv, max_cat=10)
+        cols = cols_to_group_by(master_df, analysis_df, max_cat=10)
 
         dropdown_by = dcc.Dropdown(
             id="prevalence-dropdown-by",
@@ -236,8 +238,8 @@ class SummaryDashboardBuilder(ABC):
             component_id="prevalence-bars",
             radio_id="amplicons-dropdown",
             radio_id_by="prevalence-dropdown-by",
-            analysis_csv=analysis_csv,
-            master_csv=master_csv,
+            analysis_df=analysis_df,
+            master_df=master_df,
             amplicon_sets=amplicon_sets,
         )
 
@@ -303,8 +305,8 @@ class SummaryDashboardBuilder(ABC):
 
     def _add_prevalence_by_col_row(
         self,
-        analysis_csv: str,
-        master_csv: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
         amplicon_names: list[str],
         amplicon_sets: dict[str, list[str]],
     ) -> None:
@@ -324,7 +326,7 @@ class SummaryDashboardBuilder(ABC):
             clearable=False,
         )
 
-        cols = cols_to_group_by(master_csv, analysis_csv, max_cat=50)
+        cols = cols_to_group_by(master_df, analysis_df, max_cat=50)
 
         if not cols:
             # Nothing to show
@@ -340,8 +342,8 @@ class SummaryDashboardBuilder(ABC):
 
         self.prevalence_heatmap = PrevalenceHeatmap(
             summary_name=self.summary_name,
-            analysis_csv=analysis_csv,
-            master_csv=master_csv,
+            analysis_df=analysis_df,
+            master_df=master_df,
             component_id="prevalence-heatmap",
             amplicon_dropdown_id="amplicon-dropdown",
             col_dropdown_id="col-dropdown",
@@ -378,13 +380,15 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.prevalence_heatmap)
         self.layout.append(prevalence_row)
 
-    def _add_gene_deletion_row(self, gene_deletions_csv: str, master_csv: str) -> None:
+    def _add_gene_deletion_row(
+        self, gene_deletions_df: pd.DataFrame, master_df: pd.DataFrame
+    ) -> None:
         """
         Add a panel that shows prevalence calls
 
         """
 
-        cols = cols_to_group_by(master_csv, gene_deletions_csv, max_cat=50)
+        cols = cols_to_group_by(master_df, gene_deletions_df, max_cat=50)
 
         dropdown_by = dcc.Dropdown(
             id="gene-deletions-dropdown-by",
@@ -430,8 +434,8 @@ class SummaryDashboardBuilder(ABC):
 
     def _add_map_row(
         self,
-        analysis_csv: str,
-        master_csv: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
         geojsons: list[str],
         location_coords_csv: str,
         map_center: tuple[float, float] | None,
@@ -453,7 +457,6 @@ class SummaryDashboardBuilder(ABC):
             Path to a CSV file containing location to coordinate mappings
         """
         # Get mutations and their prevalence for resistance genes
-        analysis_df = pd.read_csv(analysis_csv)
         if "Resistance" in amplicon_sets:
             resistance_df = analysis_df[
                 analysis_df["amplicon"].isin(amplicon_sets["Resistance"])
@@ -506,8 +509,8 @@ class SummaryDashboardBuilder(ABC):
         # Create the map component with the prepared dropdowns
         self.prevalence_map = MapComponent(
             summary_name=self.summary_name,
-            analysis_csv=analysis_csv,
-            master_csv=master_csv,
+            analysis_df=analysis_df,
+            master_df=master_df,
             component_id="prevalence-map",
             mutation_dropdown_id="map-mutation-dropdown",
             region_dropdown_id="map-region-dropdown",
@@ -580,19 +583,37 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
 
         Parameters
         ----------
-        location_coords_csv : str | None, optional
+        location_coords_csv : str
             Path to a CSV file containing location to coordinate mappings.
             The file should have columns: location,latitude,longitude
         """
 
         super().__init__(summary_name, self.CSS_STYLE)
-        self.throughput_csv = throughput_csv
-        self.samples_csv = samples_csv
-        self.samples_amplicons_csv = samples_amplicons_csv
-        self.coverage_csv = coverage_csv
-        self.analysis_csv = analysis_csv
-        self.master_csv = master_csv
+
+        master_df = pd.read_csv(master_csv, dtype={"sample_id": str})
+        analysis_df = pd.read_csv(analysis_csv, dtype={"sample_id": str})
+
+        # Read header only
+        df_header = pd.read_csv(throughput_csv, nrows=0)
+        dtypes: dict[str, type[str] | type[int]] = {
+            col: int for col in df_header.columns
+        }
+        dtypes["sample_type"] = str
+        self.throughput_df = pd.read_csv(
+            throughput_csv, index_col="sample_type", dtype=dtypes
+        )
+        samples_df = pd.read_csv(samples_csv, dtype={"sample_id": str})
+        samples_amplicons_df = pd.read_csv(
+            samples_amplicons_csv, dtype={"sample_id": str}
+        )
+        coverage_df = pd.read_csv(coverage_csv, dtype={"sample_id": str})
+
+        self.master_df = master_df
+        self.analysis_df = analysis_df
         self.gene_deletions_csv = gene_deletions_csv
+        self.samples_df = samples_df
+        self.samples_amplicons_df = samples_amplicons_df
+        self.coverage_df = coverage_df
         self.geojson_glob = geojson_glob
         self.location_coords_csv = location_coords_csv
         self.map_center, self.map_zoom_level = get_map_settings(settings)
@@ -605,22 +626,25 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         Generate the layout
 
         """
-        self._add_throughput_banner(self.throughput_csv)
-        self._add_samples(self.samples_csv, self.samples_amplicons_csv)
-        self._add_experiment_qc(self.coverage_csv)
+        self._add_throughput_banner(self.throughput_df)
+        self._add_samples(self.samples_df, self.samples_amplicons_df)
+        self._add_experiment_qc(self.coverage_df)
         self._add_prevalence_row(
-            self.analysis_csv, self.master_csv, self.amplicon_names, self.amplicon_sets
+            self.analysis_df, self.master_df, self.amplicon_names, self.amplicon_sets
         )
         self._add_prevalence_by_col_row(
-            self.analysis_csv, self.master_csv, self.amplicon_names, self.amplicon_sets
+            self.analysis_df, self.master_df, self.amplicon_names, self.amplicon_sets
         )
         if self.deletion_genes:
-            self._add_gene_deletion_row(self.gene_deletions_csv, self.master_csv)
+            gene_deletions_df = pd.read_csv(
+                self.gene_deletions_csv, dtype={"sample_id": str}
+            )
+            self._add_gene_deletion_row(gene_deletions_df, self.master_df)
 
         if glob.glob(self.geojson_glob) or os.path.exists(self.location_coords_csv):
             self._add_map_row(
-                self.analysis_csv,
-                self.master_csv,
+                self.analysis_df,
+                self.master_df,
                 glob.glob(self.geojson_glob),
                 self.location_coords_csv,
                 self.map_center,
@@ -644,14 +668,14 @@ def setup_translations():
     i18n.set("locale", "en")
 
 
-def cols_to_group_by(master_csv: str, analysis_csv, *, max_cat: int) -> list[str]:
+def cols_to_group_by(
+    master_df: pd.DataFrame, analysis_df: pd.DataFrame, *, max_cat: int
+) -> list[str]:
     """
     Get columns that can be used to group prevalence by
 
     """
 
-    master_df = pd.read_csv(master_csv)
-    analysis_df = pd.read_csv(analysis_csv)
     df = pd.merge(
         master_df,
         analysis_df[["sample_id"]],

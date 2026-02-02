@@ -89,20 +89,10 @@ class ThroughputSummary(SummaryDashboardComponent):
 
     logo_src_path = "assets/nomadic_logo.png"
 
-    def __init__(self, summary_name: str, throughput_csv: str, component_id: str):
-        self.throughput_csv = throughput_csv
-
-        # Read header only
-        df_header = pd.read_csv(throughput_csv, nrows=0)
-        dtypes: dict[str, type[str] | type[int]] = {
-            col: int for col in df_header.columns
-        }
-
-        dtypes["sample_type"] = str
-
-        self.throughput_df = pd.read_csv(
-            throughput_csv, index_col="sample_type", dtype=dtypes
-        )
+    def __init__(
+        self, summary_name: str, throughput_df: pd.DataFrame, component_id: str
+    ):
+        self.throughput_df = throughput_df
         super().__init__(summary_name, component_id)
 
     def _define_layout(self):
@@ -160,13 +150,12 @@ class SamplesPie(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        samples_csv: str,
+        samples_df: pd.DataFrame,
         component_id: str,
     ):
-        self.samples_csv = samples_csv
-        self.df = pd.read_csv(samples_csv)
-        self.n = len(self.df)
-        self.df = self.df.groupby("status").count()["sample_id"]
+        self.samples_df = samples_df
+        self.n = len(self.samples_df)
+        self.df = self.samples_df.groupby("status").count()["sample_id"]
         super().__init__(summary_name, component_id)
 
     def _define_layout(self):
@@ -218,9 +207,9 @@ class AmpliconsBarplot(SummaryDashboardComponent):
         self,
         summary_name: str,
         component_id: str,
-        samples_amplicons_csv: str,
+        samples_amplicons_df: pd.DataFrame,
     ):
-        df = pd.read_csv(samples_amplicons_csv)
+        df = samples_amplicons_df
         # Store inputs
         plot_df = pd.crosstab(df["name"], df["status"])
         n_not_sequenced = (df["status"] == Status.NOT_SEQUENCED.value).sum()
@@ -331,15 +320,14 @@ class QualityControl(SummaryDashboardComponent):
     ]
 
     def __init__(
-        self, summary_name: str, coverage_csv: str, component_id: str, dropdown_id: str
+        self, summary_name: str, coverage_df: pd.DataFrame, component_id: str, dropdown_id: str
     ) -> None:
         """
         Initialisation loads the coverage data and prepares for plotting;
 
         """
 
-        self.coverage_csv = coverage_csv
-        self.coverage_df = pd.read_csv(coverage_csv)
+        self.coverage_df = coverage_df
         self.plot_df = pd.pivot_table(
             index="expt_name",
             columns="name",
@@ -438,8 +426,8 @@ class PrevalenceBarplot(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        analysis_csv: str,
-        master_csv: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
         component_id: str,
         radio_id: str,
         radio_id_by: str,
@@ -450,11 +438,8 @@ class PrevalenceBarplot(SummaryDashboardComponent):
 
         """
 
-        self.analysis_csv = analysis_csv
-        self.analysis_df = pd.read_csv(analysis_csv)
-
-        self.master__csv = master_csv
-        self.master_df = pd.read_csv(master_csv)
+        self.analysis_df = analysis_df
+        self.master_df = master_df
 
         self.radio_id = radio_id
         self.radio_id_by = radio_id_by
@@ -575,16 +560,16 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        analysis_csv: str,
-        master_csv: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
         component_id: str,
         amplicon_dropdown_id: str,
         col_dropdown_id: str,
     ):
         self.amplicon_dropdown_id = amplicon_dropdown_id
         self.col_dropdown_id = col_dropdown_id
-        self.analysis_df = pd.read_csv(analysis_csv)
-        self.master_df = pd.read_csv(master_csv)
+        self.analysis_df = analysis_df
+        self.master_df = master_df
         super().__init__(summary_name, component_id)
 
     def _define_layout(self):
@@ -810,8 +795,8 @@ class MapComponent(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        analysis_csv: str,
-        master_csv: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
         component_id: str,
         mutation_dropdown_id: str,
         region_dropdown_id: str,
@@ -822,8 +807,8 @@ class MapComponent(SummaryDashboardComponent):
     ):
         self.mutation_dropdown_id = mutation_dropdown_id
         self.region_dropdown_id = region_dropdown_id
-        self.analysis_df = pd.read_csv(analysis_csv)
-        self.master_df = pd.read_csv(master_csv)
+        self.analysis_df = analysis_df
+        self.master_df = master_df
         self.map_zoom_level = map_zoom_level
         self.map_center = map_center
 
