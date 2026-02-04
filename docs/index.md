@@ -25,15 +25,12 @@ It was designed to work with amplicon sequencing data from the NOMADS-MVP protoc
 <!-- *Nomadic* being used to process *P. falciparum* data in Kisian, Kenya. For more cool pictures, see our gallery. -->
 <br>
 
-
-
 ## Features
-- [x] Real-time read mapping with [*Minimap2*](https://github.com/lh3/minimap2).
+
+- [x] Real-time read mapping with [_Minimap2_](https://github.com/lh3/minimap2).
 - [x] Real-time sample quality control and amplicon coverage evaluation.
-- [x] Real-time variant calling with [*delve*](https://github.com/berndbohmeier/delve).
+- [x] Real-time variant calling with [_delve_](https://github.com/berndbohmeier/delve) or [_bcftools_](https://github.com/samtools/bcftools).
 - [x] Support for different reference genomes or amplicons panels.
-
-
 
 ## Resources
 
@@ -41,4 +38,5 @@ It was designed to work with amplicon sequencing data from the NOMADS-MVP protoc
 - Read our preprint [here](https://www.biorxiv.org/content/10.1101/2025.07.23.666274v1).
 
 ## Acknowledgements
+
 This work was funded by the Bill and Melinda Gates Foundation (INV-003660, INV-048316).
