@@ -4,12 +4,12 @@ repo_url: https://github.com/JasonAHendry/nomadic.git
 theme:
   name: material
   palette:
-  - scheme: default
-    primary: blue grey
-    accent: amber
+    - scheme: default
+      primary: blue grey
+      accent: amber
   logo: img/little_logo.svg
   features:
-  #  - navigation.tabs
+    #  - navigation.tabs
     - navigation.sections
     - content.code.copy
 markdown_extensions:
@@ -25,12 +25,10 @@ nav:
   - Overview: index.md
   - Installation: installation.md
   - Usage:
-    - Quick Start: quick_start.md
-    - Basic Usage: basic.md
-    - Sharing and Backing up: share_backup.md
-    - Advanced Usage: advanced.md
+      - Quick Start: quick_start.md
+      - Basic Usage: basic.md
+      - Sharing and Backing up: share_backup.md
+      - Advanced Usage: advanced.md
   - Understanding the Dashboard: understand.md
-  - Output Files & Sharing Data: output_files.md
+  - Output Files: output_files.md
   - FAQ: faq.md
-
-
