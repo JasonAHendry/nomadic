@@ -35,7 +35,7 @@ conda create -c bioconda -n nomadic nomadic
 Or, if you are using _Mamba_:
 
 ```
-mambda create -c bioconda -n nomadic nomadic
+mamba create -c bioconda -n nomadic nomadic
 ```
 
 _Nomadic_ should now be installed in it's own conda environment.
@@ -74,19 +74,12 @@ Commands:
 
 ### Update nomadic
 
-To update _Nomadic_ to the newest version, activate your conda environment:
+To update _Nomadic_ to the newest version, activate your conda environment, and then update nomadic as follows:
 
 ```
 conda activate nomadic
-```
-
-Then type:
-
-```
 conda update nomadic
 ```
-
-to update _Nomadic_.
 
 You can check your installed version with
 
