@@ -27,12 +27,12 @@ Once shared, `Nomadic` can be run by collaborators and other members of the grou
 The above settings can be saved per workspace so that you don't need to enter the details each time. To save the configuration do the following:
 
 ```
-nomadic configure share -t <path/to/your/backup/location>
-nomadic configure backup -t <path/to/your/shared/location>
+nomadic configure backup -t <path/to/your/backup/location>
+nomadic configure share -t <path/to/your/shared/location>
 ```
 
 Once configured you can omit the `-t` option e.g.
 ```
-nomadic share
 nomadic backup
+nomadic share
 ```
