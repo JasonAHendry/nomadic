@@ -127,9 +127,9 @@ def check_sample_type_format(sample_type: str, try_to_fix: bool = False) -> str:
         )
 
     # Raise a warning and proceed if we are fixing.
-    # warnings.warn(
-    #     f"Found a sample with type '{sample_type}' which is invalid. Trying to fix..."
-    # )
+    warnings.warn(
+        f"Found a sample with type '{sample_type}' which is invalid. Trying to fix..."
+    )
 
     for e in EXPECTED:
         if sample_type.lower() == e:  # capitalisation issue
@@ -166,7 +166,7 @@ class MetadataTableParser:
 
     """
 
-    REQUIRED_COLUMNS = ["barcode", "sample_id", "sample_type"]
+    REQUIRED_COLUMNS = ["barcode", "sample_id"]
     UNIQUE_COLUMNS = ["barcode"]
 
     # If the required columns are not found, try these alternative names, case insensitive
@@ -185,8 +185,10 @@ class MetadataTableParser:
         self.path = metadata_path
         self._load_metadata(metadata_path)
         self._correct_columns()
+        self._check_required_columns()
         self._check_entries_unique()
         self._correct_all_barcodes()
+        self._correct_all_sample_types()
 
         self.barcodes = self.df["barcode"].tolist()
         self.sample_ids_df = self.df[["barcode", "sample_id"]].set_index("barcode")
@@ -230,26 +232,29 @@ class MetadataTableParser:
 
         normalized_column_names = [c.strip().lower() for c in self.df.columns]
 
-        for required_column in self.REQUIRED_COLUMNS:
-            if required_column not in self.df.columns:
+        for standard_column_name in self.ALTERNATIVE_NAMES.keys():
+            if standard_column_name not in self.df.columns:
                 for normalized_column in normalized_column_names:
                     if re.fullmatch(
-                        self.ALTERNATIVE_NAMES[required_column], normalized_column
+                        self.ALTERNATIVE_NAMES[standard_column_name], normalized_column
                     ):
                         column_name = self.df.columns[
                             normalized_column_names.index(normalized_column)
                         ]
                         warnings.warn(
-                            f"Using column '{column_name}' as '{required_column}' in metadata CSV."
+                            f"Using column '{column_name}' as '{standard_column_name}' in metadata CSV."
                         )
                         self.df.rename(
-                            columns={column_name: required_column}, inplace=True
+                            columns={column_name: standard_column_name}, inplace=True
                         )
                         break
-                else:
-                    raise MetadataFormatError(
-                        f"Metadata must contain column called {required_column}!"
-                    )
+
+    def _check_required_columns(self):
+        for required_column in self.REQUIRED_COLUMNS:
+            if required_column not in self.df.columns:
+                raise MetadataFormatError(
+                    f"Metadata must contain column called {required_column}!"
+                )
 
     def _check_entries_unique(self):
         """
@@ -271,6 +276,13 @@ class MetadataTableParser:
 
     def _correct_all_barcodes(self):
         self.df["barcode"] = [correct_barcode_format(b) for b in self.df["barcode"]]
+
+    def _correct_all_sample_types(self):
+        if "sample_type" in self.df.columns:
+            self.df["sample_type"] = [
+                check_sample_type_format(s, try_to_fix=True)
+                for s in self.df["sample_type"]
+            ]
 
 
 class ExtendedMetadataTableParser(MetadataTableParser):
@@ -294,9 +306,6 @@ class ExtendedMetadataTableParser(MetadataTableParser):
                 " 'field' (field sample), 'pos' (positive control) or 'neg' (negative control)"
                 " for each sample."
             )
-        self.df["sample_type"] = [
-            check_sample_type_format(s, try_to_fix=True) for s in self.df["sample_type"]
-        ]
 
         sample_type_counts = self.df.sample_type.value_counts().to_dict()
         if "neg" not in sample_type_counts:

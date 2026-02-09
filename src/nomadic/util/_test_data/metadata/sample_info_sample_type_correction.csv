@@ -1,0 +1,7 @@
+﻿barcode,sample_id,sample_type,location,parasitemia,postclean_qubit
+barcode01,3D7,Positive,berlin,1000,87
+barcode02,HB3,Positive,berlin,100,34
+barcode03,NTC,Negative,berlin,0,0
+barcode04,DBS-A01,Field,berlin,543,44
+barcode05,DBS-A02,Field,berlin,7583,85
+barcode06,DBS-A03,Field,berlin,349,32
