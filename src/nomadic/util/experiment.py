@@ -188,7 +188,7 @@ def find_metadata(
     # first check if the file with standard name exists
     standard_path = os.path.join(expt_dir, "metadata", STANDARD_METADATA_FILENAME)
     if os.path.isfile(standard_path):
-        return MetadataTableParser(standard_path)
+        return Parser(standard_path)
 
     # In legacy cases, it should have the name of the experiment
     csv = os.path.join(expt_dir, "metadata", f"{os.path.basename(expt_dir)}.csv")
