@@ -31,7 +31,7 @@ def find_workspace(ctx, param, value) -> Optional[Workspace]:
         root = find_workspace_root(Path("./"))
         if root is None:
             return None
-    elif check_if_workspace_root(value):
+    elif check_if_workspace_root(Path(value)):
         root = Path(value)
     else:
         raise click.BadParameter(
