@@ -506,6 +506,22 @@ class SummaryDashboardBuilder(ABC):
             clearable=False,
         )
 
+        # Create style dropdown options
+        style_options = [{"label": "Region Map", "value": "choropleth"}]
+        style_value = "choropleth"
+
+        # Only add Bubble Map option if location coordinates file exists
+        if os.path.exists(location_coords_csv):
+            style_options.append({"label": "Bubble Map", "value": "scatterplot"})
+
+        style_dropdown = dcc.Dropdown(
+            id="map-style-dropdown",
+            options=style_options,
+            value=style_value,
+            style=dict(width="300px"),
+            clearable=False,
+        )
+
         # Create the map component with the prepared dropdowns
         self.prevalence_map = MapComponent(
             summary_name=self.summary_name,
@@ -514,6 +530,7 @@ class SummaryDashboardBuilder(ABC):
             component_id="prevalence-map",
             mutation_dropdown_id="map-mutation-dropdown",
             region_dropdown_id="map-region-dropdown",
+            style_dropdown_id="map-style-dropdown",
             geojsons=regions,
             location_coords_csv=location_coords_csv,
             map_center=map_center,
@@ -537,6 +554,12 @@ class SummaryDashboardBuilder(ABC):
                             children=[
                                 html.Label("Group by:"),
                                 region_dropdown,
+                            ]
+                        ),
+                        html.Div(
+                            children=[
+                                html.Label("Map style:"),
+                                style_dropdown,
                             ]
                         ),
                     ],

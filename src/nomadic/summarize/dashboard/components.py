@@ -802,11 +802,13 @@ class MapComponent(SummaryDashboardComponent):
         region_dropdown_id: str,
         geojsons: dict[str, str],
         location_coords_csv: str,
+        style_dropdown_id: str,
         map_zoom_level: Optional[int] = None,
         map_center: Optional[tuple[float, float]] = None,
     ):
         self.mutation_dropdown_id = mutation_dropdown_id
         self.region_dropdown_id = region_dropdown_id
+        self.style_dropdown_id = style_dropdown_id
         self.analysis_df = analysis_df
         self.master_df = master_df
         self.map_zoom_level = map_zoom_level
@@ -833,8 +835,9 @@ class MapComponent(SummaryDashboardComponent):
             Output(self.component_id, "figure"),
             Input(self.mutation_dropdown_id, "value"),
             Input(self.region_dropdown_id, "value"),
+            Input(self.style_dropdown_id, "value"),
         )
-        def _update(target_mutation, region_by: Optional[str]):
+        def _update(target_mutation, region_by: Optional[str], map_style: str):
             """Called every time an input changes"""
 
             fig = go.Figure()
@@ -846,7 +849,7 @@ class MapComponent(SummaryDashboardComponent):
             # Split the gene-mutation value and calculate prevalence by region
             gene, aa_change = target_mutation.split("-")
 
-            if region_by is not None:
+            if map_style == "choropleth" and region_by is not None:
                 df = compute_variant_prevalence(
                     self.analysis_df.query("gene == @gene"),
                     self.master_df,
@@ -914,8 +917,8 @@ class MapComponent(SummaryDashboardComponent):
                     )
                 )
 
-            # Add sample site markers if we have location coordinates
-            if self.location_coords is not None:
+            # Add sample site markers if we have location coordinates and scatterplot style is selected
+            if self.location_coords is not None and map_style == "scatterplot":
                 # Case-insensitive column matching for the location join
                 master_location_col = "location"
                 coords_location_col = "location"
@@ -963,7 +966,7 @@ class MapComponent(SummaryDashboardComponent):
                 fig.add_trace(
                     go.Scattermapbox(
                         lat=merged_df["lat"],
-                        lon=merged_df["lng"],
+                        lon=merged_df["long"],
                         mode="markers",
                         marker=dict(
                             size=merged_df["scaled_size"],
