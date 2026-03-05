@@ -210,11 +210,18 @@ class MetadataTableParser:
                 for sheetname in target_sheets
                 if sheetname in xlsx.sheet_names
             ] + [xlsx.sheet_names[0]]
-            data = pd.read_excel(path, sheet_name=sheet_names[0], engine="openpyxl")
+            data = pd.read_excel(
+                path,
+                dtype={"sample_id": "str"},
+                sheet_name=sheet_names[0],
+                engine="openpyxl",
+            )
             data.dropna(how="all", inplace=True)
             self.df = data
         else:
-            self.df = pd.read_csv(path, delimiter=get_csv_delimiter(path))
+            self.df = pd.read_csv(
+                path, delimiter=get_csv_delimiter(path), dtype={"sample_id": "str"}
+            )
 
     def get_sample_id(self, barcode: str) -> Optional[str]:
         if barcode == "unclassified":

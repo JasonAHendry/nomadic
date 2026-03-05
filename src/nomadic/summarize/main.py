@@ -788,9 +788,11 @@ def main(
     )
 
     # for now we use the master metadata file
-    inventory_metadata = pd.concat([expt.metadata[FIXED_COLUMNS] for expt in expts])
+    inventory_metadata = pd.concat(
+        [expt.metadata[FIXED_COLUMNS] for expt in expts]
+    ).reset_index()
     if metadata_path is not None and not no_master_metadata:
-        master_metadata = pd.read_csv(metadata_path).rename(
+        master_metadata = pd.read_csv(metadata_path, dtype={"sample_id": "str"}).rename(
             columns=get_master_columns_mapping(settings)
         )
     else:
