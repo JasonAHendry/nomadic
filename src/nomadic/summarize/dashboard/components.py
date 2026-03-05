@@ -848,10 +848,10 @@ class MapComponent(SummaryDashboardComponent):
 
             if region_by is not None:
                 df = compute_variant_prevalence(
-                    self.analysis_df.query("gene == @gene and aa_change == @aa_change"),
+                    self.analysis_df.query("gene == @gene"),
                     self.master_df,
                     [region_by],
-                )
+                ).query("aa_change == @aa_change")
 
                 # Normalize location names in the data
                 df[f"{region_by}_normalized"] = df[region_by].apply(normalize_location)
@@ -922,10 +922,10 @@ class MapComponent(SummaryDashboardComponent):
 
                 # Group by location to get sample counts and average prevalence
                 site_data = compute_variant_prevalence(
-                    self.analysis_df.query("gene == @gene and aa_change == @aa_change"),
+                    self.analysis_df.query("gene == @gene"),
                     self.master_df,
                     [master_location_col],
-                )
+                ).query("aa_change == @aa_change")
 
                 # Create copies with lowercase location names for case-insensitive join
                 site_data["location_normalized"] = site_data[

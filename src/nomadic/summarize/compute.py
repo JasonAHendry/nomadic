@@ -9,12 +9,12 @@ from statsmodels.stats.proportion import proportion_confint
 VARIANTS_GROUP_COLUMNS = [
     "gene",
     "chrom",
-    "pos",
-    # "ref",
-    # The alt might differ for multiallelic sites
-    # "alt",
-    "aa_change",
     "aa_pos",
+]
+
+# These groups are used to define a unique mutation, e.g. A127E
+VARIANTS_MUTATION_COLUMNS = [
+    "aa_change",
     "mut_type",
     "mutation",
 ]
@@ -120,12 +120,13 @@ def filter_false_positives(
 
     """
 
-    mut = variants_df[variants_df["gt_int"].isin([1, 2])]
+    mut = variants_df.loc[variants_df["type"].isin(["mixed_mut", "mut"])]
     df = variants_df.merge(
-        mut.groupby(VARIANTS_GROUP_COLUMNS).agg(
-            n_mut=pd.NamedAgg("gt_int", len), wsaf_max=pd.NamedAgg("wsaf", "max")
+        mut.groupby(VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS).agg(
+            n_mut=pd.NamedAgg("type", len), wsaf_max=pd.NamedAgg("wsaf", "max")
         ),
-        on=VARIANTS_GROUP_COLUMNS,
+        on=VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS,
+        how="left",
     )
     df = df[~(df["n_mut"].le(min_obs) & df["wsaf_max"].lt(min_wsaf))].drop(
         columns=["n_mut", "wsaf_max"]
@@ -152,21 +153,59 @@ def compute_variant_prevalence(
             "all additional_groups must be columns in master_df"
         )
         variants_df = variants_df.merge(
-            master_df[["sample_id", *additional_groups]], on="sample_id", how="left"
+            master_df[["sample_id", *additional_groups]],
+            on="sample_id",
+            how="left",
+            validate="m:1",
         )
 
-    prev_df = (
-        variants_df.groupby(
-            VARIANTS_GROUP_COLUMNS + additional_groups,
+    agg_aa_change_df = (
+        variants_df.loc[variants_df["type"].isin(["mixed_mut", "mut"])]
+        .groupby(
+            VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS + additional_groups,
         )
         .agg(
-            n_samples=pd.NamedAgg("gt_int", len),
-            n_passed=pd.NamedAgg("gt_int", lambda x: sum(x != -1)),
-            n_wt=pd.NamedAgg("gt_int", lambda x: sum(x == 0)),
-            n_mixed=pd.NamedAgg("gt_int", lambda x: sum(x == 1)),
-            n_mut=pd.NamedAgg("gt_int", lambda x: sum(x == 2)),
+            n_mixed=pd.NamedAgg("type", lambda x: (x == "mixed_mut").sum()),
+            n_mut=pd.NamedAgg("type", lambda x: (x == "mut").sum()),
         )
-        .reset_index()
+    )
+
+    groups = variants_df[VARIANTS_GROUP_COLUMNS + additional_groups].drop_duplicates()
+    muts = (
+        variants_df[VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS]
+        .query("mut_type == 'missense'")
+        .drop_duplicates()
+        .dropna()
+    )
+
+    assert groups.isna().sum().sum() == 0, "grouping columns contain NaN values"
+    assert muts.isna().sum().sum() == 0, "mutation columns contain NaN values"
+
+    # Build full index so we see also values for groups that have no mutation
+    full_index = (
+        groups.merge(muts, how="inner", on=VARIANTS_GROUP_COLUMNS)
+        .set_index(
+            VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS + additional_groups
+        )
+        .index
+    )
+    # Ensure all n_mut, n_mixed are filled with zeros
+    agg_aa_change_df = agg_aa_change_df.reindex(full_index).reset_index().fillna(0)
+
+    agg_aa_pos_df = variants_df.groupby(
+        VARIANTS_GROUP_COLUMNS + additional_groups,
+        as_index=False,
+    ).agg(
+        n_samples=pd.NamedAgg("type", "size"),
+        n_passed=pd.NamedAgg("type", lambda x: sum(x != "filtered")),
+        n_wt=pd.NamedAgg("type", lambda x: sum(x == "wt")),
+    )
+
+    prev_df = agg_aa_change_df.merge(
+        agg_aa_pos_df,
+        on=VARIANTS_GROUP_COLUMNS + additional_groups,
+        how="left",
+        validate="m:1",
     )
 
     # Compute frequencies
