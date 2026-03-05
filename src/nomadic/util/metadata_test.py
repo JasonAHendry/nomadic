@@ -151,9 +151,12 @@ def test_metadata_column_corrections(csv_path):
         "field",
     ]
 
+
 def test_sample_type_correction():
     with pytest.warns(UserWarning):
-        meta_table = MetadataTableParser(test_files_folder + "metadata/sample_info_sample_type_correction.csv")
+        meta_table = MetadataTableParser(
+            test_files_folder + "metadata/sample_info_sample_type_correction.csv"
+        )
     assert "sample_type" in meta_table.df.columns
 
     assert meta_table.df["sample_type"].tolist() == [

@@ -6,7 +6,6 @@ import shlex
 import pandas as pd
 from dataclasses import dataclass
 from nomadic.download.references import Reference
-from nomadic.util.wrappers import bcftools
 
 
 # TODO:
