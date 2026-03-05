@@ -469,7 +469,7 @@ class PrevalenceBarplot(SummaryDashboardComponent):
                 plot_df = compute_variant_prevalence(analysis_df)
             else:
                 plot_df = compute_variant_prevalence(analysis_df, self.master_df, [by])
-            plot_df.sort_values(["gene", "chrom", "pos"], inplace=True)
+            plot_df.sort_values(["gene", "chrom", "aa_pos"], inplace=True)
 
             data = []
             htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
