@@ -507,8 +507,9 @@ class SummaryDashboardBuilder(ABC):
         )
 
         # Create style dropdown options
-        style_options = [{"label": "Region Map", "value": "choropleth"}]
-        style_value = "choropleth"
+        style_options = []
+        if geojsons:
+            style_options.append({"label": "Region Map", "value": "choropleth"})
 
         # Only add Bubble Map option if location coordinates file exists
         if os.path.exists(location_coords_csv):
@@ -517,7 +518,7 @@ class SummaryDashboardBuilder(ABC):
         style_dropdown = dcc.Dropdown(
             id="map-style-dropdown",
             options=style_options,
-            value=style_value,
+            value=style_options[0]["value"] if style_options else None,
             style=dict(width="300px"),
             clearable=False,
         )

@@ -81,12 +81,19 @@ from nomadic.util.workspace import Workspace
     type=click.Path(dir_okay=True, file_okay=False, path_type=Path),
     help="Path to the output directory where the summary will be stored. By default, this is <workspace>/summaries/<summary_name>.",
 )
+@click.option(
+    "--map",
+    "maps",
+    help="Name of the map to use for the dashboard. The file should be in the workspace maps directory and should be a GeoJSON file. The name should be the same as the file name without the .geojson extension",
+    multiple=True,
+)
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
     workspace: Workspace,
     output_dir: Path,
     metadata_csv: Path,
+    maps: tuple[str],
     dashboard: bool,
     only_dashboard: bool,
     prevalence_by: tuple[str],
@@ -148,6 +155,7 @@ def summarize(
             no_master_metadata=no_master_metadata,
             qc_min_coverage=qc_min_coverage,
             qc_max_contam=qc_max_contam,
+            maps=list(maps),
         )
     except MetadataFormatError as e:
         raise click.BadParameter(

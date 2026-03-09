@@ -844,7 +844,7 @@ class MapComponent(SummaryDashboardComponent):
 
             def normalize_location(loc):
                 """Normalize location names for consistent matching"""
-                return loc.lower().replace("-", "").replace(" ", "")
+                return loc.lower().replace("-", "").replace(" ", "").replace("'", "")
 
             # Split the gene-mutation value and calculate prevalence by region
             gene, aa_change = target_mutation.split("-")

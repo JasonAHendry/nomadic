@@ -725,6 +725,7 @@ def main(
     summary_name: str,
     metadata_path: Optional[Path],
     settings_file_path: Path,
+    maps: list[str],
     show_dashboard: bool = True,
     prevalence_by: list[str],
     no_master_metadata: bool = False,
@@ -1007,18 +1008,19 @@ def main(
             expts[0].regions.path,
             os.path.join(output_dir, os.path.basename(expts[0].regions.path)),
         )
-    for file in glob.glob(f"{workspace.get_metadata_dir()}/{summary_name}*.geojson"):
-        shutil.copy(file, f"{output_dir}/{file.split('-')[-1]}")
+    for map_name in maps:
+        file = Path(workspace.path) / "maps" / f"{map_name}.geojson"
+        if file.exists():
+            shutil.copy(file, f"{output_dir}/{map_name.split('-')[-1]}.geojson")
     coords_file = f"{workspace.get_metadata_dir()}/{summary_name}.coords.csv"
     if os.path.isfile(coords_file):
         shutil.copy(
             coords_file,
             os.path.join(output_dir, "coords.csv"),
         )
-    summary_settings_file = workspace.get_summary_settings_file(summary_name)
-    if os.path.isfile(summary_settings_file):
+    if os.path.isfile(settings_file_path):
         shutil.copy(
-            summary_settings_file,
+            settings_file_path,
             os.path.join(output_dir, "settings.yaml"),
         )
 
