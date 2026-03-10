@@ -1,8 +1,8 @@
 import glob
 import os
+from posixpath import basename
 import shutil
 from typing import Iterable, Optional
-from warnings import warn
 from enum import StrEnum, auto
 from collections import Counter
 from pathlib import Path
@@ -172,14 +172,14 @@ def get_region_coverage_dataframe(
     return coverage_df
 
 
-def calc_unknown_samples(
+def set_inventory_status(
     inventory_metadata: pd.DataFrame, master_metadata: pd.DataFrame
-):
+) -> pd.DataFrame:
     """
-    Returns the sample ids that are not in the masterdata file.
+    Adds a column status with either control (for controls), or included/excluded for field samples
     """
     field_samples = inventory_metadata.query("sample_type == 'field'")
-    unknown_samples = (
+    excluded_samples = (
         field_samples.loc[
             ~field_samples["sample_id"].isin(master_metadata["sample_id"]),
             "sample_id",
@@ -187,7 +187,28 @@ def calc_unknown_samples(
         .unique()
         .tolist()
     )
-    return unknown_samples
+    # Mark excluded/incldued samples
+    inventory_metadata["status"] = np.where(
+        inventory_metadata["sample_id"].isin(excluded_samples), "excluded", "included"
+    )
+    # set all controls
+    inventory_metadata["status"] = np.where(
+        inventory_metadata["sample_type"].isin(["pos", "neg"]),
+        "control",
+        inventory_metadata["status"],
+    )
+    return inventory_metadata
+
+
+def drop_excluded_samples(inventory_metadata: pd.DataFrame) -> pd.DataFrame:
+    """Drop all excluded samples and the full experiment including controls if no sample is included in an experiment"""
+    keep_mask = (
+        inventory_metadata["status"]
+        .eq("included")
+        .groupby(inventory_metadata["expt_name"])
+        .transform("any")
+    ) & inventory_metadata["status"].ne("excluded")
+    return inventory_metadata[keep_mask]
 
 
 def calc_quality_control_columns(
@@ -463,6 +484,8 @@ def load_variants_from_vcfs(
 
     timer.time("setup")
 
+    temp_vcfs = []
+
     for expt_dir in expt_dirs:
         expt_name = os.path.basename(expt_dir)
         vcf_dir = Path(expt_dir) / "vcfs"
@@ -504,11 +527,11 @@ def load_variants_from_vcfs(
             check=True,
         )
         bcftools.index(temp_vcf)
+        temp_vcfs.append(temp_vcf)
 
     timer.time("Loading and reheadering VCF files")
 
     # Now we can merge all the temp VCFs together
-    temp_vcfs = list(temp_dir.glob("*.temp.vcf.gz"))
     merged_vcf = output_dir / "summary.variants.vcf.gz"
 
     subprocess.run(
@@ -678,6 +701,8 @@ def load_variants_from_vcfs(
 
     timer.report()
 
+    shutil.rmtree(temp_dir)
+
     return variant_df
 
 
@@ -721,7 +746,7 @@ def main(
     *,
     workspace: Workspace,
     output_dir: Path,
-    expt_dirs: tuple[str],
+    expt_dirs: list[str],
     summary_name: str,
     metadata_path: Optional[Path],
     settings_file_path: Path,
@@ -827,27 +852,27 @@ def main(
             f"Duplicate sample IDs found in master metadata: {', '.join(duplicate_sample_ids)}"
         )
 
-    unknown_samples = calc_unknown_samples(inventory_metadata, master_metadata)
-    if unknown_samples:
-        warn(
-            f"Samples in experiments that are not in master metadata: {unknown_samples}"
-        )
+    inventory_metadata = set_inventory_status(inventory_metadata, master_metadata)
 
-    # Delete unknown samples
-    inventory_metadata["status"] = np.where(
-        inventory_metadata["sample_id"].isin(unknown_samples), "unknown", "known"
-    )
-    # set all controls
-    inventory_metadata["status"] = np.where(
-        inventory_metadata["sample_type"].isin(["pos", "neg"]),
-        "control",
-        inventory_metadata["status"],
-    )
+    n_excluded = inventory_metadata.loc[
+        inventory_metadata["status"] == "excluded", "sample_id"
+    ].nunique()
+
     inventory_metadata.to_csv(f"{output_dir}/inventory.csv", index=False)
-    inventory_metadata = inventory_metadata.query("status != 'unknown'")
+
+    inventory_metadata = drop_excluded_samples(inventory_metadata)
+
+    inventory_metadata.to_csv(f"{output_dir}/inventory.debug.csv", index=False)
+
+    # Filter experiment directories to only those that are in the master metadata, i.e. that have at least one included sample
+    expt_dirs = [
+        expt_dir
+        for expt_dir in expt_dirs
+        if basename(expt_dir) in inventory_metadata["expt_name"].unique()
+    ]
 
     if len(inventory_metadata.query("sample_type == 'field'")) == 0:
-        log.info("No known field samples, exiting...")
+        log.info("No included field samples, exiting...")
         return
 
     # Throughput data
@@ -857,7 +882,7 @@ def main(
     log.info(f"  Negative controls: {throughput_df.loc['neg', 'All']}")
     log.info(f"  Fields samples sequenced (total): {throughput_df.loc['field', 'All']}")
     log.info(f"  Field samples (unique): {throughput_df.loc['field_unique', 'All']}")
-    log.info(f"  Unknown samples (excluded): {len(unknown_samples)}")
+    log.info(f"  Excluded samples: {n_excluded}")
     throughput_df.to_csv(f"{output_dir}/summary.throughput.csv", index=True)
 
     # Now let's evaluate coverage

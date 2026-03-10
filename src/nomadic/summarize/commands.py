@@ -146,7 +146,7 @@ def summarize(
         main(
             workspace=workspace,
             output_dir=output_dir,
-            expt_dirs=experiment_dirs,
+            expt_dirs=list(experiment_dirs),
             summary_name=summary_name,
             metadata_path=metadata_csv,
             settings_file_path=settings_file,
