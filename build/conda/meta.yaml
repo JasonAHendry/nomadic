@@ -36,10 +36,11 @@ requirements:
     - pysam
     - pyyaml
     - i18nice
+    - pydantic
     # tools
     - minimap2
-    - samtools >=1.20
-    - bcftools >=1.20
+    - samtools >=1.23
+    - bcftools >=1.23
     - bedtools
     - delve-bio =0.2.*
     - rsync

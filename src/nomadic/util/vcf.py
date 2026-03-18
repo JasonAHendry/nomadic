@@ -63,7 +63,7 @@ class Consequence:
         self.concise_aa_change = f"{from_aa}{aa_pos}{to_aa}"
 
     @classmethod
-    def from_string(cls, csq_string: str):
+    def from_string(cls, csq_string: str, multiple_consequences_ok=False):
         """
         Parse from the output string
 
@@ -72,16 +72,21 @@ class Consequence:
         Or *
 
         """
+        if isinstance(csq_string, float) and pd.isna(csq_string):  # no consequence
+            return cls(".", ".", ".", ".")
         if csq_string == ".":  # intergenic
             return cls(".", ".", ".", ".")
 
         consequences = csq_string.split(",")
 
-        if any(c.startswith("@") for c in consequences):
-            # This means a change for this aa was already recorded elsewhere
-            # it might result in the same change, and we can not handle multiple same changes
+        if not multiple_consequences_ok and any(
+            c.startswith("@") for c in consequences
+        ):
             return cls(".", ".", ".", ".")
-        if len(consequences) > 1:
+        consequences = [c for c in consequences if not c.startswith("@")]
+        if not consequences:
+            return cls(".", ".", ".", ".")
+        if len(consequences) > 1 and not multiple_consequences_ok:
             warnings.warn(
                 f"Found multiple consequences of variant: {csq_string}! Keeping only first."
             )
@@ -186,7 +191,7 @@ class VariantAnnotator:
         cmd = f"{cmd_tags} | {cmd_annot} | {cmd_csq}"
         subprocess.run(cmd, shell=True, check=True)
 
-    def _convert_to_tsv(self, output_tsv: str) -> None:
+    def _convert_to_tsv(self, output_tsv_1: str, output_tsv_2: str) -> None:
         """
         Convert from a VCF file into a text file with the indicated
         seperator
@@ -195,47 +200,88 @@ class VariantAnnotator:
         # Define fixed and per-sample fields
         # Note that sample name also gets added.
         fixed = {
+            "barcode": "SAMPLE",
             "chrom": "CHROM",
             "pos": "POS",
             "ref": "REF",
             "alt": "ALT",
             "qual": "QUAL",
-            "consequence": "BCSQ",
             "amplicon": "AMP_ID",
+            "consequence": "INFO/BCSQ",
         }
 
         if self.caller == "delve":
-            called = {"gt": "GT", "dp": "DP", "wsaf": "WSAF"}
+            called = {
+                "gt": "GT",
+                "dp": "DP",
+                "wsaf": "WSAF",
+            }
         elif self.caller == "bcftools":
-            called = {"gt": "GT", "gq": "GQ", "dp": "DP", "wsaf": "WSAF{0}"}
+            called = {
+                "gt": "GT",
+                "gq": "GQ",
+                "dp": "DP",
+                "wsaf": "WSAF{0}",
+            }
         else:
             raise RuntimeError(f"Unknown caller: {self.caller}")
 
         # Write header
         sep = "\t"
-        cmd_header = f"printf 'barcode{sep}{sep.join(list(fixed) + list(called))}\n' > {shlex.quote(output_tsv)}"
         sepb = f"{sep}%"  # for bcftools, % accesses variable
 
-        # Iterate and query for each sample
-        cmd_query = (
-            f"for sample in `bcftools query {shlex.quote(self.output_vcf)} -l`; do"
+        # write two files, because empty TBCSQ seems to make bcftools drop all other format fields
+        result_base = subprocess.run(
+            [
+                "bcftools",
+                "query",
+                "-f",
+                f"[%{sepb.join(list(fixed.values()) + list(called.values()))}\n]",
+                self.output_vcf,
+            ],
+            check=True,
+            text=True,
+            capture_output=True,
         )
-        cmd_query += "  bcftools query -s $sample"
-        cmd_query += f' -f "$sample{sepb}{sepb.join(fixed.values())}{sep}[%{sepb.join(called.values())}]\n"'
-        cmd_query += f" {shlex.quote(self.output_vcf)} >> {shlex.quote(output_tsv)};"
-        cmd_query += " done;"
+        with open(output_tsv_1, "w") as f:
+            f.write(f"{sep.join(list(fixed) + list(called))}\n")
+            f.write(result_base.stdout)
 
-        cmd = f"{cmd_header} && {cmd_query}"
-        subprocess.run(cmd, shell=True, check=True)
+        result_tbcsq = subprocess.run(
+            [
+                "bcftools",
+                "query",
+                "-f",
+                f"[%SAMPLE{sep}%CHROM{sep}%POS{sep}%TBCSQ{{*}}\n]",
+                self.output_vcf,
+            ],
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        with open(output_tsv_2, "w") as f:
+            f.write(f"barcode{sep}chrom{sep}pos{sep}sample_consequence\n")
+            f.write(result_tbcsq.stdout)
 
     def _parse_consequences(
-        self, input_tsv: str, output_file: str, output_sep: str = "\t"
+        self,
+        input_tsv_1: str,
+        input_tsv_2: str,
+        output_file: str,
+        output_sep: str = "\t",
     ):
         """
         Parse the consequenc string in the TSV
         """
-        df = pd.read_csv(input_tsv, sep="\t")
-        csqs = [Consequence.from_string(c) for c in df["consequence"]]
+        base_df = pd.read_csv(input_tsv_1, sep="\t")
+        mut_df = pd.read_csv(input_tsv_2, sep="\t")
+        df = base_df.merge(
+            mut_df, on=["barcode", "chrom", "pos"], how="left", validate="one_to_one"
+        )
+        csqs = [
+            Consequence.from_string(c, multiple_consequences_ok=True)
+            for c in df["consequence"]
+        ]
         if csqs:
             mut_type, aa_change, aa_pos, strand = zip(
                 *[(c.csq, c.concise_aa_change, c.aa_pos, c.strand) for c in csqs]
@@ -244,24 +290,25 @@ class VariantAnnotator:
             warnings.warn(f"No mutations passed quality control for {self.input_vcf}.")
             mut_type, aa_change, aa_pos, strand = None, None, None, None
 
-        df.insert(6, "mut_type", mut_type)
-        df.insert(7, "aa_change", aa_change)
-        df.insert(8, "aa_pos", aa_pos)
-        df.insert(9, "strand", strand)
+        df.insert(6, "aa_pos", aa_pos)
         df.drop("consequence", axis=1, inplace=True)
+
+        sample_csqs = [Consequence.from_string(c) for c in df["sample_consequence"]]
+        if sample_csqs:
+            mut_type, aa_change, aa_pos, strand = zip(
+                *[(c.csq, c.concise_aa_change, c.aa_pos, c.strand) for c in sample_csqs]
+            )
+        else:
+            warnings.warn(f"No mutations passed quality control for {self.input_vcf}.")
+            mut_type, aa_change, aa_pos, strand = None, None, None, None
+
+        df.insert(7, "mut_type", mut_type)
+        df.insert(8, "aa_change", aa_change)
+        df.insert(9, "strand", strand)
+        df.drop("sample_consequence", axis=1, inplace=True)
+
         df.sort_values(["barcode", "chrom", "pos"], inplace=True)
         df.to_csv(output_file, sep=output_sep, index=False)
-
-    def convert_to_tsv(self, output_tsv: str = None):
-        """
-        Convert the annotated VCF file to a TSV; and then
-        improve formatting of the consequence field
-        """
-
-        if output_tsv is None:
-            output_tsv = self.output_vcf.replace(".vcf.gz", ".tsv")
-        self._convert_to_tsv(output_tsv)
-        self._parse_consequences(input_tsv=output_tsv, output_file=output_tsv)
 
     def convert_to_csv(self, output_csv: str = None):
         """
@@ -276,10 +323,15 @@ class VariantAnnotator:
         if output_csv is None:
             output_csv = self.output_vcf.replace(".vcf.gz", ".csv")
 
-        temp_tsv = output_csv.replace(".csv", ".temp.tsv")
+        temp_tsv_1 = output_csv.replace(".csv", ".temp1.tsv")
+        temp_tsv_2 = output_csv.replace(".csv", ".temp2.tsv")
         # using tsv file to deal with commas in fields like consequence and multi-allelic alt
-        self._convert_to_tsv(temp_tsv)
+        self._convert_to_tsv(temp_tsv_1, temp_tsv_2)
         self._parse_consequences(
-            input_tsv=temp_tsv, output_file=output_csv, output_sep=","
+            input_tsv_1=temp_tsv_1,
+            input_tsv_2=temp_tsv_2,
+            output_file=output_csv,
+            output_sep=",",
         )
-        os.remove(temp_tsv)
+        os.remove(temp_tsv_1)
+        os.remove(temp_tsv_2)

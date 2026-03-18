@@ -1,5 +1,5 @@
 class MetadataFormatError(Exception):
-    """Error in format / contents of a metadata file"""
+    """Error in format or contents of a metadata file"""
 
     pass
 

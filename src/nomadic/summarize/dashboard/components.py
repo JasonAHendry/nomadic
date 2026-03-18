@@ -1,0 +1,1004 @@
+from abc import ABC, abstractmethod
+import json
+import os
+from typing import Optional
+import warnings
+
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+from dash import Dash, dcc, html
+from dash.dependencies import Input, Output
+
+from nomadic.summarize.compute import (
+    Status,
+    compute_variant_prevalence,
+    gene_deletion_prevalence_by,
+)
+from i18n import t
+
+# --------------------------------------------------------------------------------
+# Interface for a single real-time dashboard component
+#
+# --------------------------------------------------------------------------------
+
+
+class SummaryDashboardComponent(ABC):
+    """
+    Interface for summary dashboard components
+
+    """
+
+    def __init__(self, summary_name: str, component_id: str):
+        """
+        Initialise components of the dashboard component
+
+        """
+
+        # User
+        self.summary_name = summary_name
+        self.component_id = component_id
+
+        # Always
+        self.layout_obj = self._define_layout()
+
+    @abstractmethod
+    def _define_layout(self):
+        pass
+
+    def get_layout(self):
+        """
+        Get the object that will be passed to the overall HTML
+        layout
+
+        Typically, this is something from `html.` or `dcc.`, e.g.
+        `dcc.Graph`
+
+        """
+
+        if self.layout_obj is None:
+            raise ValueError("Must define `self.layout_component`.")
+
+        return self.layout_obj
+
+    @abstractmethod
+    def callback(self, app: Dash) -> None:
+        """
+        Define the callback for this componenet, which will cause it to update
+        in response to the timer, as well (potentially) other inputs
+
+        """
+        pass
+
+
+# --------------------------------------------------------------------------------
+# Concrete components
+#
+# --------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------
+# OVERALL STATISTICS
+# --------------------------------------------------------------------------------
+
+
+class ThroughputSummary(SummaryDashboardComponent):
+    """
+    Make a pie chart that shows read mapping statistics
+
+    """
+
+    logo_src_path = "assets/nomadic_logo.png"
+
+    def __init__(
+        self, summary_name: str, throughput_df: pd.DataFrame, component_id: str
+    ):
+        self.throughput_df = throughput_df
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+
+        layout = html.Div(
+            className="logo-and-summary",
+            children=[
+                html.Img(id="logo", src=self.logo_src_path),
+                html.Div(
+                    id="throughput-summary",
+                    children=[
+                        html.H3("Throughput Details"),
+                        html.P(
+                            [
+                                f"Experiments: {self.throughput_df.columns.shape[0] - 1}",
+                                html.Br(),
+                                f"Field samples (total): {self.throughput_df.loc['field', 'All']}",
+                                html.Br(),
+                                f"Field samples (unique): {self.throughput_df.loc['field_unique', 'All']}",
+                                html.Br(),
+                            ]
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        return layout
+
+    def callback(self, app: Dash) -> None:
+        """
+        Define the update callback for the pie chart
+
+        """
+
+
+SAMPLE_COLORS = {
+    Status.NOT_SEQUENCED.value: "#636EFA",
+    Status.FAILING.value: "#EF553B",
+    Status.PASSING.value: "#00CC96",
+}
+
+
+class SamplesPie(SummaryDashboardComponent):
+    """
+    Make a pie chart that shows read mapping statistics
+
+    """
+
+    def __init__(
+        self,
+        summary_name: str,
+        samples_df: pd.DataFrame,
+        component_id: str,
+    ):
+        self.samples_df = samples_df
+        self.n = len(self.samples_df)
+        self.df = self.samples_df.groupby("status").count()["sample_id"]
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+        fig = go.Figure(
+            data=[
+                go.Pie(
+                    values=self.df.values,
+                    labels=[t(label) for label in self.df.index],
+                    sort=False,
+                    hole=0.3,
+                    textinfo="label+percent+value",
+                    marker=dict(colors=[SAMPLE_COLORS[cat] for cat in self.df.index]),
+                )
+            ]
+        )
+
+        MAR = 20
+        fig.update_layout(
+            showlegend=True,
+            margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
+            annotations=[
+                dict(
+                    text=f"N={self.n}", font_size=20, showarrow=False, xanchor="center"
+                )
+            ],
+        )
+
+        return dcc.Graph(id=self.component_id, figure=fig)
+
+    def callback(self, app: Dash) -> None:
+        """
+        Define the update callback for the pie chart
+
+        """
+
+
+class AmpliconsBarplot(SummaryDashboardComponent):
+    """
+    Make a bar chart that shows the Amplicons Statistics
+
+    """
+
+    def __init__(
+        self,
+        summary_name: str,
+        component_id: str,
+        samples_amplicons_df: pd.DataFrame,
+    ):
+        df = samples_amplicons_df
+        # Store inputs
+        plot_df = pd.crosstab(df["name"], df["status"])
+        n_not_sequenced = (df["status"] == Status.NOT_SEQUENCED.value).sum()
+        not_sequenced = [n_not_sequenced] * len(plot_df.index)
+        # Generate figure
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    x=plot_df.index,
+                    y=not_sequenced
+                    if status == Status.NOT_SEQUENCED
+                    else plot_df[status.value],
+                    texttemplate="%{y}",
+                    name=t(status.value),
+                    marker=dict(color=SAMPLE_COLORS[status.value]),
+                )
+                for status in Status
+                if status.value in plot_df.columns
+            ]
+        )
+
+        # Format
+        fig.update_layout(
+            xaxis_title="Amplicons",
+            yaxis_title="Number of Samples",
+            barmode="stack",
+            xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+            yaxis=dict(
+                showline=True,
+                linewidth=1,
+                linecolor="black",
+                mirror=True,
+                showgrid=True,
+                gridcolor="lightgray",
+                gridwidth=0.5,
+                griddash="dot",
+            ),
+            plot_bgcolor="rgba(0,0,0,0)",
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        )
+        fig.update_traces(marker=dict(line=dict(color="black", width=1)))
+        self.fig = fig
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """
+        Define the layout to be a dcc.Graph object with the
+        appropriate ID
+
+        """
+
+        return dcc.Graph(id=self.component_id, figure=self.fig)
+
+    def callback(self, app: Dash) -> None:
+        pass
+
+
+COV_MAX = 10000
+COV_NEG_MAX = 50
+COLORSCALES = {
+    "per_field_passing": [
+        [0.00, "#FF0033"],
+        [0.50, "#FF9900"],
+        [0.70, "#FFEB33"],  # set 70% as okay
+        [0.90, "#80FF7E"],  # above 90% is good
+        [1.00, "#3A9A3E"],
+    ],
+    "per_field_contam": [
+        [0.00, "#3A9A3E"],  # low contamination is good
+        [0.20, "#FFEB33"],  # set 30% as okay
+        [0.30, "#FF9900"],  # contamination is bad
+        [1.00, "#FF0033"],
+    ],
+    "per_field_lowcov": [
+        [0.00, "#3A9A3E"],  # low lowcov is good
+        [0.10, "#80FF7E"],  # above 90% is good
+        [0.30, "#FFEB33"],  # set 30% as okay
+        [0.50, "#FF9900"],  # lowcov is bad
+        [1.00, "#FF0033"],
+    ],
+    "mean_cov_field": [
+        [0, "#FF0033"],  # low coverage is bad
+        [25 / COV_MAX, "#FF9900"],
+        [50 / COV_MAX, "#FFEB33"],  # set threshold as okay
+        [200 / COV_MAX, "#80FF7E"],  # above 200 we can make good calls
+        [500 / COV_MAX, "#3A9A3E"],  # above 500 is excellent also for low freq calls
+        [1.0, "#7585FE"],  # coverage is uncapped
+    ],
+    "mean_cov_neg": [
+        [0, "#3A9A3E"],  # low neg cov is good
+        [2 / COV_NEG_MAX, "#80FF7E"],
+        [5 / COV_NEG_MAX, "#FFEB33"],
+        [10 / COV_NEG_MAX, "#FF9900"],
+        [50 / COV_NEG_MAX, "#FF0033"],  # from 50 cov we fail neg control
+        [1.0, "#FF0033"],  # coverage is uncapped
+    ],
+}
+
+
+class QualityControl(SummaryDashboardComponent):
+    STATISTICS = [
+        "mean_cov_field",
+        "mean_cov_neg",
+        "per_field_passing",
+        "per_field_contam",
+        "per_field_lowcov",
+    ]
+
+    def __init__(
+        self,
+        summary_name: str,
+        coverage_df: pd.DataFrame,
+        component_id: str,
+        dropdown_id: str,
+    ) -> None:
+        """
+        Initialisation loads the coverage data and prepares for plotting;
+
+        """
+
+        self.coverage_df = coverage_df
+        self.plot_df = pd.pivot_table(
+            index="expt_name",
+            columns="name",
+            values=[*self.STATISTICS, "n_field"],
+            dropna=False,
+            observed=False,
+            data=self.coverage_df,
+        )
+
+        self.dropdown_id = dropdown_id
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        @app.callback(
+            Output(self.component_id, "figure"), Input(self.dropdown_id, "value")
+        )
+        def _update(focus_stat: str):
+            """Called whenver the input changes"""
+            legend = (
+                "Field samples (%)"
+                if "per_" in focus_stat
+                else "Mean Coverage"
+                if "cov" in focus_stat
+                else ""
+            )
+            # Create customdata array for hover
+            customdata = np.stack(
+                [
+                    self.plot_df["n_field"],
+                ],
+                axis=-1,
+            )
+
+            plot_data = [
+                go.Heatmap(
+                    x=self.plot_df[focus_stat].columns,
+                    y=self.plot_df[focus_stat].index,
+                    z=self.plot_df[focus_stat],
+                    text=self.plot_df[focus_stat],
+                    xgap=1,
+                    ygap=1,
+                    zmin=0,
+                    zmax=100
+                    if "per_" in focus_stat
+                    else COV_MAX
+                    if "mean_cov_field" in focus_stat
+                    else COV_NEG_MAX,
+                    colorbar=dict(title=legend, outlinecolor="black", outlinewidth=1),
+                    hoverongaps=False,
+                    colorscale=COLORSCALES[focus_stat],
+                    customdata=customdata,
+                    hovertemplate=(
+                        (
+                            "<b>%{z:.1f}%</b><br>"
+                            if "per_" in focus_stat
+                            else "<b>%{z:.1f}x</b><br>"
+                        )
+                        + "Amplicon: %{x}<br>"
+                        + "Number of samples: %{customdata[0]}<br><extra></extra>"
+                    ),
+                )
+            ]
+            MAR = 40
+            fig = go.Figure(plot_data)
+            fig.update_layout(
+                xaxis_title="Amplicons",
+                yaxis_title="Experiments",
+                hovermode="y unified",
+                paper_bgcolor="white",  # Sets the background color of the paper
+                plot_bgcolor="white",
+                title=dict(text=t(focus_stat)),
+                margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
+                xaxis=dict(
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
+                ),
+                yaxis=dict(
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
+                ),
+                xaxis_showgrid=False,
+                yaxis_showgrid=False,
+                # height=n_mutations*SZ # TOOD: how to adjust dynamically
+            )
+            unit = "%" if "per_" in focus_stat else "x" if "cov" in focus_stat else ""
+            fig.update_traces(
+                text=self.plot_df[focus_stat],
+                texttemplate="%{text:.0f}" + unit,
+                textfont_size=12,
+            )
+            return fig
+
+
+class PrevalenceBarplot(SummaryDashboardComponent):
+    def __init__(
+        self,
+        summary_name: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
+        component_id: str,
+        radio_id: str,
+        radio_id_by: str,
+        amplicon_sets: dict[str, list[str]],
+    ) -> None:
+        """
+        Initialisation loads the coverage data and prepares for plotting;
+
+        """
+
+        self.analysis_df = analysis_df
+        self.master_df = master_df
+
+        self.radio_id = radio_id
+        self.radio_id_by = radio_id_by
+
+        self.amplicon_sets = amplicon_sets
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.radio_id, "value"),
+            Input(self.radio_id_by, "value"),
+        )
+        def _update(amplicons: list[str], by: str):
+            """Called whenver the input changes"""
+
+            analysis_df = self.analysis_df.query("amplicon in @amplicons")
+
+            if by == "All":
+                plot_df = compute_variant_prevalence(analysis_df)
+            else:
+                plot_df = compute_variant_prevalence(analysis_df, self.master_df, [by])
+            plot_df.sort_values(["gene", "chrom", "aa_pos"], inplace=True)
+
+            data = []
+            htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
+
+            if by == "All":
+                # Prepare plotting data
+                customdata = np.stack(
+                    [
+                        plot_df["n_samples"],
+                        plot_df["n_passed"],
+                        plot_df["n_mixed"] + plot_df["n_mut"],
+                    ],
+                    axis=-1,
+                )
+                data.append(
+                    go.Bar(
+                        x=plot_df["mutation"],
+                        y=plot_df["prevalence"],
+                        customdata=customdata,
+                        hovertemplate=htemp,
+                        name="Prevalence",
+                        error_y=dict(
+                            type="data",
+                            array=plot_df["prevalence_highci"] - plot_df["prevalence"],
+                            arrayminus=plot_df["prevalence"]
+                            - plot_df["prevalence_lowci"],
+                        ),
+                    )
+                )
+            else:
+                for group in plot_df[by].unique():
+                    group_df = plot_df.query(f"{by} == @group")
+                    # Prepare plotting data
+                    customdata = np.stack(
+                        [
+                            group_df["n_samples"],
+                            group_df["n_passed"],
+                            group_df["n_mixed"] + group_df["n_mut"],
+                        ],
+                        axis=-1,
+                    )
+                    data.append(
+                        go.Bar(
+                            x=group_df["mutation"],
+                            y=group_df["prevalence"],
+                            customdata=customdata,
+                            hovertemplate=htemp,
+                            name=str(group),
+                            error_y=dict(
+                                type="data",
+                                array=group_df["prevalence_highci"]
+                                - group_df["prevalence"],
+                                arrayminus=group_df["prevalence"]
+                                - group_df["prevalence_lowci"],
+                            ),
+                        )
+                    )
+
+            # Plotting
+            fig = go.Figure(data)
+            fig.update_layout(
+                yaxis_title="Prevalence (%)",
+                xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                yaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    showgrid=True,
+                    gridcolor="lightgray",
+                    gridwidth=0.5,
+                    griddash="dot",
+                ),
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
+                ),
+                plot_bgcolor="rgba(0,0,0,0)",
+                hovermode="x unified",
+            )
+            fig.update_yaxes(range=[0, 100])
+            fig.update_traces(marker=dict(line=dict(color="black", width=1)))
+
+            return fig
+
+
+class PrevalenceHeatmap(SummaryDashboardComponent):
+    """
+    Make a heatmap of prevalences
+
+    """
+
+    def __init__(
+        self,
+        summary_name: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
+        component_id: str,
+        amplicon_dropdown_id: str,
+        col_dropdown_id: str,
+    ):
+        self.amplicon_dropdown_id = amplicon_dropdown_id
+        self.col_dropdown_id = col_dropdown_id
+        self.analysis_df = analysis_df
+        self.master_df = master_df
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """Layout is graph"""
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.amplicon_dropdown_id, "value"),
+            Input(self.col_dropdown_id, "value"),
+        )
+        def _update(target_amplicon, col_by):
+            """Called every time an input changes"""
+
+            df = compute_variant_prevalence(
+                self.analysis_df.query("amplicon == @target_amplicon"),
+                self.master_df,
+                [col_by],
+            )
+
+            plot_df = pd.pivot_table(
+                index="aa_change",
+                columns=col_by,
+                values=["prevalence", "n_mixed", "n_mut", "n_passed"],
+                data=df,
+            )
+
+            # Sort, so aa changes are in correct order
+            pos_order = (
+                df.drop_duplicates("aa_change")
+                .set_index("aa_change")["aa_pos"]
+                .sort_values(ascending=True)
+                .index
+            )
+            plot_df = plot_df.reindex(pos_order)
+
+            if len(plot_df) > 0:
+                # Hover statment
+                customdata = np.stack(
+                    [plot_df["n_mixed"], plot_df["n_mut"], plot_df["n_passed"]], axis=-1
+                )
+                htemp = "<b>%{y} (%{x})</b><br>"
+                htemp += "<b>Prevalence:</b> %{z:.0f}%<br>"
+                htemp += "<b>Samples:</b> %{customdata[2]}<br>"
+                htemp += "<b>Mixed:</b> %{customdata[0]}<br>"
+                htemp += "<b>Clonal:</b> %{customdata[1]}<br>"
+
+                plot_data = [
+                    go.Heatmap(
+                        x=plot_df["prevalence"].columns,
+                        y=plot_df["prevalence"].index,
+                        z=plot_df["prevalence"],
+                        texttemplate="%{z:.0f}%",
+                        customdata=customdata,
+                        zmin=0,
+                        zmax=100,
+                        xgap=1,
+                        ygap=1,
+                        colorscale="Spectral_r",
+                        colorbar=dict(title="", outlinecolor="black", outlinewidth=1),
+                        hoverongaps=False,
+                        hovertemplate=htemp,
+                        name="",
+                    )
+                ]
+            else:
+                plot_data = []
+
+            MAR = 40
+            fig = go.Figure(plot_data)
+            fig.update_layout(
+                xaxis_title=col_by,
+                hovermode="y unified",
+                paper_bgcolor="white",  # Sets the background color of the paper
+                plot_bgcolor="white",
+                title=dict(text=target_amplicon),
+                margin=dict(t=MAR, l=MAR, r=MAR, b=MAR),
+                xaxis=dict(
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
+                ),
+                yaxis=dict(
+                    showline=True, linecolor="black", linewidth=2, dtick=1, mirror=True
+                ),
+                xaxis_showgrid=False,
+                yaxis_showgrid=False,
+                # height=n_mutations*SZ # TOOD: how to adjust dynamically
+            )
+            return fig
+
+
+class GeneDeletionsBarplot(SummaryDashboardComponent):
+    def __init__(
+        self,
+        summary_name: str,
+        gene_deletions_df: pd.DataFrame,
+        master_df: pd.DataFrame,
+        component_id: str,
+        radio_id_by: str,
+    ) -> None:
+        """
+        Initialisation loads the coverage data and prepares for plotting;
+
+        """
+
+        self.gene_deletions_df = gene_deletions_df
+        self.master_df = master_df
+        self.radio_id_by = radio_id_by
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.radio_id_by, "value"),
+        )
+        def _update(by: str):
+            """Called whenver the input changes"""
+
+            if by == "All":
+                plot_df = gene_deletion_prevalence_by(
+                    self.gene_deletions_df, self.master_df, []
+                )
+            else:
+                plot_df = gene_deletion_prevalence_by(
+                    self.gene_deletions_df, self.master_df, [by]
+                )
+            data = []
+            htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
+
+            if by == "All":
+                # Prepare plotting data
+                customdata = np.stack(
+                    [
+                        plot_df["n_samples"],
+                        plot_df["n_passed"],
+                        plot_df["n_deleted"],
+                    ],
+                    axis=-1,
+                )
+                data.append(
+                    go.Bar(
+                        x=plot_df["gene"],
+                        y=plot_df["prevalence"],
+                        customdata=customdata,
+                        hovertemplate=htemp,
+                        name="Prevalence",
+                        error_y=dict(
+                            type="data",
+                            array=plot_df["prevalence_highci"] - plot_df["prevalence"],
+                            arrayminus=plot_df["prevalence"]
+                            - plot_df["prevalence_lowci"],
+                        ),
+                    )
+                )
+            else:
+                for group in plot_df[by].unique():
+                    group_df = plot_df.query(f"{by} == @group")
+                    # Prepare plotting data
+                    customdata = np.stack(
+                        [
+                            group_df["n_samples"],
+                            group_df["n_passed"],
+                            group_df["n_deleted"],
+                        ],
+                        axis=-1,
+                    )
+                    data.append(
+                        go.Bar(
+                            x=group_df["gene"],
+                            y=group_df["prevalence"],
+                            customdata=customdata,
+                            hovertemplate=htemp,
+                            name=str(group),
+                            error_y=dict(
+                                type="data",
+                                array=plot_df["prevalence_highci"]
+                                - plot_df["prevalence"],
+                                arrayminus=plot_df["prevalence"]
+                                - plot_df["prevalence_lowci"],
+                            ),
+                        )
+                    )
+
+            # Plotting
+            fig = go.Figure(data)
+            fig.update_layout(
+                yaxis_title="Prevalence (%)",
+                xaxis=dict(showline=True, linewidth=1, linecolor="black", mirror=True),
+                yaxis=dict(
+                    showline=True,
+                    linewidth=1,
+                    linecolor="black",
+                    mirror=True,
+                    showgrid=True,
+                    gridcolor="lightgray",
+                    gridwidth=0.5,
+                    griddash="dot",
+                ),
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0
+                ),
+                plot_bgcolor="rgba(0,0,0,0)",
+                hovermode="x unified",
+            )
+            fig.update_yaxes(range=[0, 100])
+            fig.update_traces(marker=dict(line=dict(color="black", width=1)))
+
+            return fig
+
+
+class MapComponent(SummaryDashboardComponent):
+    """
+    Component for displaying a choropleth map of drug resistance marker prevalence with sample site markers
+    """
+
+    def __init__(
+        self,
+        summary_name: str,
+        analysis_df: pd.DataFrame,
+        master_df: pd.DataFrame,
+        component_id: str,
+        mutation_dropdown_id: str,
+        region_dropdown_id: str,
+        geojsons: dict[str, str],
+        location_coords_csv: str,
+        style_dropdown_id: str,
+        map_zoom_level: Optional[int] = None,
+        map_center: Optional[tuple[float, float]] = None,
+    ):
+        self.mutation_dropdown_id = mutation_dropdown_id
+        self.region_dropdown_id = region_dropdown_id
+        self.style_dropdown_id = style_dropdown_id
+        self.analysis_df = analysis_df
+        self.master_df = master_df
+        self.map_zoom_level = map_zoom_level
+        self.map_center = map_center
+
+        # Load location coordinates if provided
+        self.location_coords = None
+        if os.path.exists(location_coords_csv):
+            self.location_coords = pd.read_csv(location_coords_csv)
+
+        # Load GeoJSON data
+        self.geojson_data = {}
+        for region, path in geojsons.items():
+            with open(path) as f:
+                self.geojson_data[region] = json.load(f)
+        super().__init__(summary_name, component_id)
+
+    def _define_layout(self):
+        """Layout is graph"""
+        return dcc.Graph(id=self.component_id)
+
+    def callback(self, app: Dash) -> None:
+        @app.callback(
+            Output(self.component_id, "figure"),
+            Input(self.mutation_dropdown_id, "value"),
+            Input(self.region_dropdown_id, "value"),
+            Input(self.style_dropdown_id, "value"),
+        )
+        def _update(target_mutation, region_by: Optional[str], map_style: str):
+            """Called every time an input changes"""
+
+            fig = go.Figure()
+
+            def normalize_location(loc):
+                """Normalize location names for consistent matching"""
+                return loc.lower().replace("-", "").replace(" ", "").replace("'", "")
+
+            # Split the gene-mutation value and calculate prevalence by region
+            gene, aa_change = target_mutation.split("-")
+
+            if map_style == "choropleth" and region_by is not None:
+                df = compute_variant_prevalence(
+                    self.analysis_df.query("gene == @gene"),
+                    self.master_df,
+                    [region_by],
+                ).query("aa_change == @aa_change")
+
+                # Normalize location names in the data
+                df[f"{region_by}_normalized"] = df[region_by].apply(normalize_location)
+
+                # Get the appropriate GeoJSON data based on the region selection
+                if region_by not in self.geojson_data:
+                    raise ValueError(
+                        f"No GeoJSON data available for region type: {region_by}"
+                    )
+
+                # Create a mapping from normalized names to original GeoJSON names
+                geojson_name_map = {
+                    normalize_location(feat["properties"]["shapeName"]): feat[
+                        "properties"
+                    ]["shapeName"]
+                    for feat in self.geojson_data[region_by]["features"]
+                }
+
+                geojson_regions = set(geojson_name_map.keys())
+                metadata_regions = set(df[f"{region_by}_normalized"])
+
+                not_in_geojson = metadata_regions - geojson_regions
+                if not_in_geojson:
+                    warnings.warn(
+                        f"Some regions in metadata could not be mapped to a region in the geojson: {not_in_geojson}.\nDo you mean any of: {geojson_regions}"
+                    )
+
+                # Map the normalized names back to GeoJSON names for display
+                df[f"{region_by}_display"] = df[f"{region_by}_normalized"].map(
+                    {k: v for k, v in geojson_name_map.items()}
+                )
+
+                # Add choropleth layer
+                fig.add_trace(
+                    go.Choroplethmapbox(
+                        geojson=self.geojson_data[region_by],
+                        locations=df[f"{region_by}_display"],
+                        z=df["prevalence"],
+                        colorscale="Spectral_r",
+                        zmin=0,
+                        zmax=100,
+                        marker_opacity=0.8,
+                        marker_line_width=1.0,
+                        featureidkey="properties.shapeName",
+                        customdata=np.stack(
+                            [
+                                df["n_samples"],
+                                df["n_passed"],
+                                df["n_mut"] + df["n_mixed"],
+                            ],
+                            axis=-1,
+                        ),
+                        hovertemplate=(
+                            "<b>%{location}</b><br>"
+                            + "Prevalence: %{z:.1f}%<br>"
+                            + "Samples: %{customdata[1]}<br>"
+                            + "Mutations: %{customdata[2]}<br>"
+                            + "<extra></extra>"
+                        ),
+                    )
+                )
+
+            # Add sample site markers if we have location coordinates and scatterplot style is selected
+            if self.location_coords is not None and map_style == "scatterplot":
+                # Case-insensitive column matching for the location join
+                master_location_col = "location"
+                coords_location_col = "location"
+
+                # Group by location to get sample counts and average prevalence
+                site_data = compute_variant_prevalence(
+                    self.analysis_df.query("gene == @gene"),
+                    self.master_df,
+                    [master_location_col],
+                ).query("aa_change == @aa_change")
+
+                # Create copies with lowercase location names for case-insensitive join
+                site_data["location_normalized"] = site_data[
+                    master_location_col
+                ].str.lower()
+
+                coords_df = self.location_coords.copy()
+                coords_df["location_normalized"] = coords_df[
+                    coords_location_col
+                ].str.lower()
+
+                coords_df.rename(
+                    columns={coords_location_col: "location_display"}, inplace=True
+                )
+
+                # Merge using lowercase columns
+                merged_df = pd.merge(
+                    site_data,
+                    coords_df,
+                    on="location_normalized",
+                    how="inner",
+                )
+
+                # --- Scale bubbles by area ---
+                max_size = 40  # max bubble diameter (px)
+                min_size = 5  # min bubble diameter (px)
+
+                # Scale radius ~ sqrt(sample_size)
+                merged_df["scaled_size"] = (
+                    np.sqrt(merged_df["n_passed"] / merged_df["n_passed"].max())
+                    * max_size
+                )
+                merged_df["scaled_size"] = merged_df["scaled_size"].clip(lower=min_size)
+                # Add scatter markers for sample sites
+                fig.add_trace(
+                    go.Scattermapbox(
+                        lat=merged_df["lat"],
+                        lon=merged_df["long"],
+                        mode="markers",
+                        marker=dict(
+                            size=merged_df["scaled_size"],
+                            color=merged_df["prevalence"],  # Color by prevalence
+                            colorscale="Spectral_r",
+                            cmin=0,
+                            cmax=100,
+                            showscale=False,  # Don't show a second colorbar
+                        ),
+                        text=merged_df.apply(
+                            lambda row: f"<b>{row['location_display']}</b><br>"
+                            f"Site Samples: {row['n_passed']}<br>"
+                            f"Site Prevalence: {row['prevalence']:.1f}%<br>"
+                            f"Site Mutations: {row['n_mut'] + row['n_mixed']}",
+                            axis=1,
+                        ),
+                        hoverinfo="text",
+                    )
+                )
+
+            fig.update_layout(
+                mapbox_style="carto-positron",
+                mapbox=dict(
+                    center=dict(lat=self.map_center[0], lon=self.map_center[1])
+                    if self.map_center is not None
+                    else None,
+                    zoom=self.map_zoom_level
+                    if self.map_zoom_level is not None
+                    else None,
+                ),
+                margin={"r": 0, "t": 0, "l": 0, "b": 0},
+                height=600,
+            )
+
+            return fig

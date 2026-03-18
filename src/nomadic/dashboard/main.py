@@ -1,33 +1,7 @@
 import os
-
-from nomadic.realtime.dashboard.builders import CallingRTDashboard, MappingRTDashboard
-from nomadic.util.experiment import ExperimentDirectories
-from nomadic.util.metadata import find_metadata
-from nomadic.util.regions import RegionBEDParser
+from nomadic.realtime.dashboard.builders import MappingRTDashboard, CallingRTDashboard
+from nomadic.util.experiment import ExperimentDirectories, find_metadata, find_regions
 from nomadic.util.settings import load_settings
-
-
-def find_regions(input_dir: str) -> RegionBEDParser:
-    """
-    Given an experiment directory, search for the metadata CSV file in thee
-    expected location
-
-    TODO: Bad duplication from above, can write inner function
-    """
-
-    metadata_dir = os.path.join(input_dir, "metadata")
-    beds = [
-        f"{metadata_dir}/{file}"
-        for file in os.listdir(metadata_dir)
-        if file.endswith(".bed") and not file.endswith(".lowcomplexity_mask.bed")
-    ]  # TODO: what about no-suffix files?
-
-    if len(beds) != 1:  # Could alternatively load and LOOK
-        raise FileNotFoundError(
-            f"Expected one region BED file (*.bed) at {metadata_dir}, but found {len(beds)}."
-        )
-
-    return RegionBEDParser(beds[0])
 
 
 def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:

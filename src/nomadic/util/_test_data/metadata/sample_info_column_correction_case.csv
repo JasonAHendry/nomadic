@@ -1,6 +1,7 @@
-﻿BARCODE,SAMPLE_ID,parasite_per_ul,location,platform
-barcode01,3D7 (NB01),10000,Oxford,flongle
-barcode02,Dd2 (NB02),10000,Oxford,flongle
-barcode03,CamC580Y (NB03),10000,Oxford,flongle
-barcode04,GB4 (NB04),10000,Oxford,flongle
-barcode05,HB3 (NB05),10000,Oxford,flongle
+﻿BARCODE,SAMPLE_ID,SAMPLE_TYPE,location,parasitemia,postclean_qubit
+barcode01,3D7,pos,berlin,1000,87
+barcode02,HB3,pos,berlin,100,34
+barcode03,NTC,neg,berlin,0,0
+barcode04,DBS-A01,field,berlin,543,44
+barcode05,DBS-A02,field,berlin,7583,85
+barcode06,DBS-A03,field,berlin,349,32

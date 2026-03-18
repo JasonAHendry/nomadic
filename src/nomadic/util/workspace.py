@@ -83,6 +83,12 @@ class Workspace:
         """
         return os.path.join(self.get_results_dir(), experiment_name)
 
+    def get_summary_dir(self, summary_name: str):
+        """
+        Get the summary directory of the workspace.
+        """
+        return os.path.join(self.path, "summaries", summary_name)
+
     def get_beds_dir(self):
         """
         Get the beds directory of the workspace.
@@ -106,6 +112,18 @@ class Workspace:
         Get the path to the metadata XLSX file for a given experiment.
         """
         return os.path.join(self.get_metadata_dir(), f"{experiment_name}.xlsx")
+
+    def get_master_metadata_csv(self, summary_name: str):
+        """
+        Get the path to the master metadata CSV file for summaries.
+        """
+        return os.path.join(self.get_metadata_dir(), f"{summary_name}.csv")
+
+    def get_summary_settings_file(self, summary_name: str):
+        """
+        Get the path to the master metadata CSV file for summaries.
+        """
+        return os.path.join(self.get_metadata_dir(), f"{summary_name}.yaml")
 
     def get_bed_file(self, panel_name: str):
         """
@@ -137,6 +155,18 @@ class Workspace:
             name
             for name in os.listdir(self.get_results_dir())
             if os.path.isdir(os.path.join(self.get_results_dir(), name))
+        ]
+
+    def get_experiment_dirs(self):
+        """
+        Get a list of available experiment directories in the workspace.
+        """
+        if not os.path.exists(self.get_results_dir()):
+            return []
+
+        return [
+            os.path.join(self.get_results_dir(), name)
+            for name in self.get_experiment_names()
         ]
 
     def get_shared_workspace(self) -> str | None:
