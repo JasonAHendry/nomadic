@@ -170,16 +170,17 @@ def compute_variant_prevalence(
         )
     )
 
-    groups = variants_df[VARIANTS_GROUP_COLUMNS + additional_groups].drop_duplicates()
+    groups = (
+        variants_df[VARIANTS_GROUP_COLUMNS + additional_groups]
+        .drop_duplicates()
+        .dropna()
+    )
     muts = (
         variants_df[VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS]
         .query("mut_type == 'missense'")
         .drop_duplicates()
         .dropna()
     )
-
-    assert groups.isna().sum().sum() == 0, "grouping columns contain NaN values"
-    assert muts.isna().sum().sum() == 0, "mutation columns contain NaN values"
 
     # Build full index so we see also values for groups that have no mutation
     full_index = (
