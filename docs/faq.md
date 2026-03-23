@@ -4,5 +4,5 @@ Yes, you can safely stop and restart `nomadic realtime`. The program keeps track
 
 **Can I run more than one instance of `nomadic` at once?**
 
-Yes, but if the process generates a webpage e.g. `nomadic dashboard` or `nomadic realtime`, only one will be live. You can run multiple instances of anything else e.g. `nomadic process` that doesn't have a dashboard.
-
+Yes, just ensure you are not running nomadic multiple times using the same output folder, as those will interfere.
+For `nomadic dashboard` or `nomadic realtime`, the dashboard will be opened using a free port.
