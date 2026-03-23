@@ -60,7 +60,12 @@ def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
     type=str,
     shell_complete=complete_experiment_name,
 )
-def dashboard(workspace: Optional[Workspace], experiment):
+@click.option(
+    "--port",
+    type=int,
+    help="Port to use for the dashboard. If not provided, the next free port up from 8050 will be used.",
+)
+def dashboard(workspace: Optional[Workspace], experiment, port: Optional[int]):
     """
     Launch the dashboard without performing real-time analysis,
     used to view results of a previous experiment.
@@ -99,7 +104,7 @@ def dashboard(workspace: Optional[Workspace], experiment):
     from .main import main
 
     try:
-        main(input_dir)
+        main(input_dir, port=port)
     except MetadataFormatError as e:
         raise click.ClickException(
             message=str(e),

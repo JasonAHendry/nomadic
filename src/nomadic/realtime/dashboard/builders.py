@@ -2,25 +2,27 @@ import logging
 import threading
 import webbrowser
 from abc import ABC, abstractmethod
-from dash import Dash, html, dcc
 from datetime import datetime
+from importlib.resources import as_file, files
 from typing import Optional
-from importlib.resources import files, as_file
 
-from nomadic.util.regions import RegionBEDParser
-from nomadic.util.metadata import MetadataTableParser
+import i18n
+from dash import Dash, dcc, html
+from i18n import t
+
 from nomadic.realtime.dashboard.components import (
+    DepthProfileCumulativeDist,
+    DepthProfileLinePlot,
     ExperimentSummaryFASTQ,
-    MappingStatsPie,
     MappingStatsBarplot,
+    MappingStatsPie,
     RegionCoveragePie,
     RegionCoverageStrip,
-    DepthProfileLinePlot,
-    DepthProfileCumulativeDist,
     VariantHeatmap,
 )
-import i18n
-from i18n import t
+from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.port import next_free_port
+from nomadic.util.regions import RegionBEDParser
 
 # --------------------------------------------------------------------------------
 # Interface for different dashboards
@@ -89,7 +91,13 @@ class RealtimeDashboardBuilder(ABC):
 
         return dcc.Interval(id=name, interval=speed, n_intervals=0)
 
-    def run(self, in_thread: bool = False, auto_open: bool = True, **kwargs):
+    def run(
+        self,
+        in_thread: bool = False,
+        auto_open: bool = True,
+        port: Optional[int] = None,
+        **kwargs,
+    ):
         """
         Run the dashboard
 
@@ -106,9 +114,14 @@ class RealtimeDashboardBuilder(ABC):
 
         app.layout = html.Div(id="overall", children=self.layout)
 
+        if port is None:
+            port = next_free_port(8050)
+
+        kwargs["port"] = port
+
         if auto_open:
             threading.Timer(
-                1, webbrowser.open, kwargs=dict(url="http://127.0.0.1:8050")
+                1, webbrowser.open, kwargs=dict(url=f"http://127.0.0.1:{port}")
             ).start()
 
         if in_thread:
