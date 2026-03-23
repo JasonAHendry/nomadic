@@ -61,11 +61,20 @@ def verify_experiment_exists(workspace: Workspace, expt_name: str) -> None:
     shell_complete=complete_experiment_name,
 )
 @click.option(
+    "--host",
+    type=str,
+    default="127.0.0.1",
+    help="Host to use for the dashboard.",
+    show_default=True,
+)
+@click.option(
     "--port",
     type=int,
     help="Port to use for the dashboard. If not provided, the next free port up from 8050 will be used.",
 )
-def dashboard(workspace: Optional[Workspace], experiment, port: Optional[int]):
+def dashboard(
+    workspace: Optional[Workspace], experiment, host: str, port: Optional[int]
+):
     """
     Launch the dashboard without performing real-time analysis,
     used to view results of a previous experiment.
@@ -104,7 +113,7 @@ def dashboard(workspace: Optional[Workspace], experiment, port: Optional[int]):
     from .main import main
 
     try:
-        main(input_dir, port=port)
+        main(input_dir, host=host, port=port)
     except MetadataFormatError as e:
         raise click.ClickException(
             message=str(e),

@@ -95,6 +95,7 @@ class RealtimeDashboardBuilder(ABC):
         self,
         in_thread: bool = False,
         auto_open: bool = True,
+        host: str = "127.0.0.1",
         port: Optional[int] = None,
         **kwargs,
     ):
@@ -118,10 +119,11 @@ class RealtimeDashboardBuilder(ABC):
             port = next_free_port(8050)
 
         kwargs["port"] = port
+        kwargs["host"] = host
 
         if auto_open:
             threading.Timer(
-                1, webbrowser.open, kwargs=dict(url=f"http://127.0.0.1:{port}")
+                1, webbrowser.open, kwargs=dict(url=f"http://{host}:{port}")
             ).start()
 
         if in_thread:

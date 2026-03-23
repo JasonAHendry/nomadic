@@ -39,7 +39,7 @@ def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:
     return os.path.exists(expt_dirs.get_summary_files().variants)
 
 
-def main(input_dir: str, port: Optional[int] = None) -> None:
+def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
     """
     Main execution code for just running the dashboard
 
@@ -105,4 +105,4 @@ def main(input_dir: str, port: Optional[int] = None) -> None:
     print("Launching dashboard (press CNTRL+C to exit):")
     print("")
 
-    dashboard.run(debug=False, port=port)
+    dashboard.run(debug=False, host=host, port=port)

@@ -29,6 +29,7 @@ def main(
     reference_name: str,
     caller: str,
     verbose: bool,
+    host: str,
     with_dashboard: bool = True,
     # This is a bit hacky, but at the moment realtime and processing almost the same
     # so we can use the same main function for both. In the future they may diverge more
@@ -102,7 +103,7 @@ def main(
     expt_pipeline = factory.get_expt_pipeline()
     if with_dashboard:
         dashboard = factory.get_dashboard(start_time=start_time)
-        dashboard.run(in_thread=True, port=port)
+        dashboard.run(in_thread=True, port=port, host=host)
 
     # CATCH UP FROM WORK LOG IF WE RESUME
     catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]
