@@ -115,6 +115,18 @@ from nomadic.util.workspace import (
     default=False,
     help="Increase logging verbosity. Helpful for debugging.",
 )
+@click.option(
+    "--host",
+    type=str,
+    default="127.0.0.1",
+    help="Host to use for the dashboard.",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    type=int,
+    help="Port to use for the dashboard. If not provided, the next free port up from 8050 will be used.",
+)
 def realtime(
     experiment_name: str,
     output: Optional[str],
@@ -130,6 +142,8 @@ def realtime(
     resume: bool,
     dashboard: bool,
     verbose: bool,
+    host: str,
+    port: Optional[int],
 ):
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
@@ -202,6 +216,8 @@ def realtime(
             verbose,
             with_dashboard=dashboard,
             realtime=True,
+            host=host,
+            port=port,
         )
     except MetadataFormatError as e:
         raise click.BadParameter(
