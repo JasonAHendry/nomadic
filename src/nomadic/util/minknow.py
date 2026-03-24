@@ -78,7 +78,9 @@ def resolve_minknow_fastq_dirs(
     else:
         raise BadParameterWithSource(
             param_hint="-k/--minknow_dir",
-            message=f"{minknow_path} does not look like a valid MinKNOW output directory.",
+            message=f"{minknow_path} does not look like a valid MinKNOW output directory. "
+            f"Please ensure it either points to a minknow experiment folder containing a fastq_pass folder, "
+            "or a folder containing minknow experiments.",
         )
 
     fastq_dir = create_fastq_dir_glob(minknow_dir)
