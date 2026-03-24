@@ -33,7 +33,7 @@ def resolve_fastq_dir(fastq_dir_glob: str) -> Optional[str]:
 
 
 def is_fastq_dir(path: Path) -> bool:
-    return path.is_dir() and path.name == "fastq_pass"
+    return path.is_dir() and any(path.glob("*.fastq*"))
 
 
 def create_fastq_dir_glob(minknow_dir: Path) -> str:
@@ -42,7 +42,15 @@ def create_fastq_dir_glob(minknow_dir: Path) -> str:
 
 def is_minknow_base_dir(path: Path) -> bool:
     expected_folders = {"persistence", "reads", "queued_reads", "intermediates"}
-    return any(d.name in expected_folders for d in path.glob("*") if d.is_dir())
+    has_expected_folders = any(
+        d.name in expected_folders for d in path.glob("*") if d.is_dir()
+    )
+    if has_expected_folders:
+        return True
+
+    # Sometimes the expected folders are missing if the experiments where copied out
+    # Check if there are any minknow experiments in the folder
+    return any(is_minknow_experiment_dir(d) for d in path.glob("*") if d.is_dir())
 
 
 def is_minknow_experiment_dir(path: Path) -> bool:
@@ -50,26 +58,30 @@ def is_minknow_experiment_dir(path: Path) -> bool:
     return any(d.name in expected_folders for d in path.glob("*/*/*") if d.is_dir())
 
 
-def resolve_minknow_fastq_dirs(path: Path, experiment_name: str) -> Tuple[Path, str]:
+def resolve_minknow_fastq_dirs(
+    minknow_path: Path, experiment_name: str
+) -> Tuple[Path, str]:
     """
     This function looks to see if the supplied path resembles a minknow data folder or a
     specific fastq_pass folder from a specific experiment
     """
-    if not path.exists():
+    if not minknow_path.exists():
         raise BadParameterWithSource(
             param_hint="-k/--minknow_dir",
-            message=f"{path} does not exist.",
+            message=f"{minknow_path} does not exist.",
         )
 
-    if is_minknow_base_dir(path):
-        minknow_dir = path / experiment_name
-    elif not is_minknow_base_dir(path.parent):
+    if is_minknow_base_dir(minknow_path):
+        minknow_dir = minknow_path / experiment_name
+    elif is_minknow_experiment_dir(minknow_path):
+        minknow_dir = minknow_path
+    else:
         raise BadParameterWithSource(
             param_hint="-k/--minknow_dir",
-            message=f"{path} does not look like a valid MinKNOW output directory.",
+            message=f"{minknow_path} does not look like a valid MinKNOW output directory. "
+            f"Please ensure it either points to a minknow experiment folder containing a fastq_pass folder, "
+            "or a folder containing minknow experiments.",
         )
-    else:
-        minknow_dir = path
 
     fastq_dir = create_fastq_dir_glob(minknow_dir)
 
