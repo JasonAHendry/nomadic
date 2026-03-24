@@ -5,6 +5,7 @@ from typing import Optional
 import click
 import click.shell_completion
 
+from nomadic.util import minknow
 from nomadic.util.ssh import is_ssh_target, remote_dir_exists
 from nomadic.util.workspace import (
     Workspace,
@@ -63,6 +64,19 @@ def workspace_option(optional=False):
         "The workspace directory simplifies the use of nomadic in that many arguments don't need to be listed "
         "as they are predefined in the workspace config or can be loaded from the workspace",
         callback=find_workspace if optional else must_find_workspace,
+    )
+
+
+def minknow_dir_option():
+    return click.option(
+        "-k",
+        "--minknow_dir",
+        type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+        show_default="Default data dir of minknow.",
+        callback=lambda ctx, param, value: value
+        if value is not None
+        else minknow.default_data_dir(),
+        help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
     )
 
 
@@ -212,6 +226,6 @@ class BadParameterWithSource(click.BadParameter):
 
 
 def get_parameter_name_from_hint(hint: str) -> str:
-    """Parse a parameter hint like '-k/--minknow-dir'"""
+    """Parse a parameter hint like '-k/--minknow_dir'"""
     index = hint.find("--")
     return hint[index + 2 :]

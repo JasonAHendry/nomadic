@@ -3,6 +3,7 @@ from pathlib import Path
 
 import click
 
+from nomadic.util import minknow
 from nomadic.util.cli import (
     load_default_function_for,
     validate_target,
@@ -43,9 +44,11 @@ from nomadic.util.workspace import Workspace
     "--minknow_dir",
     "minknow_base_dir",
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default="/var/lib/minknow/data",
-    help="Path to minknow output directory (default it usually sufficient)",
+    show_default="Default data dir of minknow.",
+    callback=lambda ctx, param, value: value
+    if value is not None
+    else minknow.default_data_dir(),
+    help="Path to the base minknow output directory. Only needed if the files were moved.",
 )
 @click.option(
     "--include-minknow/--exclude-minknow",

@@ -16,6 +16,7 @@ from nomadic.util.cli import (
     complete_experiment_name,
     load_default_function_for,
     workspace_option,
+    minknow_dir_option,
 )
 from nomadic.util.workspace import Workspace
 
@@ -40,14 +41,7 @@ from nomadic.util.workspace import Workspace
     show_default="<workspace>/results/<experiment_name>",
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
-@click.option(
-    "-k",
-    "--minknow_dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default=True,
-    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
-)
+@minknow_dir_option()
 @click.option(
     "-f",
     "--fastq_dir",

@@ -12,6 +12,7 @@ from nomadic.util.cli import (
     complete_bed_file,
     complete_experiment_name,
     load_default_function_for,
+    minknow_dir_option,
     workspace_option,
 )
 from nomadic.util.exceptions import MetadataFormatError
@@ -41,14 +42,7 @@ from nomadic.util.workspace import (
     show_default="<workspace>/results/<experiment_name>",
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
-@click.option(
-    "-k",
-    "--minknow_dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default=True,
-    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
-)
+@minknow_dir_option()
 @click.option(
     "-f",
     "--fastq_dir",
@@ -231,7 +225,10 @@ def find_minknow_fastq_dirs(
 ) -> tuple[Optional[Path], str]:
     """Finds the minknow and fastqdir folders to use"""
     if fastq_dir is None:
-        return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
+        try:
+            return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
+        except minknow.MinknowPathError as e:
+            raise BadParameterWithSource(message=str(e), param_hint="-k/--minknow_dir")
     else:
         # If fastq_dir is manually given, we assume there is no minknow dir
         return None, fastq_dir
