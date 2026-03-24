@@ -74,9 +74,9 @@ def minknow_dir_option():
         "--minknow_dir",
         type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
         show_default="Default data directory of minknow.",
-        callback=lambda ctx, param, value: value
-        if value is not None
-        else minknow.default_data_dir(),
+        callback=lambda ctx, param, value: (
+            value if value is not None else minknow.default_data_dir()
+        ),
         help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
     )
 
@@ -90,9 +90,9 @@ def minknow_base_dir_option():
         "minknow_base_dir",
         type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
         show_default="Default data directory of minknow.",
-        callback=lambda ctx, param, value: value
-        if value is not None
-        else minknow.default_data_dir(),
+        callback=lambda ctx, param, value: (
+            value if value is not None else minknow.default_data_dir()
+        ),
         help="Path to the base minknow output directory. Only needed if the files were moved after processing.",
     )
 
