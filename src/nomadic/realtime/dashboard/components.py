@@ -396,7 +396,7 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
                 df.drop(columns=["sample_id"], inplace=True)
 
-            df = df.join(self.metadata.required_metadata, on="barcode")
+            df = df.join(self.metadata.required_metadata, on="barcode", validate="1:1")
 
             x = df.apply(
                 sample_string_from_row,
@@ -582,7 +582,7 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
                 # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
                 df.drop(columns=["sample_id"], inplace=True)
 
-            df = df.join(self.metadata.required_metadata, on="barcode")
+            df = df.join(self.metadata.required_metadata, on="barcode", validate="m:1")
 
             # Prepare plotting data
             # plot_data = [
@@ -1131,7 +1131,9 @@ class VariantHeatmap(RealtimeDashboardComponent):
             if "sample_id" in target_df.columns:
                 # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
                 target_df.drop(columns=["sample_id"], inplace=True)
-            target_df = target_df.join(self.metadata.required_metadata, on="barcode")
+            target_df = target_df.join(
+                self.metadata.required_metadata, on="barcode", validate="m:1"
+            )
 
             # Munge for plot
             target_df["sample_string"] = pd.Categorical(
