@@ -5,6 +5,7 @@ import click
 
 from nomadic.util.cli import (
     load_default_function_for,
+    minknow_base_dir_option,
     validate_target,
     workspace_option,
 )
@@ -38,15 +39,7 @@ from nomadic.util.workspace import Workspace
     ),
     callback=validate_target,
 )
-@click.option(
-    "-k",
-    "--minknow_dir",
-    "minknow_base_dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default="/var/lib/minknow/data",
-    help="Path to minknow output directory (default it usually sufficient)",
-)
+@minknow_base_dir_option()
 @click.option(
     "--include-minknow/--exclude-minknow",
     "include_minknow",

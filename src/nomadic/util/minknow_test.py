@@ -1,11 +1,14 @@
 import glob
 from pathlib import Path
+import platform
 
+from nomadic.util import minknow
 from nomadic.util.minknow import (
     is_fastq_dir,
     is_minknow_base_dir,
     is_minknow_experiment_dir,
     resolve_minknow_fastq_dirs,
+    default_data_dir,
 )
 
 test_folder = Path("src/nomadic/util/_test_data")
@@ -62,3 +65,54 @@ def test_is_fastq_dir():
 
 def test_is_fastq_dir_empty():
     assert not is_fastq_dir(test_folder / "minknow" / "empty")
+
+
+def test_default_data_dir_linux(monkeypatch):
+    # Mock platform.system to return 'Linux'
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+
+    path = Path("/var/lib/minknow/data")
+
+    real_is_dir = Path.is_dir
+
+    def fake_is_dir(self):
+        if self == path:
+            return True
+        return real_is_dir(self)
+
+    monkeypatch.setattr(Path, "is_dir", fake_is_dir)
+
+    assert default_data_dir() == Path("/var/lib/minknow/data")
+
+
+def test_default_data_dir_gridION(monkeypatch):
+    # Mock platform.system to return 'Linux'
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+
+    standard_path = Path("/var/lib/minknow/data")
+    gridION_path = Path("/data")
+
+    real_is_dir = Path.is_dir
+
+    def fake_is_dir(self):
+        if self == standard_path:
+            return False
+        if self == gridION_path:
+            return True
+        return real_is_dir(self)
+
+    monkeypatch.setattr(Path, "is_dir", fake_is_dir)
+    monkeypatch.setattr(
+        minknow,
+        "is_minknow_base_dir",
+        lambda path: True if path == gridION_path else False,
+    )
+
+    assert default_data_dir() == Path("/data")
+
+
+def test_default_data_dir_mac(monkeypatch):
+    # Mock platform.system to return 'Darwin'
+    monkeypatch.setattr(platform, "system", lambda: "Darwin")
+
+    assert default_data_dir() == Path("/Library/MinKNOW/data")
