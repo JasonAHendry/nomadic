@@ -33,7 +33,7 @@ def resolve_fastq_dir(fastq_dir_glob: str) -> Optional[str]:
 
 
 def is_fastq_dir(path: Path) -> bool:
-    return path.is_dir() and len(glob.glob(f"{path}/*.fastq*")) > 0
+    return path.is_dir() and any(path.glob("*.fastq*"))
 
 
 def create_fastq_dir_glob(minknow_dir: Path) -> str:
