@@ -392,9 +392,11 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 # for backwards compatibility to be able to show old experiments where this old name was used
                 df.rename(columns={"n_chimeria": "n_supplementary"}, inplace=True)
 
-            if "sample_id" not in df.columns:
-                # for backwards compatibility to be able to show old experiments where this column was not in the data
-                df = df.join(self.metadata.required_metadata, on="barcode")
+            if "sample_id" in df.columns:
+                # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
+                df.drop(columns=["sample_id"], inplace=True)
+
+            df = df.join(self.metadata.required_metadata, on="barcode", validate="1:1")
 
             x = df.apply(
                 sample_string_from_row,
@@ -576,9 +578,11 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
             df["name"] = pd.Categorical(
                 values=df["name"], categories=self.regions.names, ordered=True
             )
-            if "sample_id" not in df.columns:
-                # for backwards compatibility to be able to show old experiments where this column was not in the data
-                df = df.join(self.metadata.required_metadata, on="barcode")
+            if "sample_id" in df.columns:
+                # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
+                df.drop(columns=["sample_id"], inplace=True)
+
+            df = df.join(self.metadata.required_metadata, on="barcode", validate="m:1")
 
             # Prepare plotting data
             # plot_data = [
@@ -1124,11 +1128,12 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 " and gt != './.'"
             )
             target_df = df.query(qry)
-            if "sample_id" not in target_df.columns:
-                # for backwards compatibility to be able to show old experiments where this column was not in the data
-                target_df = target_df.join(
-                    self.metadata.required_metadata, on="barcode"
-                )
+            if "sample_id" in target_df.columns:
+                # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
+                target_df.drop(columns=["sample_id"], inplace=True)
+            target_df = target_df.join(
+                self.metadata.required_metadata, on="barcode", validate="m:1"
+            )
 
             # Munge for plot
             target_df["sample_string"] = pd.Categorical(

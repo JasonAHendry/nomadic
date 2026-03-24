@@ -74,7 +74,6 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         df = pd.DataFrame(fastq_dts)
-        df = df.join(self.metadata.required_metadata, on="barcode")
         df_path = self.expt_dirs.get_summary_files().fastqs_processed
         df.to_csv(df_path, index=False)
 
@@ -97,7 +96,6 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         df = pd.DataFrame(qcbams_dts)
-        df = df.join(self.metadata.required_metadata, on="barcode")
         df_path = self.expt_dirs.get_summary_files().read_mapping
         df.to_csv(df_path, index=False)
 
@@ -117,7 +115,6 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         bedcov_df = pd.concat(bedcov_dfs)
-        bedcov_df = bedcov_df.join(self.metadata.required_metadata, on="barcode")
         df_path = self.expt_dirs.get_summary_files().region_coverage
         bedcov_df.to_csv(df_path, index=False)
 
@@ -137,7 +134,6 @@ class ExperimentPipelineRT(ABC):
             except FileNotFoundError:
                 continue
         depth_df = pd.concat(depth_dfs)
-        depth_df = depth_df.join(self.metadata.required_metadata, on="barcode")
         df_path = self.expt_dirs.get_summary_files().depth_profiles
         depth_df.to_csv(df_path, index=False)
 
@@ -192,7 +188,6 @@ class ExperimentPipelineRT(ABC):
         annotator.convert_to_csv(temp_path)
 
         df = pd.read_csv(temp_path)
-        df = df.join(self.metadata.required_metadata, on="barcode")
         df.to_csv(csv_path, index=False)
 
         # Clean-up
