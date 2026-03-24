@@ -95,22 +95,22 @@ def default_data_dir() -> Path:
 
     see: https://nanoporetech.com/support/software/MinKNOW/post-run-options/what-folder-are-my-reads-in
     """
-    system = platform.system()
-    if system == "Darwin":  # MacOS
-        return Path("/Library/MinKNOW/data")
-    elif system == "Windows":  # Windows
-        # We don't really support windows, but for completeness sake
-        return Path("C:\\data\\")
-    else:  # Unix/Linux
-        standard_path = Path("/var/lib/minknow/data")
-        integrated_devices_path = Path("/data")  # e.g. gridION
+    match platform.system():
+        case "Darwin":  # MacOS
+            return Path("/Library/MinKNOW/data")
+        case "Windows":  # Windows
+            # We don't really support windows, but for completeness sake
+            return Path("C:\\data\\")
+        case _:  # Unix/Linux
+            standard_path = Path("/var/lib/minknow/data")
+            integrated_devices_path = Path("/data")  # e.g. gridION
 
-        if (
-            not standard_path.is_dir()
-            and integrated_devices_path.is_dir()
-            and is_minknow_base_dir(integrated_devices_path)
-        ):
-            # we are on an integrated device
-            return integrated_devices_path
+            if (
+                not standard_path.is_dir()
+                and integrated_devices_path.is_dir()
+                and is_minknow_base_dir(integrated_devices_path)
+            ):
+                # we are on an integrated device, e.g. gridION
+                return integrated_devices_path
 
-        return standard_path
+            return standard_path
