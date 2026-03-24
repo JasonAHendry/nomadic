@@ -68,15 +68,32 @@ def workspace_option(optional=False):
 
 
 def minknow_dir_option():
+    """Click option for the MinKNOW data directory when used as input."""
     return click.option(
         "-k",
         "--minknow_dir",
         type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-        show_default="Default data dir of minknow.",
+        show_default="Default data directory of minknow.",
         callback=lambda ctx, param, value: value
         if value is not None
         else minknow.default_data_dir(),
         help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
+    )
+
+
+def minknow_base_dir_option():
+    """Click option for the MinKNOW base data directory when used when files were moved after processing.
+    This is used for backup and share."""
+    return click.option(
+        "-k",
+        "--minknow_dir",
+        "minknow_base_dir",
+        type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+        show_default="Default data directory of minknow.",
+        callback=lambda ctx, param, value: value
+        if value is not None
+        else minknow.default_data_dir(),
+        help="Path to the base minknow output directory. Only needed if the files were moved after processing.",
     )
 
 
