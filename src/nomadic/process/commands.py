@@ -90,6 +90,14 @@ from nomadic.util.workspace import Workspace
     help="Resume processing a previous experiment if the output directory already exists. This is necessary to pick of processing of an experiment that was aborted.",
 )
 @click.option(
+    "-t",
+    "--threads",
+    type=int,
+    default=4,
+    show_default=True,
+    help="Number of threads to use for analysis. Note that using more threads can increase the computational load and might lead to slower performance if the computer is not powerful enough.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -108,6 +116,7 @@ def process(
     caller: str,
     overwrite: bool,
     resume: bool,
+    threads: int,
     verbose: bool,
 ):
     """
@@ -166,6 +175,7 @@ def process(
         region_bed,
         reference_name,
         caller,
+        threads,
         verbose,
         with_dashboard=False,
         host="",

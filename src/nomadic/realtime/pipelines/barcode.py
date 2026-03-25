@@ -154,6 +154,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         expt_dirs: ExperimentDirectories,
         bed_path: str,
         caller: str,
+        threads: int,
         ref_name: str = "Pf3D7",
     ):
         """
@@ -166,7 +167,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         # Initialise analysis steps
         common = {"barcode_name": barcode_name, "expt_dirs": expt_dirs}
         self.fastq_step = FASTQProcessedRT(**common)
-        self.map_step = MappingRT(**common, ref_name=ref_name)
+        self.map_step = MappingRT(**common, ref_name=ref_name, threads=threads)
         self.flagstat_step = FlagstatsRT(**common, ref_name=ref_name)
         self.bedcov_step = RegionCoverage(
             **common, bed_path=bed_path, ref_name=ref_name
@@ -176,11 +177,16 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         )
         if caller == "delve":
             self.call_step = CallVariantsRTDelve(
-                **common, bed_path=bed_path, ref_name=ref_name
+                **common,
+                bed_path=bed_path,
+                ref_name=ref_name,
+                threads=threads,
             )
         elif caller == "bcftools":
             self.call_step = CallVariantsRTBcftools(
-                **common, bed_path=bed_path, ref_name=ref_name
+                **common,
+                bed_path=bed_path,
+                ref_name=ref_name,
             )
         else:
             raise RuntimeError(f"Unknown caller: {caller}")
