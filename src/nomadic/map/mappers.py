@@ -53,19 +53,19 @@ class MappingAlgorithm(ABC):
             raise ValueError("Must set either `fastq_dir` or `fastq_paths`.")
 
     @abstractmethod
-    def _define_mapping_command(self, output_bam, flags):
+    def _define_mapping_command(self, output_bam, *, threads: int, flags):
         """
         Define the command for the mapping algorithm
         """
         pass
 
-    def run(self, output_bam, verbose=False):
+    def run(self, output_bam: str, threads: int, verbose=False):
         """
         Run the mapping algorithm inputs
 
         """
         # Define the mapping command
-        self._define_mapping_command(output_bam)
+        self._define_mapping_command(output_bam, threads=threads)
         if self.map_cmd is None:
             raise ValueError("Must define mapping command before running algorithm.")
 
@@ -91,12 +91,12 @@ class Minimap2(MappingAlgorithm):
 
     """
 
-    def _define_mapping_command(self, output_bam, flags="--eqx --MD"):
+    def _define_mapping_command(self, output_bam, *, threads: int, flags="--eqx --MD"):
         """
         Run minimap2, compress result to .bam file, and sort
 
         """
-        self.map_cmd = "minimap2"
+        self.map_cmd = f"minimap2 -t {threads}"
         self.map_cmd += f" -ax map-ont {flags} {shlex.quote(self.reference.fasta_path)} {encode_input_files(self.input_fastqs)} |"
         self.map_cmd += " samtools view -S -b - |"
         self.map_cmd += f" samtools sort -o {shlex.quote(output_bam)}"
@@ -119,12 +119,12 @@ class BwaMem(MappingAlgorithm):
         index_cmd = f"bwa index {shlex.quote(self.reference.fasta_path)}"
         subprocess.run(index_cmd, shell=True, check=True)
 
-    def _define_mapping_command(self, output_bam, flags=""):
+    def _define_mapping_command(self, output_bam, *, threads: int, flags=""):
         """
         Run bwa, compress result to .bam file, and sort
 
         """
-        self.map_cmd = "bwa mem"
+        self.map_cmd = f"bwa mem -t {threads}"
         self.map_cmd += " -R '@RG\\tID:misc\\tSM:pool'"  # ID and SM tags needed for gatk HaplotypeCaller
         self.map_cmd += f" {flags} {shlex.quote(self.reference.fasta_path)} {encode_input_files(self.input_fastqs)} |"
         self.map_cmd += " samtools view -S -b - |"
