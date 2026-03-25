@@ -168,5 +168,7 @@ def process(
         caller,
         verbose,
         with_dashboard=False,
+        host="",
+        port=None,
         realtime=False,
     )
