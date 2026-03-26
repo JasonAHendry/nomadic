@@ -87,7 +87,6 @@ def minknow_base_dir_option():
     return click.option(
         "-k",
         "--minknow_dir",
-        "minknow_base_dir",
         type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
         show_default="Default data directory of minknow.",
         callback=lambda ctx, param, value: (
