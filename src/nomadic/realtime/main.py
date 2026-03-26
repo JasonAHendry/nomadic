@@ -28,6 +28,7 @@ def main(
     region_bed: str,
     reference_name: str,
     caller: str,
+    threads: int,
     verbose: bool,
     host: str,
     with_dashboard: bool = True,
@@ -96,7 +97,14 @@ def main(
 
     # INITIALISE WATCHERS
     factory = PipelineFactory(
-        expt_name, metadata, regions, expt_dirs, fastq_dir, caller, reference_name
+        expt_name,
+        metadata,
+        regions,
+        expt_dirs,
+        fastq_dir,
+        caller,
+        ref_name=reference_name,
+        threads=threads,
     )
 
     watchers = factory.get_watchers()

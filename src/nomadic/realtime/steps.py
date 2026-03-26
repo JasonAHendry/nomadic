@@ -139,6 +139,7 @@ class MappingRT(AnalysisStepRT):
         self,
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
+        threads: int,
         ref_name: str = "Pf3D7",
     ):
         """
@@ -153,6 +154,7 @@ class MappingRT(AnalysisStepRT):
 
         self.reference = REFERENCE_COLLECTION[ref_name]
         self.mapper = Minimap2(self.reference)
+        self.threads = threads
 
         self.output_bam = (
             f"{self.step_dir}/{self.barcode_name}.{self.reference.name}.final.bam"
@@ -181,7 +183,7 @@ class MappingRT(AnalysisStepRT):
 
         incr_bam = self._get_incremental_bam_path(incr_id)
         self.mapper.map_from_fastqs(fastq_paths=new_fastqs)
-        self.mapper.run(output_bam=incr_bam)
+        self.mapper.run(output_bam=incr_bam, threads=self.threads)
         samtools_index(incr_bam)
 
         return incr_bam
@@ -462,6 +464,7 @@ class CallVariantsRTDelve(AnalysisStepRT):
         barcode_name: str,
         expt_dirs: ExperimentDirectories,
         bed_path: str,
+        threads: int,
         ref_name: str = "Pf3D7",
     ):
         """Initialise output directory and define file names"""
@@ -470,6 +473,7 @@ class CallVariantsRTDelve(AnalysisStepRT):
 
         self.bed_path = bed_path
         self.reference = REFERENCE_COLLECTION[ref_name]
+        self.threads = threads
 
         self.output_dir = produce_dir(self.barcode_dir, self.step_name)
         self.output_vcf = (
@@ -531,6 +535,7 @@ class CallVariantsRTDelve(AnalysisStepRT):
             f" -f {shlex.quote(self.reference.fasta_path)}"
             " --set-failed-GTs ."
             f" {shlex.quote(filtered_bam_path)}"
+            f" --threads {self.threads}"
         )
 
         cmd_lowcomplexity_filter = self._get_lowcomplexity_filter_command()
