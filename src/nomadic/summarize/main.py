@@ -983,7 +983,7 @@ def main(
     timer.time("Filtering to analysis set")
 
     # Filter out false positives
-    analysis_df = filter_false_positives(analysis_df)
+    analysis_df = filter_false_positives(analysis_df, min_obs=1, min_wsaf=0.33)
     analysis_df.to_csv(f"{output_dir}/summary.variants.analysis_set.csv", index=False)
     timer.time("Filtering false positives")
 
