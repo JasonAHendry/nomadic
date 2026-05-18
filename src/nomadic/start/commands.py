@@ -28,6 +28,10 @@ class Organism:
 _organisms = [
     Organism("pfalciparum", "Pf3D7", "nomadsMVP", "delve"),
     Organism("agambiae", "AgPEST", "nomadsIR", "bcftools"),
+    Organism("astephensi", "AsUCISS2018", "nomadsSID", "bcftools"),
+    Organism("acoluzzi", "AcolN3", "nomadsSID", "bcftools"),
+    Organism("afunestus", "AfunGA1", "nomadsSID", "bcftools"),
+    Organism("aarabiensis", "AaDONGOLA2021", "nomadsSID", "bcftools"),
 ]
 ORGANISM_COLLECTION = {organism.name: organism for organism in _organisms}
 
