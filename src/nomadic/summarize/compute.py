@@ -51,11 +51,13 @@ def calc_samples_summary(
         .astype({"n_replicates": int, "n_passing": int})
     )
     samples_summary_df["status"] = samples_summary_df.apply(
-        lambda row: Status.PASSING.value
-        if row["n_passing"] > 0
-        else Status.FAILING.value
-        if row["n_replicates"] > 0
-        else Status.NOT_SEQUENCED.value,
+        lambda row: (
+            Status.PASSING.value
+            if row["n_passing"] > 0
+            else Status.FAILING.value
+            if row["n_replicates"] > 0
+            else Status.NOT_SEQUENCED.value
+        ),
         axis=1,
     )
     samples_summary_df.sort_values(
@@ -91,11 +93,13 @@ def calc_amplicons_summary(master_metadata, replicates_amplicon_qc_df):
         .astype({"n_replicates": int, "n_passing": int})
     )
     samples_by_amplicons_summary_df["status"] = samples_by_amplicons_summary_df.apply(
-        lambda row: Status.PASSING.value
-        if row["n_passing"] > 0
-        else Status.FAILING.value
-        if row["n_replicates"] > 0
-        else Status.NOT_SEQUENCED.value,
+        lambda row: (
+            Status.PASSING.value
+            if row["n_passing"] > 0
+            else Status.FAILING.value
+            if row["n_replicates"] > 0
+            else Status.NOT_SEQUENCED.value
+        ),
         axis=1,
     )
     samples_by_amplicons_summary_df.sort_values(
