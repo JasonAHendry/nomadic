@@ -93,7 +93,7 @@ class MetadataTableParser:
 
     REQUIRED_COLUMNS = ["barcode", "sample_id"]
     UNIQUE_COLUMNS = ["barcode"]
-    DTYPE = {"barcode": str, "sample_id": str, "sample_type": str}
+    DTYPE = {"barcode": str, "sample_id": str}
 
     # If the required columns are not found, try these alternative names, case insensitive
     ALTERNATIVE_NAMES = {
