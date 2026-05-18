@@ -856,6 +856,9 @@ class MapComponent(SummaryDashboardComponent):
                     [region_by],
                 ).query("aa_change == @aa_change")
 
+                # Filter sites with very low sample counts to avoid misleading prevalence estimates
+                df = df[df["n_passed"] >= 10]
+
                 # Normalize location names in the data
                 df[f"{region_by}_normalized"] = df[region_by].apply(normalize_location)
 
@@ -930,6 +933,9 @@ class MapComponent(SummaryDashboardComponent):
                     [master_location_col],
                 ).query("aa_change == @aa_change")
 
+                # Filter sites with very low sample counts to avoid misleading prevalence estimates
+                site_data = site_data[site_data["n_passed"] >= 10]
+
                 # Create copies with lowercase location names for case-insensitive join
                 site_data["location_normalized"] = site_data[
                     master_location_col
@@ -967,23 +973,28 @@ class MapComponent(SummaryDashboardComponent):
                     go.Scattermapbox(
                         lat=merged_df["lat"],
                         lon=merged_df["long"],
-                        mode="markers",
+                        mode="markers+text",
                         marker=dict(
                             size=merged_df["scaled_size"],
                             color=merged_df["prevalence"],  # Color by prevalence
                             colorscale="Spectral_r",
                             cmin=0,
                             cmax=100,
-                            showscale=False,  # Don't show a second colorbar
+                            showscale=True,
                         ),
-                        text=merged_df.apply(
-                            lambda row: f"<b>{row['location_display']}</b><br>"
-                            f"Site Samples: {row['n_passed']}<br>"
-                            f"Site Prevalence: {row['prevalence']:.1f}%<br>"
-                            f"Site Mutations: {row['n_mut'] + row['n_mixed']}",
+                        text=merged_df["location_display"],
+                        textposition="top center",
+                        textfont=dict(size=10, color="black"),
+                        hovertemplate=merged_df.apply(
+                            lambda row: (
+                                f"<b>{row['location_display']}</b><br>"
+                                f"Site Samples: {row['n_passed']}<br>"
+                                f"Site Prevalence: {row['prevalence']:.1f}%<br>"
+                                f"Site Mutations: {row['n_mut'] + row['n_mixed']}"
+                                "<extra></extra>"
+                            ),
                             axis=1,
                         ),
-                        hoverinfo="text",
                     )
                 )
 

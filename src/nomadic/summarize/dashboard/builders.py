@@ -501,7 +501,7 @@ class SummaryDashboardBuilder(ABC):
         region_dropdown = dcc.Dropdown(
             id="map-region-dropdown",
             options=list(regions.keys()),
-            value="district",
+            value=list(regions.keys())[0] if regions else None,
             style=dict(width="300px"),
             clearable=False,
         )
