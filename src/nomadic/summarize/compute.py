@@ -245,7 +245,7 @@ def gene_deletions(coverage_df: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
     Returns a DataFrame with deletion prevalence per gene.
     """
     # How many of the other amplolicons must be covered to consider the sample for deletion analysis
-    AMPLICONS_QC_CUTOFF = 0.8
+    AMPLICONS_QC_CUTOFF = 0.7
     # Minimum coverage to consider a gene deleted
     DELETION_COVERAGE_THRESHOLD = 5
 
@@ -264,11 +264,33 @@ def gene_deletions(coverage_df: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
 
     analysis_set = coverage_df.merge(
         analysis_samples, on=["expt_name", "barcode"], how="left"
-    )
-    analysis_set = analysis_set[
+    )[
+        [
+            "expt_name",
+            "barcode",
+            "sample_id",
+            "sample_type",
+            "name",
+            "mean_cov",
+            "mean_cov_neg",
+            "fail_contam_abs",
+            "gene",
+            "n_ctrl_amplicons",
+            "n_passing_ctrl_amplicons",
+        ]
+    ]
+
+    analysis_set = analysis_set[analysis_set["gene"].isin(genes)]
+
+    # QC: only analyze samples with sufficient control amplicon coverage
+    analysis_set["pass_ctrl_amplicons"] = (
         analysis_set["n_passing_ctrl_amplicons"]
         >= AMPLICONS_QC_CUTOFF * analysis_set["n_ctrl_amplicons"]
-    ]
+    )
+
+    # analysis_set.to_csv("analysis_set_gene_deletions.csv", index=False)  # For debugging
+
+    analysis_set = analysis_set[analysis_set["pass_ctrl_amplicons"]]
 
     # QC: don't analyze amplicons that did not pass negative control
     analysis_set = analysis_set[~analysis_set["fail_contam_abs"]]
@@ -296,7 +318,7 @@ def gene_deletions(coverage_df: pd.DataFrame, genes: list[str]) -> pd.DataFrame:
         .reset_index()
     )
 
-    return result[result["gene"].isin(genes)]
+    return result
 
 
 def gene_deletion_prevalence_by(
