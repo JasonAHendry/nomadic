@@ -64,7 +64,7 @@ from nomadic.util.workspace import Workspace
 @click.option(
     "--qc-min-coverage",
     type=int,
-    default=50,
+    default=100,
     show_default=True,
     help="Minimum coverage threshold for quality control. Amplicons with less than this coverage will be marked as low coverage.",
 )
