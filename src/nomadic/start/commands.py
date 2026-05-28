@@ -134,6 +134,10 @@ def start(organism, workspace_path) -> None:
     Currently supported organisms:
     - Plasmodium falciparum (pfalciparum)
     - Anopheles gambiae (agambiae)
+    - Anopheles stephensi (astephensi)
+    - Anopheles coluzzii (acoluzzi)
+    - Anopheles funestus (afunestus)
+    - Anopheles arabiensis (aarabiensis)
 
     """
     if organism is None:
