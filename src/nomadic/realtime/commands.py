@@ -103,6 +103,14 @@ from nomadic.util.workspace import (
     help="Whether to start the web dashboard to monitor the run.",
 )
 @click.option(
+    "-t",
+    "--threads",
+    type=int,
+    default=4,
+    show_default=True,
+    help="Number of threads to use for analysis. Note that using more threads can increase the computational load and might lead to slower performance if the computer is not powerful enough.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -136,6 +144,7 @@ def realtime(
     resume: bool,
     dashboard: bool,
     verbose: bool,
+    threads: int,
     host: str,
     port: Optional[int],
 ):
@@ -207,6 +216,7 @@ def realtime(
             region_bed,
             reference_name,
             caller,
+            threads,
             verbose,
             with_dashboard=dashboard,
             realtime=True,

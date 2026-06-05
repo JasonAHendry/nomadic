@@ -38,6 +38,7 @@ class PipelineFactory:
         expt_dirs: ExperimentDirectories,
         fastq_dir: str,
         caller: str,
+        threads: int,
         ref_name: str = "Pf3D7",
     ):
         """
@@ -59,6 +60,7 @@ class PipelineFactory:
         self.reference = REFERENCE_COLLECTION[ref_name]
 
         self.caller = caller
+        self.threads = threads
 
     def _get_barcode_pipeline(self, barcode_name: str) -> BarcodePipelineRT:
         """
@@ -70,6 +72,7 @@ class PipelineFactory:
             "expt_dirs": self.expt_dirs,
             "bed_path": self.regions.path,
             "ref_name": self.ref_name,
+            "threads": self.threads,
         }
 
         if self.caller:
