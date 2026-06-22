@@ -805,6 +805,7 @@ class MapComponent(SummaryDashboardComponent):
         style_dropdown_id: str,
         map_zoom_level: Optional[int] = None,
         map_center: Optional[tuple[float, float]] = None,
+        shape_name_key: Optional[str] = None,
     ):
         self.mutation_dropdown_id = mutation_dropdown_id
         self.region_dropdown_id = region_dropdown_id
@@ -813,6 +814,9 @@ class MapComponent(SummaryDashboardComponent):
         self.master_df = master_df
         self.map_zoom_level = map_zoom_level
         self.map_center = map_center
+        self.shape_name_key = shape_name_key
+        if self.shape_name_key is None:
+            self.shape_name_key = "shapeName"
 
         # Load location coordinates if provided
         self.location_coords = None
@@ -870,9 +874,9 @@ class MapComponent(SummaryDashboardComponent):
 
                 # Create a mapping from normalized names to original GeoJSON names
                 geojson_name_map = {
-                    normalize_location(feat["properties"]["shapeName"]): feat[
+                    normalize_location(feat["properties"][self.shape_name_key]): feat[
                         "properties"
-                    ]["shapeName"]
+                    ][self.shape_name_key]
                     for feat in self.geojson_data[region_by]["features"]
                 }
 
@@ -901,7 +905,7 @@ class MapComponent(SummaryDashboardComponent):
                         zmax=100,
                         marker_opacity=0.8,
                         marker_line_width=1.0,
-                        featureidkey="properties.shapeName",
+                        featureidkey="properties." + self.shape_name_key,
                         customdata=np.stack(
                             [
                                 df["n_samples"],

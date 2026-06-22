@@ -10,8 +10,9 @@ class ColumnSettings(BaseModel):
 
 
 class MapSettings(BaseModel):
-    center: tuple[float, float]
-    zoom_level: int
+    center: Optional[tuple[float, float]]
+    zoom_level: Optional[int]
+    shape_name_key: Optional[str] = None
 
 
 class Settings(BaseModel):

@@ -440,6 +440,7 @@ class SummaryDashboardBuilder(ABC):
         location_coords_csv: str,
         map_center: tuple[float, float] | None,
         map_zoom_level: int | None,
+        shape_name_key: str | None,
         amplicon_sets: dict[str, list[str]],
     ) -> None:
         """
@@ -536,6 +537,7 @@ class SummaryDashboardBuilder(ABC):
             location_coords_csv=location_coords_csv,
             map_center=map_center,
             map_zoom_level=map_zoom_level,
+            shape_name_key=shape_name_key,
         )
 
         map_row = html.Div(
@@ -641,6 +643,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         self.geojson_glob = geojson_glob
         self.location_coords_csv = location_coords_csv
         self.map_center, self.map_zoom_level = get_map_settings(settings)
+        self.shape_name_key = settings.map.shape_name_key if settings.map else None
         self.amplicon_names = amplicons
         self.amplicon_sets = amplicon_sets
         self.deletion_genes = deletion_genes
@@ -673,6 +676,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
                 self.location_coords_csv,
                 self.map_center,
                 self.map_zoom_level,
+                self.shape_name_key,
                 self.amplicon_sets,
             )
 
