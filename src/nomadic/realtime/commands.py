@@ -106,7 +106,7 @@ from nomadic.util.workspace import (
     "-t",
     "--threads",
     type=int,
-    default=4,
+    default=5,
     show_default=True,
     help="Number of threads to use for analysis. Note that using more threads can increase the computational load and might lead to slower performance if the computer is not powerful enough.",
 )
