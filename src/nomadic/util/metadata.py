@@ -168,6 +168,7 @@ class MetadataTableParser:
 
     REQUIRED_COLUMNS = ["barcode", "sample_id"]
     UNIQUE_COLUMNS = ["barcode"]
+    DTYPE = {"barcode": str, "sample_id": str}
 
     # If the required columns are not found, try these alternative names, case insensitive
     ALTERNATIVE_NAMES = {
@@ -185,6 +186,9 @@ class MetadataTableParser:
         self.path = metadata_path
         self._load_metadata(metadata_path)
         self._correct_columns()
+        # Ensure here types are correct after correcting column names
+        self.df = self.df.astype(self.DTYPE)
+
         self._check_required_columns()
         self._check_entries_unique()
         self._correct_all_barcodes()

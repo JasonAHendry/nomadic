@@ -1,5 +1,5 @@
 {% set name = "nomadic" %}
-{% set version = "0.7.2" %}
+{% set version = "0.8.1" %}
 
 package:
   name: {{ name|lower }}
@@ -42,7 +42,7 @@ requirements:
     - samtools >=1.23
     - bcftools >=1.23
     - bedtools
-    - delve-bio =0.2.*
+    - delve-bio =0.3.*
     - rsync
 
 test:

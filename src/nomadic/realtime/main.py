@@ -28,12 +28,15 @@ def main(
     region_bed: str,
     reference_name: str,
     caller: str,
+    threads: int,
     verbose: bool,
+    host: str,
     with_dashboard: bool = True,
     # This is a bit hacky, but at the moment realtime and processing almost the same
     # so we can use the same main function for both. In the future they may diverge more
     # and we should split them up.
     realtime: bool = True,
+    port: Optional[int] = None,
 ) -> None:
     """
     Run nomadic processing, either in real-time or as a one-off run.
@@ -94,14 +97,21 @@ def main(
 
     # INITIALISE WATCHERS
     factory = PipelineFactory(
-        expt_name, metadata, regions, expt_dirs, fastq_dir, caller, reference_name
+        expt_name,
+        metadata,
+        regions,
+        expt_dirs,
+        fastq_dir,
+        caller,
+        ref_name=reference_name,
+        threads=threads,
     )
 
     watchers = factory.get_watchers()
     expt_pipeline = factory.get_expt_pipeline()
     if with_dashboard:
         dashboard = factory.get_dashboard(start_time=start_time)
-        dashboard.run(in_thread=True)
+        dashboard.run(in_thread=True, port=port, host=host)
 
     # CATCH UP FROM WORK LOG IF WE RESUME
     catch_up_info = [watcher.catch_up_from_work_log() for watcher in watchers]

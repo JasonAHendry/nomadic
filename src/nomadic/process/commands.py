@@ -16,6 +16,7 @@ from nomadic.util.cli import (
     complete_experiment_name,
     load_default_function_for,
     workspace_option,
+    minknow_dir_option,
 )
 from nomadic.util.workspace import Workspace
 
@@ -40,14 +41,7 @@ from nomadic.util.workspace import Workspace
     show_default="<workspace>/results/<experiment_name>",
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
-@click.option(
-    "-k",
-    "--minknow_dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default=True,
-    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
-)
+@minknow_dir_option()
 @click.option(
     "-f",
     "--fastq_dir",
@@ -96,6 +90,14 @@ from nomadic.util.workspace import Workspace
     help="Resume processing a previous experiment if the output directory already exists. This is necessary to pick of processing of an experiment that was aborted.",
 )
 @click.option(
+    "-t",
+    "--threads",
+    type=int,
+    default=5,
+    show_default=True,
+    help="Number of threads to use for analysis. Note that using more threads can increase the computational load and might lead to slower performance if the computer is not powerful enough.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
@@ -114,6 +116,7 @@ def process(
     caller: str,
     overwrite: bool,
     resume: bool,
+    threads: int,
     verbose: bool,
 ):
     """
@@ -172,7 +175,10 @@ def process(
         region_bed,
         reference_name,
         caller,
+        threads,
         verbose,
         with_dashboard=False,
+        host="",
+        port=None,
         realtime=False,
     )

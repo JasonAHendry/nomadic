@@ -12,6 +12,7 @@ from nomadic.util.cli import (
     complete_bed_file,
     complete_experiment_name,
     load_default_function_for,
+    minknow_dir_option,
     workspace_option,
 )
 from nomadic.util.exceptions import MetadataFormatError
@@ -41,14 +42,7 @@ from nomadic.util.workspace import (
     show_default="<workspace>/results/<experiment_name>",
     help="Path to the output directory where results of this experiment will be stored. Usually the default of storing it in the workspace should be enough.",
 )
-@click.option(
-    "-k",
-    "--minknow_dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default=True,
-    help="Path to the minknow output directory. Can be either the base directory, e.g. /var/lib/minknow/data, or the directory of the experiment, e.g. /var/lib/minknow/data/<experiment_name>.",
-)
+@minknow_dir_option()
 @click.option(
     "-f",
     "--fastq_dir",
@@ -109,11 +103,31 @@ from nomadic.util.workspace import (
     help="Whether to start the web dashboard to monitor the run.",
 )
 @click.option(
+    "-t",
+    "--threads",
+    type=int,
+    default=5,
+    show_default=True,
+    help="Number of threads to use for analysis. Note that using more threads can increase the computational load and might lead to slower performance if the computer is not powerful enough.",
+)
+@click.option(
     "-v",
     "--verbose",
     is_flag=True,
     default=False,
     help="Increase logging verbosity. Helpful for debugging.",
+)
+@click.option(
+    "--host",
+    type=str,
+    default="127.0.0.1",
+    help="Host to use for the dashboard.",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    type=int,
+    help="Port to use for the dashboard. If not provided, the next free port up from 8050 will be used.",
 )
 def realtime(
     experiment_name: str,
@@ -130,6 +144,9 @@ def realtime(
     resume: bool,
     dashboard: bool,
     verbose: bool,
+    threads: int,
+    host: str,
+    port: Optional[int],
 ):
     """
     Analyse data being produced by MinKNOW while sequencing is ongoing
@@ -199,9 +216,12 @@ def realtime(
             region_bed,
             reference_name,
             caller,
+            threads,
             verbose,
             with_dashboard=dashboard,
             realtime=True,
+            host=host,
+            port=port,
         )
     except MetadataFormatError as e:
         raise click.BadParameter(
@@ -215,7 +235,10 @@ def find_minknow_fastq_dirs(
 ) -> tuple[Optional[Path], str]:
     """Finds the minknow and fastqdir folders to use"""
     if fastq_dir is None:
-        return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
+        try:
+            return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
+        except minknow.MinknowPathError as e:
+            raise BadParameterWithSource(message=str(e), param_hint="-k/--minknow_dir")
     else:
         # If fastq_dir is manually given, we assume there is no minknow dir
         return None, fastq_dir

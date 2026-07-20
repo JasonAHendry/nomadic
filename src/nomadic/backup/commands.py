@@ -4,7 +4,9 @@ from pathlib import Path
 import click
 
 from nomadic.util.cli import (
+    BadParameterWithSource,
     load_default_function_for,
+    minknow_base_dir_option,
     validate_target,
     workspace_option,
 )
@@ -38,15 +40,7 @@ from nomadic.util.workspace import Workspace
     ),
     callback=validate_target,
 )
-@click.option(
-    "-k",
-    "--minknow_dir",
-    "minknow_base_dir",
-    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
-    default="/var/lib/minknow/data",
-    show_default=True,
-    help="Path to the base minknow output directory. Only needed if the files were moved.",
-)
+@minknow_base_dir_option()
 @click.option(
     "--include-minknow/--exclude-minknow",
     "include_minknow",
@@ -74,7 +68,7 @@ def backup(
     target_dir: Path | str,
     workspace: Workspace,
     include_minknow: bool,
-    minknow_base_dir: Path,
+    minknow_dir: Path,
     verbose: bool,
     checksum: bool,
 ):
@@ -82,20 +76,20 @@ def backup(
     Backup entire nomadic workspace and associated minknow data to a different folder e.g. on a local hard disk drive.
     """
     if (
-        ctx.get_parameter_source("minknow_base_dir")
+        ctx.get_parameter_source("minknow_dir")
         is not click.core.ParameterSource.DEFAULT
     ):
         # Only check if the minknow dir exists if not used the default
         # This is because we might not have to use this folder, it is only there for a fallback lookup method.
-        if not minknow_base_dir.exists():
-            raise click.BadParameter(
+        if not minknow_dir.exists():
+            raise BadParameterWithSource(
                 param_hint="-k/--minknow_dir",
-                message=f"'{minknow_base_dir.resolve()}' does not exist.",
+                message=f"'{minknow_dir.resolve()}' does not exist.",
             )
-        if not minknow_base_dir.is_dir():
-            raise click.BadParameter(
+        if not minknow_dir.is_dir():
+            raise BadParameterWithSource(
                 param_hint="-k/--minknow_dir",
-                message=f"'{minknow_base_dir.resolve()}' is not a directory.",
+                message=f"'{minknow_dir.resolve()}' is not a directory.",
             )
 
     # Add workspace name to shared dir so multiple workspaces can be shared to same location
@@ -121,7 +115,7 @@ def backup(
     if include_minknow:
         backup_minknow_data(
             target_base_dir=target_dir,
-            minknow_base_dir=minknow_base_dir,
+            minknow_base_dir=minknow_dir,
             workspace=workspace,
             failure_reasons=failure_reasons,
             checksum=checksum,

@@ -1,5 +1,7 @@
 import os
-from nomadic.realtime.dashboard.builders import MappingRTDashboard, CallingRTDashboard
+from typing import Optional
+
+from nomadic.realtime.dashboard.builders import CallingRTDashboard, MappingRTDashboard
 from nomadic.util.experiment import ExperimentDirectories, find_metadata, find_regions
 from nomadic.util.settings import load_settings
 
@@ -12,7 +14,7 @@ def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:
     return os.path.exists(expt_dirs.get_summary_files().variants)
 
 
-def main(input_dir: str):
+def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
     """
     Main execution code for just running the dashboard
 
@@ -60,6 +62,7 @@ def main(input_dir: str):
         "region_coverage_csv": summary_files.region_coverage,
         "depth_profiles_csv": summary_files.depth_profiles,
         "start_time": start_time,
+        "is_realtime": False,
     }
 
     if variant_calling_performed(expt_dirs):
@@ -67,15 +70,14 @@ def main(input_dir: str):
         dashboard = CallingRTDashboard(
             **shared_kwargs,
             variant_csv=summary_files.variants,
-            is_realtime=False,
         )
     else:
         print("  Variant calling: False")
-        dashboard = MappingRTDashboard(**shared_kwargs, is_realtime=False)
+        dashboard = MappingRTDashboard(**shared_kwargs)
     print("Done.")
 
     print("")
     print("Launching dashboard (press CNTRL+C to exit):")
     print("")
 
-    dashboard.run(debug=False)
+    dashboard.run(debug=False, host=host, port=port)
