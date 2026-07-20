@@ -32,8 +32,10 @@ def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
     """
 
     metadata = find_metadata(input_dir)
-    expt_dirs = ExperimentDirectories(input_dir, metadata)
     regions = find_regions(input_dir)
+    expt_dirs = ExperimentDirectories(
+        input_dir, metadata.barcodes, os.path.basename(regions.path)
+    )
     settings = load_settings(expt_dirs.get_settings_file())
 
     if settings is not None:

@@ -194,7 +194,7 @@ class MetadataTableParser:
         self._correct_all_barcodes()
         self._correct_all_sample_types()
 
-        self.barcodes = self.df["barcode"].tolist()
+        self.barcodes: list[str] = self.df["barcode"].tolist()
         self.sample_ids_df = self.df[["barcode", "sample_id"]].set_index("barcode")
 
         if include_unclassified:

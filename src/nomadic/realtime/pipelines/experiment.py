@@ -144,7 +144,7 @@ class ExperimentPipelineRT(ABC):
         """
 
         # Merge VCF
-        vcf_dir = produce_dir(self.expt_dirs.approach_dir, "vcfs")
+        vcf_dir = produce_dir(self.expt_dirs.output_dir, "vcfs")
         vcfs = []
         for b in self.metadata.barcodes:
             if b == "unclassified":

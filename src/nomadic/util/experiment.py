@@ -99,28 +99,27 @@ class ExperimentDirectories:
     def __init__(
         self,
         output_dir: str,
-        metadata: MetadataTableParser,
-        regions: RegionBEDParser = None,
-        approach_name: str = "",
+        barcodes: list[str],
+        regions_basename: str,
     ):
+        self.output_dir = output_dir
+
+        self.metadata_dir = os.path.join(self.output_dir, "metadata")
+        self.barcodes_dir = os.path.join(self.output_dir, "barcodes")
+        self._barcode_dirs = {b: os.path.join(self.barcodes_dir, b) for b in barcodes}
+        self.regions_bed = os.path.join(self.metadata_dir, regions_basename)
+
+    def setup_dirs(self):
         """
-        Initialise all the required directories
+        Create all the directories for the experiment
 
         """
 
-        self.expt_dir = produce_dir(output_dir)
-
-        self.metadata_dir = produce_dir(self.expt_dir, "metadata")
-        self._setup_metadata_dir(metadata, regions)
-
-        # This enables different Guppy versions, barcoding strategies, &c
-        self.approach_name = approach_name
-        self.approach_dir = produce_dir(self.expt_dir, approach_name)
-
-        self.barcodes_dir = produce_dir(self.approach_dir, "barcodes")
-        self._barcode_dirs = {
-            b: produce_dir(self.barcodes_dir, b) for b in metadata.barcodes
-        }
+        produce_dir(self.output_dir)
+        produce_dir(self.metadata_dir)
+        produce_dir(self.barcodes_dir)
+        for barcode_dir in self._barcode_dirs.values():
+            produce_dir(barcode_dir)
 
     def get_barcode_dir(self, barcode_name: str):
         """
@@ -135,9 +134,9 @@ class ExperimentDirectories:
         return os.path.join(self.metadata_dir, "settings.json")
 
     def get_summary_files(self) -> SummaryFiles:
-        return get_summary_files(Path(self.approach_dir))
+        return get_summary_files(Path(self.output_dir))
 
-    def _setup_metadata_dir(
+    def setup_metadata_dir(
         self, metadata: MetadataTableParser, regions: RegionBEDParser
     ) -> None:
         """
@@ -145,12 +144,11 @@ class ExperimentDirectories:
         and store their paths as attributes
         """
         if metadata is not None:
-            self.metadata_csv = f"{self.metadata_dir}/{STANDARD_METADATA_FILENAME}"
-            if not os.path.exists(self.metadata_csv):
-                metadata.df.to_csv(self.metadata_csv, index=False)
+            metadata_csv = f"{self.metadata_dir}/{STANDARD_METADATA_FILENAME}"
+            if not os.path.exists(metadata_csv):
+                metadata.df.to_csv(metadata_csv, index=False)
 
         if regions is not None:
-            self.regions_bed = f"{self.metadata_dir}/{os.path.basename(regions.path)}"
             if not os.path.exists(self.regions_bed):
                 shutil.copy(regions.path, self.regions_bed)
 
