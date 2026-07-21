@@ -76,9 +76,12 @@ class SummaryDashboardBuilder(ABC):
 
         app.layout = html.Div(id="overall", children=self.layout)
 
+        host = kwargs.get("host")
+        port = kwargs.get("port")
+
         if auto_open:
             threading.Timer(
-                1, webbrowser.open, kwargs=dict(url="http://127.0.0.1:8050")
+                1, webbrowser.open, kwargs=dict(url=f"http://{host}:{port}")
             ).start()
 
         if in_thread:

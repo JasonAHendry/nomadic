@@ -87,6 +87,18 @@ from nomadic.util.workspace import Workspace
     help="Name of the map to use for the dashboard. The file should be in the workspace maps directory and should be a GeoJSON file. The name should be the same as the file name without the .geojson extension",
     multiple=True,
 )
+@click.option(
+    "--host",
+    type=str,
+    default="127.0.0.1",
+    help="Host to use for the dashboard.",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    type=int,
+    help="Port to use for the dashboard. If not provided, the next free port up from 8050 will be used.",
+)
 def summarize(
     experiment_dirs: tuple[str],
     summary_name: str,
@@ -101,6 +113,8 @@ def summarize(
     no_master_metadata: bool,
     qc_min_coverage: int,
     qc_max_contam: float,
+    host: str,
+    port: int | None,
 ):
     """
     Summarize a set of experiments to evaluate quality control and
@@ -120,7 +134,12 @@ def summarize(
     if only_dashboard:
         from .main import view
 
-        return view(Path(workspace.get_summary_dir(summary_name)), summary_name)
+        return view(
+            Path(workspace.get_summary_dir(summary_name)),
+            summary_name,
+            host=host,
+            port=port,
+        )
 
     if metadata_csv is None and not no_master_metadata:
         metadata_csv = Path(workspace.get_master_metadata_csv(summary_name))
@@ -156,6 +175,8 @@ def summarize(
             qc_min_coverage=qc_min_coverage,
             qc_max_contam=qc_max_contam,
             maps=list(maps),
+            host=host,
+            port=port,
         )
     except MetadataFormatError as e:
         raise click.BadParameter(

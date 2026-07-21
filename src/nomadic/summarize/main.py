@@ -32,6 +32,7 @@ from nomadic.util.experiment import (
     check_experiment_outputs,
 )
 from nomadic.util.logging_config import LoggingFascade
+from nomadic.util.port import next_free_port
 from nomadic.util.summary import Settings, get_master_columns_mapping, load_settings
 from nomadic.util.wrappers import bcftools
 
@@ -756,6 +757,8 @@ def main(
     no_master_metadata: bool = False,
     qc_min_coverage: int,
     qc_max_contam: float,
+    host: str = "127.0.0.1",
+    port: Optional[int] = None,
 ) -> None:
     """
     Define the main function for the summary analysis
@@ -1059,10 +1062,10 @@ def main(
     # --------------------------------------------------------------------------------
 
     if show_dashboard:
-        view(output_dir, summary_name)
+        view(output_dir, summary_name, host=host, port=port)
 
 
-def view(input_dir: Path, summary_name: str) -> None:
+def view(input_dir: Path, summary_name: str, host: str, port: Optional[int]) -> None:
     """
     View the summary dashboard for a given summary
     """
@@ -1107,8 +1110,10 @@ def view(input_dir: Path, summary_name: str) -> None:
     print("")
     print("Launching dashboard (press CNTRL+C to exit):")
     print("")
+    if port is None:
+        port = next_free_port(8050)
     debug = bool(os.getenv("NOMADIC_DEBUG"))
-    dashboard.run(debug=debug, auto_open=not debug)
+    dashboard.run(debug=debug, auto_open=not debug, host=host, port=port)
 
 
 class Timer:
