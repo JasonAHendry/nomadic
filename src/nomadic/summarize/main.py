@@ -1,318 +1,64 @@
 import glob
 import os
-from posixpath import basename
 import shutil
 from typing import Iterable, Optional
-from enum import StrEnum, auto
-from collections import Counter
 from pathlib import Path
 import subprocess
 import time
 
 import pandas as pd
-import numpy as np
 
 from nomadic.download.references import REFERENCE_COLLECTION
+from nomadic.summarize.analysis.input_data import common_caller
 from nomadic.summarize.compute import (
-    calc_amplicons_summary,
-    calc_samples_summary,
     compute_variant_prevalence,
     filter_false_positives,
     gene_deletion_prevalence_by,
     gene_deletions,
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
+from nomadic.summarize.analysis.inventory import (
+    add_inventory_status,
+    compute_throughput,
+    create_inventory_df,
+    drop_excluded_samples,
+    experiments_in_inventory,
+    n_excluded_samples,
+    n_field_samples,
+)
+from nomadic.summarize.analysis.metadata import (
+    get_shared_metadata_columns,
+    load_master_metadata,
+    master_metadata_from_expts,
+    normalize_metadata,
+    validate_metadata,
+)
+from nomadic.summarize.analysis.qc import (
+    add_quality_control_columns,
+    add_quality_control_status_column,
+    amplicons_qc_summary,
+    compute_field_coverage_summary,
+    create_region_coverage_df,
+    experiment_qc_summary,
+    replicates_amplicon_qc,
+    replicates_qc,
+    samples_qc,
+)
 from nomadic.util.panel import get_panel_settings
 from nomadic.util.vcf import VariantAnnotator
 from nomadic.util.workspace import Workspace
 from nomadic.util.dirs import produce_dir
-from nomadic.util.regions import RegionBEDParser
+from nomadic.util.regions import RegionBEDParser, common_regions
 from nomadic.util.experiment import (
-    get_summary_files,
-    check_experiment_outputs,
+    experiment_outputs,
 )
 from nomadic.util.logging_config import LoggingFascade
 from nomadic.util.port import next_free_port
-from nomadic.util.summary import Settings, get_master_columns_mapping, load_settings
+from nomadic.util.summary_settings import (
+    Settings,
+    load_settings,
+)
 from nomadic.util.wrappers import bcftools
-
-
-# --------------------------------------------------------------------------------
-# Check for completion and consistency across experiments
-#
-# --------------------------------------------------------------------------------
-
-
-def check_regions_consistent(expt_regions: list[RegionBEDParser]) -> None:
-    """
-    Check that the regions are consistent across all experiment directories
-
-    TODO:
-    - Might make sense to *extract* the region that was used and save it;
-
-    """
-    if len(expt_regions) == 0:
-        # Nothing to check
-        return
-    base = expt_regions[0]
-    for r in expt_regions:
-        if not (r.df == base.df).all().all():
-            raise ValueError(
-                "Different regions used across experiments, this is not supported. Check region BED files are the same."
-            )
-
-
-def check_calling_consistent(expt_callers: list[str]) -> Optional[str]:
-    """
-    Check that the same variant caller was used across all experiments,
-    where `expt_callers` is a list of used variant callers
-    """
-    if len(expt_callers) == 0:
-        return None
-    caller_counts = Counter([caller for caller in expt_callers])
-    if len(caller_counts) > 1:
-        raise ValueError(
-            "Found more than one variant caller used across experiments: "
-            + f"{', '.join([f'{v} experiment(s) used {c}' for c, v in caller_counts.items()])}."
-        )
-    return caller_counts.most_common()[0][0]
-
-
-def get_shared_metadata_columns(
-    metadata_dfs: list[pd.DataFrame],
-    fixed_columns: list[str] = ["expt_name", "barcode", "sample_id", "sample_type"],
-) -> list[str]:
-    """Get metadata columns that are shared acrossa all experiments"""
-
-    shared_columns = set(metadata_dfs[0].columns)
-    for df in metadata_dfs[1:]:
-        shared_columns.intersection_update(df.columns)
-    shared_columns.difference_update(fixed_columns)  # why am I doing this?
-    return list(shared_columns)
-
-
-# --------------------------------------------------------------------------------
-# Throughput
-#
-# --------------------------------------------------------------------------------
-
-
-def compute_throughput(metadata: pd.DataFrame, add_unique: bool = True) -> pd.DataFrame:
-    """
-    Compute a simple throughput crosstable
-
-    Also add information about uniqueness
-
-    """
-    throughput_df = pd.crosstab(
-        metadata["sample_type"], metadata["expt_name"], margins=True
-    )
-
-    if add_unique:
-        um = metadata.drop_duplicates("sample_id")
-        throughput_df.loc["field_unique"] = pd.crosstab(
-            um["sample_type"], um["expt_name"], margins=True
-        ).loc["field"]
-
-    throughput_df.fillna(0, inplace=True)
-    throughput_df = throughput_df.astype(int)
-
-    return throughput_df
-
-
-def get_region_coverage_dataframe(
-    expt_dirs: Iterable[str], metadata: pd.DataFrame
-) -> pd.DataFrame:
-    """
-    Here we load a consolidated region coverage dataframe and include information required
-    for quality control
-    """
-
-    # Load coverage data
-    bed_dfs = []
-    for expt_dir in expt_dirs:
-        bed_csv = get_summary_files(Path(expt_dir)).region_coverage
-
-        bed_df = pd.read_csv(bed_csv)
-        bed_df.insert(0, "expt_name", os.path.basename(expt_dir))
-        bed_df.query("barcode != 'unclassified'", inplace=True)
-        if "sample_id" in bed_df.columns:
-            bed_df.drop(columns=["sample_id"], inplace=True)
-
-        # TODO: Do checks
-        bed_df = pd.merge(
-            left=metadata[["expt_name", "barcode", "sample_id", "sample_type"]],
-            right=bed_df,
-            on=["expt_name", "barcode"],
-            how="inner",  # ensure we only take samples that are in the master metadata
-        )
-        # TODO: Do checks
-        bed_dfs.append(bed_df)
-    concat_df = pd.concat(bed_dfs)
-
-    # Get negative control data
-    neg_df = (
-        concat_df.query("sample_type == 'neg'")
-        .groupby(["expt_name", "name"])
-        .mean_cov.mean()
-        .reset_index()
-        .rename({"mean_cov": "mean_cov_neg"}, axis=1)
-    )
-
-    # TODO: do checks
-    coverage_df = pd.merge(
-        left=concat_df[
-            ["expt_name", "barcode", "sample_id", "sample_type", "name", "mean_cov"]
-        ],  # sample ID, will want it at some point
-        right=neg_df,
-        on=["expt_name", "name"],
-        how="left",
-    )
-    # TODO: do checks
-
-    return coverage_df
-
-
-def set_inventory_status(
-    inventory_metadata: pd.DataFrame, master_metadata: pd.DataFrame
-) -> pd.DataFrame:
-    """
-    Adds a column status with either control (for controls), or included/excluded for field samples
-    """
-    field_samples = inventory_metadata.query("sample_type == 'field'")
-    excluded_samples = (
-        field_samples.loc[
-            ~field_samples["sample_id"].isin(master_metadata["sample_id"]),
-            "sample_id",
-        ]
-        .unique()
-        .tolist()
-    )
-    # Mark excluded/incldued samples
-    inventory_metadata["status"] = np.where(
-        inventory_metadata["sample_id"].isin(excluded_samples), "excluded", "included"
-    )
-    # set all controls
-    inventory_metadata["status"] = np.where(
-        inventory_metadata["sample_type"].isin(["pos", "neg"]),
-        "control",
-        inventory_metadata["status"],
-    )
-    return inventory_metadata
-
-
-def drop_excluded_samples(inventory_metadata: pd.DataFrame) -> pd.DataFrame:
-    """Drop all excluded samples and the full experiment including controls if no sample is included in an experiment"""
-    keep_mask = (
-        inventory_metadata["status"]
-        .eq("included")
-        .groupby(inventory_metadata["expt_name"])
-        .transform("any")
-    ) & inventory_metadata["status"].ne("excluded")
-    return inventory_metadata[keep_mask]
-
-
-def calc_quality_control_columns(
-    df: pd.DataFrame, *, min_coverage: int = 50, max_contam: float = 0.1
-) -> None:
-    """
-    Calculate columns evaluating whether samples have passed quality control
-    """
-
-    # Do we have enough coverage?
-    df["fail_lowcov"] = df["mean_cov"] < min_coverage
-
-    # Check if coverage of negative control exceeds `max_contam`
-    df["fail_contam_rel"] = df["mean_cov_neg"] / (df["mean_cov"] + 0.01) >= max_contam
-    df["fail_contam_abs"] = df["mean_cov_neg"] >= min_coverage
-
-    df["fail_contam"] = (
-        (df["fail_contam_rel"] & ~df["fail_lowcov"]) | df["fail_contam_abs"]
-    )  # If already failed low coverage, don't consider contamination, unless it's absolute threshold is exceeded
-
-    # Finally, define passing
-    df["passing"] = ~df["fail_contam"] & ~df["fail_lowcov"]
-
-
-# --------------------------------------------------------------------------------
-# Quality Control
-#
-# --------------------------------------------------------------------------------
-
-
-class QcStatus(StrEnum):
-    PASS = auto()
-    LOWCOV = auto()
-    CONTAM = auto()
-    DUPLICATE = auto()
-    CONTROL = auto()
-
-
-def _add_qc_status_no_duplicates(df: pd.DataFrame) -> list[str]:
-    """
-    Adds a status to each replicate/amplicon to see which ones passed QC
-    and if they didn't, why.
-    """
-    status_strs = []
-    for _, row in df.iterrows():
-        status = []
-        if row["sample_type"] in ["pos", "neg"]:
-            status.append(QcStatus.CONTROL)
-        else:
-            if row["fail_contam"]:
-                status.append(QcStatus.CONTAM)
-            if row["fail_lowcov"]:
-                status.append(QcStatus.LOWCOV)
-            if not status:
-                status.append(QcStatus.PASS)
-        status_strs.append(";".join(status))
-    df["status"] = status_strs
-
-
-def _mark_duplicates(df: pd.DataFrame) -> None:
-    """
-    Mark all field samples as duplicates, if there is a better covered replicate for the same amplicon
-    Replicates marked as duplicate will not be used for prevalance evaluation.
-    """
-
-    def _update_duplicate(status: str, idx: int, keep_idx: int) -> str:
-        if idx == keep_idx:
-            return status
-        return f"{status};{QcStatus.DUPLICATE}"
-
-    for (_, _), data in df.query("sample_type == 'field'").groupby(
-        ["sample_id", "name"]
-    ):
-        # Select an index to keep, i.e. the best sample that should
-        # marked as duplicate
-        passing = data["status"] == "pass"
-        if passing.sum() == 1:
-            keep_idx = passing.idxmax()
-        elif passing.sum() > 1:
-            keep_idx = data[passing]["mean_cov"].idxmax()  # keep maximum coverage
-        else:  # none are passing, arbrarily keep first
-            keep_idx = data.index[0]
-
-        # NB: updating in-place
-        # must be a view, not a slice hence [,]
-        df.loc[data.index, "status"] = [
-            _update_duplicate(status, idx, keep_idx)
-            for idx, status in data["status"].items()
-        ]
-
-
-def add_quality_control_status_column(df: pd.DataFrame) -> None:
-    """
-    Add a QC status column in-place
-
-    Note:
-    - When we mark duplicates; we do it on an AMPLICON x SAMPLE level;
-    not on a per-sample level. So we could take amplicons from separate
-    samples to get the best data for that sample.
-
-    """
-    _add_qc_status_no_duplicates(df)
-    _mark_duplicates(df)
 
 
 # --------------------------------------------------------------------------------
@@ -707,42 +453,10 @@ def load_variants_from_vcfs(
     return variant_df
 
 
-def replicates_qc(
-    coverage_df: pd.DataFrame, REPLICATE_PASSING_THRESHOLD: float
-) -> pd.DataFrame:
-    """
-    Calculates which of the replicates (repeated runs of a sample) passed QC as a whole
-    (more than REPLICATE_PASSING_THRESHOLD passed)
-    """
-    replicates_qc_df = (
-        coverage_df.query("sample_type == 'field'")
-        .groupby(["expt_name", "barcode", "sample_id"])
-        .agg(
-            n_amplicons=pd.NamedAgg("name", "count"),
-            n_passing=pd.NamedAgg("passing", "sum"),
-            n_fail_contam=pd.NamedAgg("fail_contam", "sum"),
-            n_fail_lowcov=pd.NamedAgg("fail_lowcov", "sum"),
-        )
-        .reset_index()
-    )
-    replicates_qc_df["passing"] = (
-        replicates_qc_df["n_passing"] / replicates_qc_df["n_amplicons"]
-        >= REPLICATE_PASSING_THRESHOLD
-    )
-
-    return replicates_qc_df
-
-
-def replicates_amplicon_qc(coverage_df):
-    return coverage_df.query("sample_type == 'field'")
-
-
 # --------------------------------------------------------------------------------
 # Main
 #
 # --------------------------------------------------------------------------------
-
-
 def main(
     *,
     workspace: Workspace,
@@ -757,189 +471,158 @@ def main(
     no_master_metadata: bool = False,
     qc_min_coverage: int,
     qc_max_contam: float,
+    qc_replicate_passing_threshold: float,
     host: str = "127.0.0.1",
     port: Optional[int] = None,
 ) -> None:
     """
     Define the main function for the summary analysis
-
-
     """
-
     assert (metadata_path is not None) or no_master_metadata
 
-    produce_dir(str(output_dir))
-
-    # PARSE EXPERIMENT DIRECTORIES
+    ###############
+    # Log setup
+    ##############
     log = LoggingFascade(logger_name="nomadic")
     log.info("Input parameters:")
     log.info(f"  Summary Name: {summary_name}")
-    if not no_master_metadata:
-        log.info(f"  Master metadata: {metadata_path}")
-    else:
+    if no_master_metadata:
         log.info("  No master metadata will be used.")
+    else:
+        log.info(f"  Master metadata: {metadata_path}")
     log.info(f"  Setting file: {settings_file_path}")
     log.info(f"  Found {len(expt_dirs)} experiment directories.")
+    log.info(f"  Output directory: {output_dir}")
+
+    produce_dir(str(output_dir))
 
     # Check experiments are complete
-    expts = [check_experiment_outputs(expt_dir) for expt_dir in expt_dirs]
-    log.info("  All experiments are complete.")
+    if not expt_dirs:
+        raise ValueError("No experiment directories found to summarize.")
+
+    log.info("Data status:")
+    expts = [
+        experiment_outputs(expt_dir, allow_missing_files=["depth", "fastq"])
+        for expt_dir in expt_dirs
+    ]
+    log.info(f"  All {len(expts)} experiments are complete.")
 
     # Check experiments are consistent
-    check_regions_consistent([expt.regions for expt in expts])
+    regions = common_regions([expt.regions for expt in expts])
+    if regions is None:
+        raise ValueError("Experiments use different regions, cannot summarize.")
     log.info("  All experiments use the same regions.")
-    if expts:
-        panel_name = expts[0].regions.name
-    else:
-        panel_name = "Unknown"
-    log.info(f"  Panel used: {panel_name}")
-    caller = check_calling_consistent([expt.caller for expt in expts])
+    caller = common_caller([expt.caller for expt in expts])
     if caller is None:
         raise ValueError("Can only summarize variants if a variant caller was used")
     log.info(f"  All experiments use same variant caller: {caller}")
 
+    if expts:
+        panel_name = regions.name
+    else:
+        panel_name = "Unknown"
+    log.info(f"  Panel used: {panel_name}")
     panel_settings = get_panel_settings(panel_name)
-    log.info(f"  Loaded panel settings for panel '{panel_settings.name}'.")
+    log.info(f"Loaded panel settings for panel '{panel_settings.name}'.")
 
     settings: Settings = Settings()
     if settings_file_path.exists():
         settings = load_settings(settings_file_path)
         log.info(f"  Loaded summary settings from {settings_file_path}.")
 
-    # CHECK METADATA IS VALID
-    FIXED_COLUMNS = ["expt_name", "barcode", "sample_id", "sample_type"]
-    shared_columns = get_shared_metadata_columns(
-        [expt.metadata for expt in expts], fixed_columns=FIXED_COLUMNS
-    )
-    log.info("  All metadata tables pass completion checks.")
-    log.info(
-        f"  Found {len(shared_columns)} non-essential shared columns across all metadata files: {', '.join(shared_columns)}"
-    )
-
-    # for now we use the master metadata file
-    inventory_metadata = pd.concat(
-        [expt.metadata[FIXED_COLUMNS] for expt in expts]
-    ).reset_index()
+    ####################
+    # Load metadata and check for consistency
+    ####################
+    full_inventory_df = create_inventory_df(expts)
     if metadata_path is not None and not no_master_metadata:
-        master_metadata = pd.read_csv(metadata_path, dtype={"sample_id": "str"}).rename(
-            columns=get_master_columns_mapping(settings)
-        )
+        master_metadata_df = load_master_metadata(metadata_path, settings=settings)
     else:
         # create metadata from experiment meta data files
-        shared_columns = ["sample_id"] + list(shared_columns)
-        master_metadata = pd.concat(
-            [
-                expt.metadata.query("sample_type == 'field'")[shared_columns]
-                for expt in expts
-            ]
+        shared_columns = get_shared_metadata_columns([expt.metadata for expt in expts])
+        log.info(
+            f"  Found {len(shared_columns)} non-essential shared columns across all experiment metadata files: {', '.join(shared_columns)}"
         )
-        # Note, problematic if same sample ID has different metadata across experiments
-        master_metadata.drop_duplicates(subset=["sample_id"], inplace=True)
-
-    master_metadata = master_metadata.astype(
-        {"sample_id": "str"}
-    )  # ensure sample IDs are strings
-    inventory_metadata = inventory_metadata.astype(
-        {"sample_id": "str"}
-    )  # ensure sample IDs are strings
-    # strip whitespaces from sample IDs
-    inventory_metadata["sample_id"] = inventory_metadata["sample_id"].str.strip()
-    master_metadata["sample_id"] = master_metadata["sample_id"].str.strip()
-
-    # Check no duplicate sample IDs in master metadata
-    duplicate_sample_ids = master_metadata[
-        master_metadata.duplicated(subset=["sample_id"])
-    ]["sample_id"].unique()
-    if len(duplicate_sample_ids) > 0:
-        raise ValueError(
-            f"Duplicate sample IDs found in master metadata: {', '.join(duplicate_sample_ids)}"
+        master_metadata_df = master_metadata_from_expts(
+            expts, shared_columns=shared_columns
+        )
+        log.info(
+            f"  Created master metadata from experiment metadata files with {len(master_metadata_df)} samples."
         )
 
-    inventory_metadata = set_inventory_status(inventory_metadata, master_metadata)
+    master_metadata_df = master_metadata_df.pipe(normalize_metadata).pipe(
+        validate_metadata
+    )
+    full_inventory_df = add_inventory_status(full_inventory_df, master_metadata_df)
 
-    n_excluded = inventory_metadata.loc[
-        inventory_metadata["status"] == "excluded", "sample_id"
-    ].nunique()
+    n_excluded = n_excluded_samples(full_inventory_df)
+    full_inventory_df.to_csv(f"{output_dir}/inventory.csv", index=False)
 
-    inventory_metadata.to_csv(f"{output_dir}/inventory.csv", index=False)
-
-    inventory_metadata = drop_excluded_samples(inventory_metadata)
-
-    inventory_metadata.to_csv(f"{output_dir}/inventory.debug.csv", index=False)
+    inventory_df = drop_excluded_samples(full_inventory_df)
 
     # Filter experiment directories to only those that are in the master metadata, i.e. that have at least one included sample
-    expt_dirs = [
-        expt_dir
-        for expt_dir in expt_dirs
-        if basename(expt_dir) in inventory_metadata["expt_name"].unique()
-    ]
-
-    if len(inventory_metadata.query("sample_type == 'field'")) == 0:
+    expt_dirs = experiments_in_inventory(inventory_df, expt_dirs)
+    if n_field_samples(inventory_df) == 0:
         log.info("No included field samples, exiting...")
         return
 
     # Throughput data
     log.info("Overall sequencing throughput:")
-    throughput_df = compute_throughput(inventory_metadata)
-    log.info(f"  Positive controls: {throughput_df.loc['pos', 'All']}")
-    log.info(f"  Negative controls: {throughput_df.loc['neg', 'All']}")
-    log.info(f"  Fields samples sequenced (total): {throughput_df.loc['field', 'All']}")
-    log.info(f"  Field samples (unique): {throughput_df.loc['field_unique', 'All']}")
+    throughput, throughput_df = compute_throughput(inventory_df)
+    log.info(f"  Positive controls: {throughput.n_pos}")
+    log.info(f"  Negative controls: {throughput.n_neg}")
+    log.info(f"  Fields samples sequenced (total): {throughput.n_field_total}")
+    log.info(f"  Field samples (unique): {throughput.n_field_unique}")
     log.info(f"  Excluded samples: {n_excluded}")
     throughput_df.to_csv(f"{output_dir}/summary.throughput.csv", index=True)
 
+    ############################
+    # Quality control
+    ############################
+
     # Now let's evaluate coverage
-    coverage_df = get_region_coverage_dataframe(expt_dirs, inventory_metadata)
-    calc_quality_control_columns(
-        coverage_df, min_coverage=qc_min_coverage, max_contam=qc_max_contam
+    coverage_df = (
+        create_region_coverage_df(expt_dirs, inventory_df)
+        .pipe(
+            add_quality_control_columns,
+            min_coverage=qc_min_coverage,
+            max_contam=qc_max_contam,
+        )
+        .pipe(add_quality_control_status_column)
     )
 
     log.info("Amplicon-Sample QC Statistics:")
-    field_coverage_df = coverage_df.query("sample_type == 'field'")
-    n = field_coverage_df.shape[0]
-    n_lowcov = field_coverage_df["fail_lowcov"].sum()
-    n_contam = field_coverage_df["fail_contam"].sum()
-    n_pass = field_coverage_df["passing"].sum()
+    field_coverage_summary = compute_field_coverage_summary(coverage_df)
+    low_cov_perc = 100 * field_coverage_summary.n_lowcov / field_coverage_summary.n
+    contam_perc = 100 * field_coverage_summary.n_contam / field_coverage_summary.n
+    pass_perc = 100 * field_coverage_summary.n_pass / field_coverage_summary.n
     log.info(
-        f"  Coverage below <{qc_min_coverage}x: {n_lowcov} ({100 * n_lowcov / n:.2f}%)"
+        f"  Coverage below <{qc_min_coverage}x: {field_coverage_summary.n_lowcov} ({low_cov_perc:.2f}%)"
     )
     log.info(
-        f"  Contamination >{qc_max_contam}: {n_contam} ({100 * n_contam / n:.2f}%)"
+        f"  Contamination >{qc_max_contam}: {field_coverage_summary.n_contam} ({contam_perc}%)"
     )
-    log.info(f"  Passing QC: {n_pass} ({100 * n_pass / n:.2f}%)")
-    add_quality_control_status_column(coverage_df)
-    log.info(str(coverage_df["status"].value_counts()))
+    log.info(f"  Passing QC: {field_coverage_summary.n_pass} ({pass_perc}%)")
     coverage_df.to_csv(f"{output_dir}/summary.coverage.csv", index=False)
 
-    REPLICATE_PASSING_THRESHOLD = 0.8
-    replicates_qc_df = replicates_qc(coverage_df, REPLICATE_PASSING_THRESHOLD)
+    replicates_qc_df = replicates_qc(coverage_df, qc_replicate_passing_threshold)
     replicates_qc_df.to_csv(f"{output_dir}/summary.replicates_qc.csv", index=False)
 
-    samples_summary_df = calc_samples_summary(master_metadata, replicates_qc_df)
+    samples_summary_df = samples_qc(master_metadata_df, replicates_qc_df)
     samples_summary_df.to_csv(f"{output_dir}/summary.samples_qc.csv", index=False)
 
-    samples_by_amplicon_summary_df = calc_amplicons_summary(
-        master_metadata, replicates_amplicon_qc(coverage_df)
+    replicates_amplicon_qc_df = replicates_amplicon_qc(coverage_df)
+    samples_by_amplicon_summary_df = amplicons_qc_summary(
+        master_metadata_df, replicates_amplicon_qc_df
     )
     samples_by_amplicon_summary_df.to_csv(
         f"{output_dir}/summary.samples_amplicons_qc.csv", index=False
     )
 
-    final_df = (
-        coverage_df.query("sample_type == 'field'")
-        .groupby(["expt_name", "name"])
-        .agg(
-            mean_cov_field=pd.NamedAgg("mean_cov", "median"),
-            mean_cov_neg=pd.NamedAgg("mean_cov_neg", "median"),
-            n_field=pd.NamedAgg("barcode", len),
-            n_field_passing=pd.NamedAgg("passing", lambda x: x.sum()),
-            per_field_contam=pd.NamedAgg("fail_contam", lambda x: 100 * x.mean()),
-            per_field_lowcov=pd.NamedAgg("fail_lowcov", lambda x: 100 * x.mean()),
-            per_field_passing=pd.NamedAgg("passing", lambda x: 100 * x.mean()),
-        )
-        .reset_index()
+    experiment_qc_summary_df = experiment_qc_summary(replicates_amplicon_qc_df)
+    experiment_qc_summary_df.to_csv(
+        f"{output_dir}/summary.experiments_qc.csv", index=False
     )
-    final_df.to_csv(f"{output_dir}/summary.experiments_qc.csv", index=False)
+    log.info("Quality control complete.")
 
     # --------------------------------------------------------------------------------
     # Let's move onto to variant calling results
@@ -958,7 +641,7 @@ def main(
         expt_dirs,
         caller=caller,
         output_dir=output_dir,
-        summary_regions=expts[0].regions,
+        summary_regions=regions,
         reference_name="Pf3D7",
     )
     timer.time("Loading and annotating variants from VCFs")
@@ -996,7 +679,9 @@ def main(
     timer.time("Computing variant prevalence")
 
     for col in prevalence_by:
-        prev_by_col_df = compute_variant_prevalence(analysis_df, master_metadata, [col])
+        prev_by_col_df = compute_variant_prevalence(
+            analysis_df, master_metadata_df, [col]
+        )
         prev_by_col_df.to_csv(
             f"{output_dir}/summary.variants.prevalence-{col}.csv", index=False
         )
@@ -1012,7 +697,7 @@ def main(
         gene_deletion_df.to_csv(f"{output_dir}/summary.gene_deletions.csv", index=False)
 
         prev_gen_deletions_df = gene_deletion_prevalence_by(
-            gene_deletion_df, master_metadata, []
+            gene_deletion_df, master_metadata_df, []
         )
         prev_gen_deletions_df.to_csv(
             f"{output_dir}/summary.gene-deletions.prevalence.csv", index=False
@@ -1020,13 +705,13 @@ def main(
 
         for col in prevalence_by:
             prev_gen_deletion_by_col_df = gene_deletion_prevalence_by(
-                gene_deletion_df, master_metadata, [col]
+                gene_deletion_df, master_metadata_df, [col]
             )
             prev_gen_deletion_by_col_df.to_csv(
                 f"{output_dir}/summary.gene-deletions.prevalence-{col}.csv", index=False
             )
 
-    master_metadata.to_csv(f"{output_dir}/metadata.csv", index=False)
+    master_metadata_df.to_csv(f"{output_dir}/metadata.csv", index=False)
 
     log.info("Copy relevant files to summary output directory...")
 
@@ -1055,11 +740,6 @@ def main(
     log.info("Summary analysis complete.")
 
     timer.report()
-
-    # --------------------------------------------------------------------------------
-    # Dashboard
-    #
-    # --------------------------------------------------------------------------------
 
     if show_dashboard:
         view(output_dir, summary_name, host=host, port=port)

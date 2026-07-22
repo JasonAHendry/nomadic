@@ -20,7 +20,8 @@ from nomadic.util.workspace import Workspace
     "-m",
     "--metadata_csv",
     type=click.Path(exists=True, dir_okay=False, file_okay=True, path_type=Path),
-    help="Path to the master metadata CSV file.",
+    help="Path to the master metadata CSV file. This file needs to contain a column 'sample_id' with the sample IDs to be included in the summary. "
+    "Can contain other columns as well, which can be used to stratify the summary results",
     show_default="<workspace>/metadata/<summary_name>.csv",
 )
 @click.option(
@@ -33,7 +34,7 @@ from nomadic.util.workspace import Workspace
 @click.option(
     "--prevalence-by",
     type=str,
-    help="Column to calculate prevalence by for output files.",
+    help="Column in metadata_csv to calculate prevalence by for output files.",
     multiple=True,
 )
 @click.option(
@@ -46,7 +47,7 @@ from nomadic.util.workspace import Workspace
     type=bool,
     is_flag=True,
     default=False,
-    help="If set, only open the summary dashboard in the web browser. Can not be combined with --no-dashboard.",
+    help="If set, only open the summary dashboard in the web browser, the summary will not be recalculated. Can not be combined with --no-dashboard.",
 )
 @click.option(
     "-s",
@@ -59,7 +60,8 @@ from nomadic.util.workspace import Workspace
     "--no-master-metadata",
     is_flag=True,
     default=False,
-    help="If set, no master metadata CSV needs to be provided. This is not recommended, as it's better to be explicit about the samples to be included, but it can be used to quickly get an overview of the data in the workspace.",
+    help="If set, no master metadata CSV needs to be provided. In this case all samples in the workspace will be used. "
+    "This is not recommended, as it's better to be explicit about the samples to be included, but it can be used to quickly get an overview of the data in the workspace.",
 )
 @click.option(
     "--qc-min-coverage",
@@ -74,6 +76,13 @@ from nomadic.util.workspace import Workspace
     default=0.1,
     show_default=True,
     help="Maximum contamination fraction for quality control. Samples with contamination above this fraction will be marked as contaminated. Contamination is defined as the mean coverage of negative controls being more than this fraction of the sample coverage.",
+)
+@click.option(
+    "--qc-replicate-passing-threshold",
+    type=click.FloatRange(0.0, 1.0),
+    default=0.8,
+    show_default=True,
+    help="Minimum fraction of passing amplicons required for a replicate to pass QC.",
 )
 @click.option(
     "--output-dir",
@@ -113,6 +122,7 @@ def summarize(
     no_master_metadata: bool,
     qc_min_coverage: int,
     qc_max_contam: float,
+    qc_replicate_passing_threshold: float,
     host: str,
     port: int | None,
 ):
@@ -174,6 +184,7 @@ def summarize(
             no_master_metadata=no_master_metadata,
             qc_min_coverage=qc_min_coverage,
             qc_max_contam=qc_max_contam,
+            qc_replicate_passing_threshold=qc_replicate_passing_threshold,
             maps=list(maps),
             host=host,
             port=port,

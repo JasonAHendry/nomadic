@@ -11,14 +11,15 @@ from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 
 from nomadic.summarize.compute import (
-    Status,
     compute_variant_prevalence,
     gene_deletion_prevalence_by,
 )
 from i18n import t
 
+from nomadic.summarize.analysis.qc import Status
+
 # --------------------------------------------------------------------------------
-# Interface for a single real-time dashboard component
+# Interface for a summary dashboard component
 #
 # --------------------------------------------------------------------------------
 

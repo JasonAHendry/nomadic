@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 import seaborn as sns
 
 from matplotlib.colors import rgb2hex
@@ -58,3 +59,22 @@ class RegionBEDParser:
             row["name"]: f"{row['chrom']}:{row['start']}-{row['end']}"
             for _, row in self.df.iterrows()
         }
+
+
+def common_regions(
+    expt_regions: list[RegionBEDParser],
+) -> Optional[RegionBEDParser]:
+    """
+    Check that the regions are consistent across all experiment directories and return the used regoins
+
+    """
+    if len(expt_regions) == 0:
+        # Nothing to check
+        return None
+    base = expt_regions[0]
+    for r in expt_regions:
+        if not (r.df == base.df).all().all():
+            raise ValueError(
+                "Different regions used across experiments, this is not supported. Check region BED files are the same."
+            )
+    return base

@@ -4,7 +4,7 @@ import json
 import shutil
 import pandas as pd
 from pathlib import Path
-from typing import NamedTuple, Any
+from typing import Literal, NamedTuple, Any, Optional
 from dataclasses import dataclass
 
 from nomadic.util.dirs import produce_dir
@@ -224,12 +224,19 @@ def find_regions(expt_dir: str) -> RegionBEDParser:
     return RegionBEDParser(bed[0])
 
 
-def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:
-    """For a given `expt_dir` check what experiment outputs exist
+def experiment_outputs(
+    expt_dir: str,
+    allow_missing_files: Optional[
+        list[Literal["fastq", "depth", "region", "variant", "read"]]
+    ],
+) -> ExperimentOutputs:
+    """For a given `expt_dir` return the experiment outputs as an `ExperimentOutputs` object.
 
     Will raise exceptions if data required for summarising is missing.
 
     """
+    if allow_missing_files is None:
+        allow_missing_files = []
 
     # Existence of directory
     if not os.path.isdir(expt_dir):
@@ -239,7 +246,7 @@ def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:
     try:
         parser = find_metadata(expt_dir, Parser=ExtendedMetadataTableParser)
     except MetadataFormatError as e:
-        raise MetadataFormatError(f"Error in metadata for '{expt_dir}': {e}")
+        raise MetadataFormatError(f"Error in metadata for '{expt_dir}': {e}") from e
     metadata = parser.df
     metadata.insert(0, "expt_name", os.path.basename(expt_dir))
 
@@ -248,15 +255,13 @@ def check_experiment_outputs(expt_dir: str) -> ExperimentOutputs:
 
     # Existence of summary Files
     summary_files = get_summary_files(Path(expt_dir))
-    for file in summary_files:
-        if "depth" in file:
-            # depth files are optional, TODO: not so robust
+    for file_name, file_path in summary_files._asdict().items():
+        if any(f in file_name for f in allow_missing_files):
             continue
-        if "fastq" in file:
-            # fastq files are optional
-            continue
-        if not os.path.exists(file):
-            raise FileNotFoundError(f"Missing '{file}' file in {expt_dir}.")
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(
+                f"Missing {file_name} file: '{file_path}' in {expt_dir}."
+            )
 
     # Existence of settings / caller
     settings_path = f"{expt_dir}/metadata/settings.json"

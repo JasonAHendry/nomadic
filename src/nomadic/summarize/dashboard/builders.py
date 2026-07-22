@@ -23,7 +23,7 @@ from nomadic.summarize.dashboard.components import (
     PrevalenceBarplot,
     MapComponent,
 )
-from nomadic.util.summary import Settings, get_map_settings
+from nomadic.util.summary_settings import Settings, get_map_settings
 
 
 class SummaryDashboardBuilder(ABC):
