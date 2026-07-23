@@ -10,6 +10,9 @@ import pandas as pd
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.summarize.analysis.input_data import common_caller
+from nomadic.summarize.analysis.variants import (
+    rename_prevalence_by_cols,
+)
 from nomadic.summarize.compute import (
     compute_variant_prevalence,
     filter_false_positives,
@@ -27,6 +30,7 @@ from nomadic.summarize.analysis.inventory import (
     n_field_samples,
 )
 from nomadic.summarize.analysis.metadata import (
+    METADATA_COLUMN_PREFIX,
     get_shared_metadata_columns,
     load_master_metadata,
     master_metadata_from_expts,
@@ -45,6 +49,7 @@ from nomadic.summarize.analysis.qc import (
     samples_qc,
 )
 from nomadic.util.panel import get_panel_settings
+from nomadic.util.summary import looks_like_summary_dir
 from nomadic.util.vcf import VariantAnnotator
 from nomadic.util.workspace import Workspace
 from nomadic.util.dirs import produce_dir
@@ -494,6 +499,13 @@ def main(
     log.info(f"  Found {len(expt_dirs)} experiment directories.")
     log.info(f"  Output directory: {output_dir}")
 
+    if output_dir.exists():
+        if looks_like_summary_dir(output_dir):
+            shutil.rmtree(output_dir)
+        else:
+            raise ValueError(
+                f"Output directory {output_dir} already exists and does not look like a summary directory. Please remove it or choose a different output directory."
+            )
     produce_dir(str(output_dir))
 
     # Check experiments are complete
@@ -680,8 +692,8 @@ def main(
 
     for col in prevalence_by:
         prev_by_col_df = compute_variant_prevalence(
-            analysis_df, master_metadata_df, [col]
-        )
+            analysis_df, master_metadata_df, [METADATA_COLUMN_PREFIX + col]
+        ).pipe(rename_prevalence_by_cols, METADATA_COLUMN_PREFIX, "by_")
         prev_by_col_df.to_csv(
             f"{output_dir}/summary.variants.prevalence-{col}.csv", index=False
         )
@@ -705,8 +717,8 @@ def main(
 
         for col in prevalence_by:
             prev_gen_deletion_by_col_df = gene_deletion_prevalence_by(
-                gene_deletion_df, master_metadata_df, [col]
-            )
+                gene_deletion_df, master_metadata_df, [METADATA_COLUMN_PREFIX + col]
+            ).pipe(rename_prevalence_by_cols, METADATA_COLUMN_PREFIX, "by_")
             prev_gen_deletion_by_col_df.to_csv(
                 f"{output_dir}/summary.gene-deletions.prevalence-{col}.csv", index=False
             )

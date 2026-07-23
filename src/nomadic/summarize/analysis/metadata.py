@@ -40,9 +40,23 @@ def normalize_sample_id(df: pd.DataFrame) -> pd.DataFrame:
     return df.assign(sample_id=df["sample_id"].astype(str).str.strip())
 
 
+METADATA_COLUMN_PREFIX = "metadata__"
+
+
+def prefix_metadata_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Prefix metadata columns to avoid collisions"""
+    return df.rename(
+        columns={
+            col: f"{METADATA_COLUMN_PREFIX}{col}"
+            for col in df.columns
+            if col != "sample_id"
+        }
+    )
+
+
 def normalize_metadata(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize the metadata dataframe to have consistent sample_id and column names"""
-    return df.pipe(normalize_sample_id)
+    return df.pipe(normalize_sample_id).pipe(prefix_metadata_columns)
 
 
 def validate_metadata(df: pd.DataFrame) -> pd.DataFrame:

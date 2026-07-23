@@ -17,6 +17,9 @@ import pandas as pd
 from nomadic.util.experiment import ExperimentOutputs
 
 
+REQUIRED_INVENTORY_COLUMNS = ["expt_name", "barcode", "sample_id", "sample_type"]
+
+
 def create_inventory_df(expts: list[ExperimentOutputs]) -> pd.DataFrame:
     """Create a dataframe containing the inventory of all experiments.
 
@@ -26,9 +29,8 @@ def create_inventory_df(expts: list[ExperimentOutputs]) -> pd.DataFrame:
     - sample_id: The sample ID
     - sample_type: The type of the sample (field, pos, neg)
     """
-    FIXED_COLUMNS = ["expt_name", "barcode", "sample_id", "sample_type"]
     inventory_df = pd.concat(
-        [expt.metadata[FIXED_COLUMNS] for expt in expts]
+        [expt.metadata[REQUIRED_INVENTORY_COLUMNS] for expt in expts]
     ).reset_index(drop=True)
     inventory_df["sample_id"] = inventory_df["sample_id"].astype(str).str.strip()
     # Check for duplicates

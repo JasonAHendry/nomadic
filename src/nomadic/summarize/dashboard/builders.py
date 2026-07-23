@@ -11,6 +11,7 @@ from i18n import t
 import i18n
 import pandas as pd
 
+from nomadic.summarize.analysis.metadata import METADATA_COLUMN_PREFIX
 from nomadic.summarize.compute import compute_variant_prevalence
 
 from nomadic.summarize.dashboard.components import (
@@ -230,7 +231,13 @@ class SummaryDashboardBuilder(ABC):
 
         dropdown_by = dcc.Dropdown(
             id="prevalence-dropdown-by",
-            options=["All", *cols],
+            options=[
+                {"label": "All", "value": "All"},
+                *[
+                    {"label": col.removeprefix(METADATA_COLUMN_PREFIX), "value": col}
+                    for col in cols
+                ],
+            ],
             value="All",
             style=dict(width="300px"),
             clearable=False,
@@ -337,7 +344,10 @@ class SummaryDashboardBuilder(ABC):
 
         col_dropdown = dcc.Dropdown(
             id="col-dropdown",
-            options=cols,
+            options=[
+                {"label": col.removeprefix(METADATA_COLUMN_PREFIX), "value": col}
+                for col in cols
+            ],
             value=cols[0],
             style=dict(width="300px"),
             clearable=False,
@@ -395,7 +405,13 @@ class SummaryDashboardBuilder(ABC):
 
         dropdown_by = dcc.Dropdown(
             id="gene-deletions-dropdown-by",
-            options=["All", *cols],
+            options=[
+                {"label": "All", "value": "All"},
+                *[
+                    {"label": col.removeprefix(METADATA_COLUMN_PREFIX), "value": col}
+                    for col in cols
+                ],
+            ],
             value="All",
             style=dict(width="300px"),
             clearable=False,
