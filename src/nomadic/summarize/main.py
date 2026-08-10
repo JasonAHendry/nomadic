@@ -521,13 +521,11 @@ def main(
 
     # Check experiments are consistent
     regions = common_regions([expt.regions for expt in expts])
-    if regions is None:
-        raise ValueError("Experiments use different regions, cannot summarize.")
     log.info("  All experiments use the same regions.")
     caller = common_caller([expt.caller for expt in expts])
-    if caller is None:
-        raise ValueError("Can only summarize variants if a variant caller was used")
     log.info(f"  All experiments use same variant caller: {caller}")
+    reference_name = common_reference_name([expt.reference_name for expt in expts])
+    log.info(f"  All experiments use same reference genome: {reference_name}")
 
     if expts:
         panel_name = regions.name

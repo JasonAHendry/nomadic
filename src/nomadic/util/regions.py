@@ -63,14 +63,13 @@ class RegionBEDParser:
 
 def common_regions(
     expt_regions: list[RegionBEDParser],
-) -> Optional[RegionBEDParser]:
+) -> RegionBEDParser:
     """
     Check that the regions are consistent across all experiment directories and return the used regoins
 
     """
     if len(expt_regions) == 0:
-        # Nothing to check
-        return None
+        raise ValueError("No experiment regions provided")
     base = expt_regions[0]
     for r in expt_regions:
         if not (r.df == base.df).all().all():

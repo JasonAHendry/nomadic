@@ -171,6 +171,7 @@ class ExperimentOutputs:
 
     # Variant calling outputs
     caller: str
+    reference_name: str
     has_complete_vcf: bool
     has_filtered_vcf: bool
 
@@ -268,14 +269,17 @@ def experiment_outputs(
     if not os.path.exists(settings_path):
         settings = None
         caller = "bcftools"  # if no settings, was using bcftools
+        reference_name = "Unknown"
     else:
         settings = json.load(open(settings_path, "r"))
         caller = settings["caller"]
+        reference_name = str(settings["reference_name"])
 
     return ExperimentOutputs(
         expt_dir=expt_dir,
         metadata=metadata,
         regions=regions,
+        reference_name=reference_name,
         summary_files=summary_files,
         settings=settings,
         caller=caller,
