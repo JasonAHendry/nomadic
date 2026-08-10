@@ -54,6 +54,17 @@ def prefix_metadata_columns(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def remove_metadata_prefix(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove metadata prefix from columns"""
+    return df.rename(
+        columns={
+            col: col.replace(METADATA_COLUMN_PREFIX, "")
+            for col in df.columns
+            if col.startswith(METADATA_COLUMN_PREFIX)
+        }
+    )
+
+
 def normalize_metadata(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize the metadata dataframe to have consistent sample_id and column names"""
     return df.pipe(normalize_sample_id).pipe(prefix_metadata_columns)

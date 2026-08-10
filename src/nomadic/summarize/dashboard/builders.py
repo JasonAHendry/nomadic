@@ -12,8 +12,8 @@ import i18n
 import pandas as pd
 
 from nomadic.summarize.analysis.metadata import METADATA_COLUMN_PREFIX
-from nomadic.summarize.compute import compute_variant_prevalence
 
+from nomadic.summarize.analysis.variants import compute_variant_prevalence
 from nomadic.summarize.dashboard.components import (
     AmpliconsBarplot,
     GeneDeletionsBarplot,
@@ -520,7 +520,9 @@ class SummaryDashboardBuilder(ABC):
 
         region_dropdown = dcc.Dropdown(
             id="map-region-dropdown",
-            options=list(regions.keys()),
+            options=[
+                {"label": name.capitalize(), "value": name} for name in regions.keys()
+            ],
             value=list(regions.keys())[0] if regions else None,
             style=dict(width="300px"),
             clearable=False,
@@ -574,7 +576,7 @@ class SummaryDashboardBuilder(ABC):
                         ),
                         html.Div(
                             children=[
-                                html.Label("Group by:"),
+                                html.Label("Region level:"),
                                 region_dropdown,
                             ]
                         ),

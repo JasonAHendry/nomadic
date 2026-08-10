@@ -10,13 +10,15 @@ import plotly.graph_objects as go
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 
-from nomadic.summarize.compute import (
-    compute_variant_prevalence,
-    gene_deletion_prevalence_by,
-)
 from i18n import t
 
+from nomadic.summarize.analysis.deletions import gene_deletion_prevalence_by
+from nomadic.summarize.analysis.metadata import (
+    METADATA_COLUMN_PREFIX,
+    remove_metadata_prefix,
+)
 from nomadic.summarize.analysis.qc import Status
+from nomadic.summarize.analysis.variants import compute_variant_prevalence
 
 # --------------------------------------------------------------------------------
 # Interface for a summary dashboard component
@@ -647,7 +649,7 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
             MAR = 40
             fig = go.Figure(plot_data)
             fig.update_layout(
-                xaxis_title=col_by,
+                xaxis_title=col_by.replace(METADATA_COLUMN_PREFIX, ""),
                 hovermode="y unified",
                 paper_bgcolor="white",  # Sets the background color of the paper
                 plot_bgcolor="white",
@@ -855,17 +857,20 @@ class MapComponent(SummaryDashboardComponent):
             gene, aa_change = target_mutation.split("-")
 
             if map_style == "choropleth" and region_by is not None:
+                metadata_col = METADATA_COLUMN_PREFIX + region_by
                 df = compute_variant_prevalence(
                     self.analysis_df.query("gene == @gene"),
                     self.master_df,
-                    [region_by],
+                    [metadata_col],
                 ).query("aa_change == @aa_change")
 
                 # Filter sites with very low sample counts to avoid misleading prevalence estimates
                 df = df[df["n_passed"] >= 10]
 
                 # Normalize location names in the data
-                df[f"{region_by}_normalized"] = df[region_by].apply(normalize_location)
+                df[f"{region_by}_normalized"] = df[metadata_col].apply(
+                    normalize_location
+                )
 
                 # Get the appropriate GeoJSON data based on the region selection
                 if region_by not in self.geojson_data:
@@ -928,7 +933,7 @@ class MapComponent(SummaryDashboardComponent):
             # Add sample site markers if we have location coordinates and scatterplot style is selected
             if self.location_coords is not None and map_style == "scatterplot":
                 # Case-insensitive column matching for the location join
-                master_location_col = "location"
+                master_location_col = METADATA_COLUMN_PREFIX + "location"
                 coords_location_col = "location"
 
                 # Group by location to get sample counts and average prevalence
