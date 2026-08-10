@@ -12,7 +12,9 @@ from nomadic.util.workspace import Workspace
 )
 @click.argument(
     "experiment_dirs",
-    type=click.Path(exists=True),
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, path_type=Path
+    ),
     nargs=-1,  # allow multiple arguments; gets passed as tuple
 )
 @workspace_option(optional=False)
@@ -109,7 +111,7 @@ from nomadic.util.workspace import Workspace
     help="Port to use for the dashboard. If not provided, the next free port up from 8050 will be used.",
 )
 def summarize(
-    experiment_dirs: tuple[str],
+    experiment_dirs: tuple[Path],
     summary_name: str,
     workspace: Workspace,
     output_dir: Path,
@@ -164,7 +166,7 @@ def summarize(
         )
 
     if len(experiment_dirs) == 0:
-        experiment_dirs = workspace.get_experiment_dirs()
+        experiment_dirs = [Path(dir) for dir in workspace.get_experiment_dirs()]
 
     if output_dir is None:
         output_dir = Path(workspace.get_summary_dir(summary_name))

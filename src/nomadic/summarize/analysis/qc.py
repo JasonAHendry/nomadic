@@ -11,7 +11,7 @@ from nomadic.util.experiment import get_summary_files
 
 
 def create_region_coverage_df(
-    expt_dirs: Iterable[str], inventory_df: pd.DataFrame
+    expt_dirs: Iterable[Path], inventory_df: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Here we load a consolidated region coverage dataframe and include information required
@@ -21,10 +21,10 @@ def create_region_coverage_df(
     # Load coverage data
     bed_dfs = []
     for expt_dir in expt_dirs:
-        bed_csv = get_summary_files(Path(expt_dir)).region_coverage
+        bed_csv = get_summary_files(expt_dir).region_coverage
 
         bed_df = pd.read_csv(bed_csv)
-        bed_df.insert(0, "expt_name", os.path.basename(expt_dir))
+        bed_df.insert(0, "expt_name", expt_dir.name)
         bed_df.query("barcode != 'unclassified'", inplace=True)
         if "sample_id" in bed_df.columns:
             bed_df.drop(columns=["sample_id"], inplace=True)

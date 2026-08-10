@@ -163,7 +163,7 @@ class ExperimentDirectories:
 class ExperimentOutputs:
     """Store information about outputs in `expt_dir`"""
 
-    expt_dir: str  # TODO: change to Path
+    expt_dir: Path
     metadata: pd.DataFrame
     regions: RegionBEDParser
     summary_files: SummaryFiles
@@ -226,7 +226,7 @@ def find_regions(expt_dir: str) -> RegionBEDParser:
 
 
 def experiment_outputs(
-    expt_dir: str,
+    expt_dir: Path,
     allow_missing_files: Optional[
         list[Literal["fastq", "depth", "region", "variant", "read"]]
     ],
@@ -245,14 +245,14 @@ def experiment_outputs(
 
     # Existence of metadata
     try:
-        parser = find_metadata(expt_dir, Parser=ExtendedMetadataTableParser)
+        parser = find_metadata(str(expt_dir), Parser=ExtendedMetadataTableParser)
     except MetadataFormatError as e:
         raise MetadataFormatError(f"Error in metadata for '{expt_dir}': {e}") from e
     metadata = parser.df
     metadata.insert(0, "expt_name", os.path.basename(expt_dir))
 
     # Existence of regions
-    regions = find_regions(expt_dir)
+    regions = find_regions(str(expt_dir))
 
     # Existence of summary Files
     summary_files = get_summary_files(Path(expt_dir))

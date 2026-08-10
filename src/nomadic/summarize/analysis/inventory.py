@@ -8,6 +8,7 @@ Inventory is a dataframe with the following columns:
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 from posixpath import basename
 from typing import Optional
 
@@ -99,8 +100,8 @@ def n_field_samples(inventory_df: pd.DataFrame) -> int:
 
 
 def experiments_in_inventory(
-    inventory_df: pd.DataFrame, expt_dirs: Optional[list[str]]
-) -> list[str]:
+    inventory_df: pd.DataFrame, expt_dirs: Optional[list[Path]]
+) -> list[Path]:
     """Return a list of experiments in the inventory dataframe"""
     expt_names_in_inventory = inventory_df["expt_name"].unique().tolist()
     if expt_dirs is None:
@@ -109,7 +110,7 @@ def experiments_in_inventory(
     return [
         expt_dir
         for expt_dir in expt_dirs
-        if basename(expt_dir) in expt_names_in_inventory
+        if expt_dir.name in expt_names_in_inventory
     ]
 
 

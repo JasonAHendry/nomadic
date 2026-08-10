@@ -466,7 +466,7 @@ def main(
     *,
     workspace: Workspace,
     output_dir: Path,
-    expt_dirs: list[str],
+    expt_dirs: list[Path],
     summary_name: str,
     metadata_path: Optional[Path],
     settings_file_path: Path,
