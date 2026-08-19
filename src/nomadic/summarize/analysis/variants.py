@@ -1,3 +1,4 @@
+from logging import Logger
 from pathlib import Path
 import subprocess
 from typing import Iterable, Optional
@@ -21,8 +22,6 @@ VARIANTS_GROUP_COLUMNS = [
 # These groups are used to define a unique mutation, e.g. A127E
 VARIANTS_MUTATION_COLUMNS = [
     "aa_change",
-    "mut_type",
-    "mutation",
 ]
 
 
@@ -33,7 +32,10 @@ def load_variants_from_vcfs(
     output_dir: Path,
     bed_path: Path,
     reference_name: str,
-) -> pd.DataFrame:
+    exclude_amplicons: Optional[list[str]] = None,
+    exclude_mutations: Optional[list[str]] = None,
+    log: Optional[Logger] = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load variants directly from VCF files, rather than the summary CSVs
 
@@ -42,6 +44,9 @@ def load_variants_from_vcfs(
 
     timer = Timer("Variant loading from VCFs")
     timer.start()
+
+    if log is not None:
+        log.info(f"  Loading variants from VCFs in {len(expt_dirs)} experiments...")
 
     seperator = "___"
     if any(seperator in expt_dir.name for expt_dir in expt_dirs):
@@ -64,46 +69,54 @@ def load_variants_from_vcfs(
     )
 
     timer.time("Loading and reheadering VCF files")
+    if log is not None:
+        log.info(f"  Merging {len(temp_vcfs)} VCFs...")
 
     # Now we can merge all the temp VCFs together
-    merged_vcf = output_dir / "summary.variants.vcf.gz"
-    merge_vcfs(temp_vcfs, output_path=merged_vcf)
-
+    filtered_vcf = output_dir / "summary.variants.filtered.vcf.gz"
+    merge_and_filter_vcfs(temp_vcfs, output_path=filtered_vcf)
     timer.time("Merging VCF files")
 
-    # Filtering
-    filtered_vcf = output_dir / "summary.variants.filtered.vcf.gz"
-    filter_variants(merged_vcf, filtered_vcf)
-
-    timer.time("Filtering VCF file")
+    if log is not None:
+        log.info("  Annotating variants...")
 
     REFERENCE_COLLECTION[reference_name].confirm_downloaded()
     annotator = VariantAnnotator(
-        input_vcf=str(filtered_vcf),
+        fasta_path=REFERENCE_COLLECTION[reference_name].fasta_path,
+        gff_path=REFERENCE_COLLECTION[reference_name].gff_path,
         bed_path=(str(bed_path)),
-        reference=REFERENCE_COLLECTION[reference_name],
         caller=caller,
-        output_vcf=str(output_dir / "summary.variants.annotated.vcf.gz"),
     )
-    annotator.run()
+
+    annotated_vcf = output_dir / "summary.variants.annotated.vcf.gz"
+
+    annotator.annotate_variants(
+        input_vcf=str(filtered_vcf), output_vcf=str(annotated_vcf)
+    )
 
     timer.time("Annotating variants")
+    if log is not None:
+        log.info("  Summarizing amino acid changes...")
 
-    # TODO saving and loading of this file should be removed
-    annotator.convert_to_csv(f"{temp_dir}/summary.variants.merged.csv")
+    variant_df = annotator.summarize_aa_changes(
+        input_vcf=str(annotated_vcf),
+        exclude_amplicons=exclude_amplicons,
+        exclude_mutations=exclude_mutations,
+    )
 
-    timer.time("Converting VCF to CSV")
+    timer.time("Summarizing amino acid changes")
 
-    variant_df = load_variant_summary_csv(f"{temp_dir}/summary.variants.merged.csv")
+    if log is not None:
+        log.info("  Summarizing nt changes...")
+    nt_df = annotator.summarize_nt_changes(
+        input_vcf=str(annotated_vcf),
+        exclude_amplicons=exclude_amplicons,
+    )
 
-    timer.time("Loading variants into dataframe")
+    timer.time("Summarizing nucleotide changes")
 
-    # TODO the following code should probably be combined with the anotator
-    variant_sample_names = variant_df["barcode"].str.replace(
-        r"\ ", " "
-    )  # reverse escaping of spaces
-    variant_df.insert(0, "expt_name", variant_sample_names.str.split(seperator).str[0])
-    variant_df["barcode"] = variant_sample_names.str.split(seperator).str[1]
+    restore_barcodes(variant_df, seperator)
+    restore_barcodes(nt_df, seperator)
 
     # Sanity checks that all worked and we have the same samples as before
     # Bcftools has some magic around sample names, so good to check they are consistent with what we expected
@@ -117,245 +130,48 @@ def load_variants_from_vcfs(
     ), "Mismatch in samples after loading from VCFs."
 
     timer.time("fixing sample names and sanity checking")
-
-    variant_df = variant_df.query("aa_pos != -1")
-
-    timer.time("Filtering out variants without aa_pos")
-
-    # identifies an aa variant, note this does not include aa_change, as there might be different
-    # changes for the same position
-    groups = ["expt_name", "barcode", "chrom", "amplicon", "gene", "aa_pos"]
-    # wt_df = (
-    #     variant_df.groupby(groups)
-    #     .agg(
-    #         WT=pd.NamedAgg(column="gt_int", aggfunc=lambda x: (x == 0).all()),
-    #         ref=("ref", "first"),
-    #         alt=("alt", "first"),
-    #         pos=("pos", "first"),
-    #         qual=("qual", "first"),
-    #         dp=("dp", "first"),
-    #         wsaf=("wsaf", "first"),
-    #         gt=("gt", "first"),
-    #         gt_int=("gt_int", "first"),
-    #     )
-    #     .reset_index()
-    #     .query("WT == True")
-    # )
-    # wt_df.drop(columns=["WT"], inplace=True)
-    # wt_df["type"] = "wt"
-
-    # fully vectorized way to get WT variants:
-    # Wt is where gt_int is 0 for all variants in the group; if any variant has gt_int != 0, then it's not WT
-    is_zero = variant_df["gt_int"].eq(0)
-    wt_mask = is_zero.groupby([variant_df[c] for c in groups]).transform("all")
-    # TODO, decide how to record gt, wsaf, dp here, currently just taking first
-    wt_df = variant_df.loc[wt_mask].groupby(groups, as_index=False).first()
-    wt_df["type"] = "wt"
-
-    timer.time("Processing WT variants into final dataframe")
-
-    # filtered_df = (
-    #     variant_df.groupby(groups)
-    #     .agg(
-    #         filtered=pd.NamedAgg(column="gt_int", aggfunc=lambda x: (x == -1).any()),
-    #         ref=("ref", "first"),
-    #         alt=("alt", "first"),
-    #         pos=("pos", "first"),
-    #         qual=("qual", "first"),
-    #         dp=("dp", "first"),
-    #         wsaf=("wsaf", "first"),
-    #         gt=("gt", "first"),
-    #         gt_int=("gt_int", "first"),
-    #     )
-    #     .reset_index()
-    #     .query("filtered == True")
-    # )
-    # filtered_df.drop(columns=["filtered"], inplace=True)
-    # filtered_df["type"] = "filtered"
-
-    # Fully vectorized way to get filtered variants: filtered is where gt_int is -1 for any variant in the group
-    # TODO, decide if we actually want to record this at all
-    is_filtered = variant_df["gt_int"].eq(-1)
-    filtered_mask = is_filtered.groupby([variant_df[c] for c in groups]).transform(
-        "any"
-    )
-    filtered_df = variant_df.loc[filtered_mask].groupby(groups, as_index=False).first()
-    filtered_df["type"] = "filtered"
-
-    timer.time("Processing filtered variants into final dataframe")
-
-    # TODO, decide also here how to record gt, wsaf, dp. Currently just taking the one
-    # that is in the row of the vcf where the aa_change was recorded
-    mut_df = variant_df.dropna(subset=["aa_change"])
-    mut_df["type"] = (
-        mut_df.groupby(groups + ["aa_change"])["gt_int"]
-        .transform(lambda x: (x == 1).any())
-        .map({True: "mixed_mut", False: "mut"})
-    )
-
-    timer.time("Processing mutant variants into final dataframe")
-
-    variant_df = pd.concat([wt_df, filtered_df, mut_df]).reset_index(drop=True)
-
-    # drop duplicates if they exist. This should only happen when bcftools record a variant, but we want to filter it
-    # drop so that type=filtered stays
-    # NOTE this will have to be changed once we allow more than one mut per sample
-    pref = variant_df["type"].eq("filtered")
-    idx = pref.groupby([variant_df[c] for c in groups]).idxmax()
-    variant_df = variant_df.loc[idx].reset_index(drop=True)
-
-    # sanity checks
-    assert variant_df.duplicated(subset=groups).sum() == 0, (
-        "Duplicate variants found in final dataframe after processing. This should not happen"
-    )
-
-    timer.time("Concatenating final dataframe")
-
+    if log is not None:
+        log.info("  Done loading variants from VCFs.")
     timer.report()
 
     # shutil.rmtree(temp_dir)
 
-    return variant_df
+    return variant_df, nt_df
 
 
-def load_variant_summary_csv(
-    variants_csv: str, define_gene: bool = True
-) -> pd.DataFrame:
-    """
-    Load an clean `summary.variants.csv` data produced by `nomadic`
+def restore_barcodes(df: pd.DataFrame, seperator: str):
+    sample_names = df["barcode"].str.replace(
+        r"\ ",
+        " ",
+        regex=False,
+    )  # reverse escaping of spaces
 
-    """
-
-    # Settings
-    NUMERIC_COLUMNS = ["dp", "wsaf"]
-    UNPHASED_GT_TO_INT = {
-        "./.": -1,
-        "0/0": 0,
-        "0/1": 1,
-        "0/2": 1,
-        "0/3": 1,
-        "1/1": 2,
-        "2/2": 2,
-        "3/3": 2,
-    }
-
-    # Load
-    variants_df = pd.read_csv(variants_csv)
-
-    # Reformat numeric columns to be floats
-    for c in NUMERIC_COLUMNS:
-        variants_df[c] = [float(v) if v != "." else None for v in variants_df[c]]
-
-    # Reformat unphased genotypes as integers
-    variants_df.insert(
-        variants_df.columns.tolist().index("gt") + 1,
-        "gt_int",
-        variants_df["gt"].map(UNPHASED_GT_TO_INT),
+    sample_parts = sample_names.str.split(
+        seperator,
+        n=1,
+        expand=True,
+        regex=False,
     )
 
-    # Optionally reformat amplicon name to gene; assuming like  gene-...
-    if define_gene:
-        # --- gene ---
-        gene_values = variants_df["amplicon"].str.split("-").str[0]
-
-        variants_df.insert(
-            variants_df.columns.get_loc("amplicon") + 1,
-            "gene",
-            gene_values.where(variants_df["amplicon"].notna()),
-        )
-
-        # --- mutation ---
-        mutation_values = variants_df["gene"] + "-" + variants_df["aa_change"]
-
-        variants_df.insert(
-            variants_df.columns.get_loc("gene") + 1,
-            "mutation",
-            mutation_values.where(
-                variants_df["gene"].notna() & variants_df["aa_change"].notna()
-            ),
-        )
-
-    return variants_df
-
-
-def load_and_concat_variants(expt_dirs: list[Path]) -> pd.DataFrame:
-    """
-    Load all of the variant calls for a set of experiment dirs
-
-    Note that because we do note have the unfiltered VCF files, we have to do
-    some additional work in order to ensure all mutations are represented across
-    all experiments;
-    """
-
-    # Load data
-    variant_dfs = []
-    for expt_dir in expt_dirs:
-        variant_csv = f"{expt_dir}/summary.variants.csv"
-        variant_df = load_variant_summary_csv(variant_csv)
-        variant_df.insert(0, "expt_name", expt_dir.name)
-        variant_df.query("barcode != 'unclassified'", inplace=True)
-        variant_dfs.append(variant_df)
-    variant_df = pd.concat(variant_dfs)
-
-    # Get all unique mutations
-    MUT_COLUMNS = [
-        "chrom",
-        "pos",
-        "ref",
-        "alt",
-        "strand",
-        "aa_change",
-        "aa_pos",
-        "mut_type",
-        "mutation",
-        "amplicon",
-        "gene",
-    ]
-    uniq_mutation_df = variant_df[MUT_COLUMNS].drop_duplicates()
-
-    # Now we merge these back in for each barcode
-    # - By doing a 'right' merge, we make sure all variants are present for each barcode
-    # - The 'NaNs' that are present when the variant doesn't exist for that barcode
-    #   get filled with zeros, i.e. we assume homozygous reference
-    # - In reality, it could have been EITHER 0/0 or ./. (i.e. filtered), but we handle
-    #   this afterwards when we merge with QC data;
-    full_variant_dfs = []
-    for (expt_name, barcode), bdf in variant_df.groupby(["expt_name", "barcode"]):
-        mdf = pd.merge(bdf, uniq_mutation_df, on=MUT_COLUMNS, how="right")
-        mdf["expt_name"] = expt_name
-        mdf["barcode"] = barcode
-
-        # Filled by default with hom reference
-        mdf["gt"] = mdf["gt"].fillna("0/0")
-        mdf["gt_int"] = mdf["gt_int"].fillna(0.0)
-        mdf["wsaf"] = mdf["wsaf"].fillna(0.0)
-
-        full_variant_dfs.append(mdf)
-
-    return pd.concat(full_variant_dfs)
+    df.insert(0, "expt_name", sample_parts[0])
+    df["barcode"] = sample_parts[1]
 
 
 def filter_to_analysis_set(
     variant_df: pd.DataFrame,
     *,
     coverage_df: pd.DataFrame,
-    excluded_amplicons: list[str],
-    filtered_mutations: list[str],
 ) -> pd.DataFrame:
     # # Merge with the quality control results, then we can subset to the analysis set
     variant_df = pd.merge(
-        left=coverage_df.rename({"name": "amplicon"}, axis=1)[
-            ["expt_name", "barcode", "sample_id", "sample_type", "amplicon", "status"]
-        ],
         right=variant_df,
-        on=["expt_name", "barcode", "amplicon"],
+        left=coverage_df.rename({"name": "amplicon"}, axis=1)[
+            ["sample_id", "expt_name", "barcode", "chrom", "amplicon", "status"]
+        ],
+        on=["expt_name", "barcode", "chrom", "amplicon"],
     )
 
-    return (
-        variant_df.query("status == 'pass'")
-        .query("amplicon not in @excluded_amplicons")
-        .query("mutation not in @filtered_mutations")
-    )
+    return variant_df.query("status == 'pass'").drop(columns=["status"])
 
 
 def filter_variants(vcf: Path, output_path: Path):
@@ -378,14 +194,78 @@ def filter_variants(vcf: Path, output_path: Path):
     )
 
 
-def merge_vcfs(vcfs: Iterable[Path], *, output_path: Path):
+def merge_vcfs(vcfs: Iterable[Path], *, threads: int = 8, output_path: Path):
     subprocess.run(
-        ["bcftools", "merge", "-Fx", "-Oz", "--force-single", "-o", str(output_path)]
+        [
+            "bcftools",
+            "merge",
+            "-Fx",
+            "-Oz1",
+            "--threads",
+            str(threads),
+            "--force-single",
+            "--write-index",
+            "-o",
+            str(output_path),
+        ]
         + [str(v) for v in vcfs],
         check=True,
     )
 
-    bcftools.index(output_path)
+
+def merge_and_filter_vcfs(vcfs: Iterable[Path], *, output_path: Path, threads: int = 8):
+    """Merging vcf files and then filtering
+
+    It is much faster to not write the intermediate file if we don't need it.
+    """
+    merge_cmd = ["bcftools", "merge", "-Fx", "-Ou", "--force-single", *map(str, vcfs)]
+
+    filter_cmd = [
+        "bcftools",
+        "view",
+        "--apply-filters",
+        "PASS",
+        "--types",
+        "snps",
+        "--min-alleles",
+        "2",
+        "-Oz",
+        "--threads",
+        str(threads),
+        "--write-index",
+        "-o",
+        str(output_path),
+        "-",
+    ]
+
+    merge = subprocess.Popen(
+        merge_cmd,
+        stdout=subprocess.PIPE,
+    )
+
+    assert merge.stdout is not None
+
+    filtered = subprocess.Popen(
+        filter_cmd,
+        stdin=merge.stdout,
+    )
+
+    merge.stdout.close()
+
+    filter_returncode = filtered.wait()
+    merge_returncode = merge.wait()
+
+    if filter_returncode != 0:
+        raise subprocess.CalledProcessError(
+            filter_returncode,
+            filter_cmd,
+        )
+
+    if merge_returncode != 0:
+        raise subprocess.CalledProcessError(
+            merge_returncode,
+            merge_cmd,
+        )
 
 
 def load_and_reheader_vcfs(
@@ -455,8 +335,8 @@ def load_and_reheader_vcfs(
     return experiment_sample_mapping, vcfs
 
 
-def filter_false_positives(
-    variants_df: pd.DataFrame, min_obs: int = 1, min_wsaf: float = 0.15
+def remove_false_positives(
+    variants_df: pd.DataFrame, min_obs: int = 1, min_aa_wsaf: float = 0.15
 ):
     """Filter out likely false positive variant calls.
 
@@ -468,17 +348,37 @@ def filter_false_positives(
 
     """
 
-    mut = variants_df.loc[variants_df["type"].isin(["mixed_mut", "mut"])]
+    mut = variants_df.loc[variants_df["mut_type"].isin(["mixed", "mutant"])]
     df = variants_df.merge(
         mut.groupby(VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS).agg(
-            n_mut=pd.NamedAgg("type", len), wsaf_max=pd.NamedAgg("wsaf", "max")
+            n_mut=pd.NamedAgg("mut_type", len),
+            aa_wsaf_max=pd.NamedAgg("aa_wsaf", "max"),
         ),
         on=VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS,
         how="left",
     )
-    df = df[~(df["n_mut"].le(min_obs) & df["wsaf_max"].lt(min_wsaf))].drop(
-        columns=["n_mut", "wsaf_max"]
+    df = df[~(df["n_mut"].le(min_obs) & df["aa_wsaf_max"].lt(min_aa_wsaf))].drop(
+        columns=["n_mut", "aa_wsaf_max"]
     )
+    return df
+
+
+def remove_never_observed_variants(variants_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove variants that have never been observed in any sample in the analysis set.
+    """
+
+    mut = variants_df.loc[
+        variants_df["mut_type"].isin(["mixed", "mutant", "false_positive"])
+    ]
+    df = variants_df.merge(
+        mut.groupby(VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS).agg(
+            n_mut=pd.NamedAgg("mut_type", len),
+        ),
+        on=VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS,
+        how="left",
+    )
+    df = df[df["n_mut"].gt(0)].drop(columns=["n_mut"])
     return df
 
 
@@ -507,56 +407,26 @@ def compute_variant_prevalence(
             validate="m:1",
         )
 
-    agg_aa_change_df = (
-        variants_df.loc[variants_df["type"].isin(["mixed_mut", "mut"])]
-        .groupby(
-            VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS + additional_groups,
-        )
-        .agg(
-            n_mixed=pd.NamedAgg("type", lambda x: (x == "mixed_mut").sum()),
-            n_mut=pd.NamedAgg("type", lambda x: (x == "mut").sum()),
-        )
+    variants_groups = ["chrom", "gene", "aa_pos", "aa_change", "mutation"]
+    passed_types = {"mixed", "mutant", "absent", "wt"}
+
+    # Precompute so we can use fast sum aggregation
+    variants_df = variants_df.assign(
+        _passed=variants_df["mut_type"].isin(passed_types),
+        _wt=variants_df["mut_type"].eq("wt"),
+        _mixed=variants_df["mut_type"].eq("mixed"),
+        _mut=variants_df["mut_type"].eq("mutant"),
     )
 
-    groups = (
-        variants_df[VARIANTS_GROUP_COLUMNS + additional_groups]
-        .drop_duplicates()
-        .dropna()
-    )
-    muts = (
-        variants_df[VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS]
-        .query("mut_type == 'missense'")
-        .drop_duplicates()
-        .dropna()
-    )
-
-    # Build full index so we see also values for groups that have no mutation
-    full_index = (
-        groups.merge(muts, how="inner", on=VARIANTS_GROUP_COLUMNS)
-        .set_index(
-            VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS + additional_groups
-        )
-        .index
-    )
-    # Ensure all n_mut, n_mixed are filled with zeros
-    agg_aa_change_df = agg_aa_change_df.reindex(full_index).reset_index().fillna(0)
-
-    agg_aa_pos_df = variants_df.groupby(
-        VARIANTS_GROUP_COLUMNS + additional_groups,
-        as_index=False,
+    prev_df = variants_df.groupby(
+        variants_groups + additional_groups, as_index=False
     ).agg(
-        n_samples=pd.NamedAgg("type", "size"),
-        n_passed=pd.NamedAgg("type", lambda x: sum(x != "filtered")),
-        n_wt=pd.NamedAgg("type", lambda x: sum(x == "wt")),
+        n_samples=("mut_type", "size"),
+        n_passed=("_passed", "sum"),
+        n_wt=("_wt", "sum"),
+        n_mixed=("_mixed", "sum"),
+        n_mut=("_mut", "sum"),
     )
-
-    prev_df = agg_aa_change_df.merge(
-        agg_aa_pos_df,
-        on=VARIANTS_GROUP_COLUMNS + additional_groups,
-        how="left",
-        validate="m:1",
-    )
-
     # Compute frequencies
     prev_df["per_wt"] = 100 * prev_df["n_wt"] / prev_df["n_passed"]
     prev_df["per_mixed"] = 100 * prev_df["n_mixed"] / prev_df["n_passed"]

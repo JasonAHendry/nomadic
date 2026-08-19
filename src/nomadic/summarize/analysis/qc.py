@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from enum import StrEnum, auto
 import enum
-import os
 from pathlib import Path
-from typing import Hashable, Iterable
+from typing import Iterable
 
+import numpy as np
 import pandas as pd
 
 from nomadic.util.experiment import get_summary_files
@@ -50,7 +50,15 @@ def create_region_coverage_df(
 
     coverage_df = pd.merge(
         left=concat_df[
-            ["expt_name", "barcode", "sample_id", "sample_type", "name", "mean_cov"]
+            [
+                "expt_name",
+                "barcode",
+                "sample_id",
+                "sample_type",
+                "chrom",
+                "name",
+                "mean_cov",
+            ]
         ],  # sample ID, will want it at some point
         right=neg_df,
         on=["expt_name", "name"],
@@ -64,6 +72,7 @@ def create_region_coverage_df(
         "barcode",
         "sample_id",
         "sample_type",
+        "chrom",
         "name",
         "mean_cov",
         "mean_cov_neg",
@@ -162,20 +171,27 @@ def add_qc_status(region_qc_df: pd.DataFrame) -> pd.DataFrame:
     Adds a status to each replicate/amplicon to see which ones passed QC
     and if they didn't, why.
     """
-    status_strs = []
-    for _, row in region_qc_df.iterrows():
-        status = []
-        if row["sample_type"] in ["pos", "neg"]:
-            status.append(QcStatus.CONTROL)
-        else:
-            if row["fail_contam"]:
-                status.append(QcStatus.CONTAM)
-            if row["fail_lowcov"]:
-                status.append(QcStatus.LOWCOV)
-            if not status:
-                status.append(QcStatus.PASS)
-        status_strs.append(";".join(status))
-    return region_qc_df.assign(status=status_strs)
+    is_control = region_qc_df["sample_type"].isin(["pos", "neg"])
+    fail_contam = region_qc_df["fail_contam"]
+    fail_lowcov = region_qc_df["fail_lowcov"]
+
+    status = np.select(
+        [
+            is_control,
+            fail_contam & fail_lowcov,
+            fail_contam,
+            fail_lowcov,
+        ],
+        [
+            QcStatus.CONTROL,
+            ";".join([QcStatus.CONTAM, QcStatus.LOWCOV]),
+            QcStatus.CONTAM,
+            QcStatus.LOWCOV,
+        ],
+        default=QcStatus.PASS,
+    )
+
+    return region_qc_df.assign(status=status)
 
 
 def mark_duplicates(region_qc_df: pd.DataFrame) -> pd.DataFrame:
@@ -183,33 +199,26 @@ def mark_duplicates(region_qc_df: pd.DataFrame) -> pd.DataFrame:
     Mark all field samples as duplicates, if there is a better covered replicate for the same amplicon
     Replicates marked as duplicate will not be used for prevalance evaluation.
     """
-    status_updates = region_qc_df["status"].copy()
+    field_mask = region_qc_df["sample_type"].eq("field")
+    field = region_qc_df.loc[field_mask, ["sample_id", "name", "status", "mean_cov"]]
 
-    def _update_duplicate(status: str, idx: Hashable, keep_idx) -> str:
-        if idx == keep_idx:
-            return status
-        return f"{status};{QcStatus.DUPLICATE}"
+    # Sort by passing/non passing and then mean cov
+    ordered = field.assign(_passing=field["status"].eq(QcStatus.PASS)).sort_values(
+        ["sample_id", "name", "_passing", "mean_cov"],
+        ascending=[True, True, False, False],
+    )
 
-    for (_, _), data in region_qc_df.query("sample_type == 'field'").groupby(
-        ["sample_id", "name"]
-    ):
-        # Select an index to keep, i.e. the best sample that should
-        # marked as duplicate
-        passing = data["status"] == "pass"
-        if passing.sum() == 1:
-            keep_idx = passing.idxmax()
-        elif passing.sum() > 1:
-            keep_idx = data[passing]["mean_cov"].idxmax()  # keep maximum coverage
-        else:  # none are passing, arbrarily keep first
-            keep_idx = data.index[0]
+    # keep the first
+    duplicate_idx = ordered.index[
+        ordered.duplicated(["sample_id", "name"], keep="first")
+    ]
 
-        # Update status for this group
-        status_updates.loc[data.index] = [
-            _update_duplicate(status, idx, keep_idx)
-            for idx, status in data["status"].items()
-        ]
+    status = region_qc_df["status"].copy()
+    status.loc[duplicate_idx] = (
+        status.loc[duplicate_idx].astype(str) + f";{QcStatus.DUPLICATE}"
+    )
 
-    return region_qc_df.assign(status=status_updates)
+    return region_qc_df.assign(status=status)
 
 
 def add_quality_control_status_column(df: pd.DataFrame) -> pd.DataFrame:

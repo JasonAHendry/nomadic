@@ -1122,11 +1122,11 @@ class VariantHeatmap(RealtimeDashboardComponent):
             df = pd.read_csv(self.variant_csv)
 
             # Filter on target, variant types, and passing QC
-            qry = (
-                "amplicon == @target_region"
-                " and mut_type in @self.MUT_SET"
-                " and gt != './.'"
-            )
+            qry = "amplicon == @target_region"
+            if "gt" in df.columns:
+                qry += " and mut_type in @self.MUT_SET"
+                qry += " and gt != './.'"
+
             target_df = df.query(qry)
             if "sample_id" in target_df.columns:
                 # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
@@ -1142,11 +1142,23 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 ordered=True,
             )
 
+            wsaf_col = "aa_wsaf"
+            if "wsaf" in target_df.columns:
+                wsaf_col = "wsaf"
+
+            depth_col = "depth"
+            if "dp" in target_df.columns:
+                depth_col = "dp"
+
+            type_col = "mut_type"
+            if "gt" in target_df.columns:
+                type_col = "gt"
+
             # Pivot
             plot_df = pd.pivot_table(
                 index="aa_change",
                 columns="sample_string",
-                values=["wsaf", "dp", "gt"],
+                values=[wsaf_col, depth_col, type_col],
                 aggfunc=lambda x: x,
                 data=target_df,
                 dropna=False,
@@ -1154,15 +1166,20 @@ class VariantHeatmap(RealtimeDashboardComponent):
             )
 
             # Reorder mutations based on position
-            mutations = target_df[["pos", "aa_change"]].drop_duplicates("aa_change")
-            mutations.sort_values(["pos", "aa_change"], inplace=True)
+            if "pos" in target_df.columns:
+                sort_cols = ["pos", "aa_change"]
+            else:
+                sort_cols = ["aa_pos", "aa_change"]
+
+            mutations = target_df[sort_cols].drop_duplicates("aa_change")
+            mutations.sort_values(sort_cols, inplace=True)
             plot_df.index = pd.Categorical(
                 values=plot_df.index, categories=mutations.aa_change, ordered=True
             )
             plot_df.sort_index(inplace=True)
 
             # Hover statment
-            customdata = np.stack([plot_df["dp"], plot_df["gt"]], axis=-1)
+            customdata = np.stack([plot_df[depth_col], plot_df[type_col]], axis=-1)
             htemp = "<b>%{x}</b><br>"
             htemp += "<b>WSAF:</b> %{z:0.3f}<br>"
             htemp += "<b>Depth:</b> %{customdata[0]}<br>"
@@ -1171,9 +1188,9 @@ class VariantHeatmap(RealtimeDashboardComponent):
             # Plot
             plot_data = [
                 go.Heatmap(
-                    x=plot_df["wsaf"].columns,
-                    y=plot_df["wsaf"].index,
-                    z=plot_df["wsaf"],
+                    x=plot_df[wsaf_col].columns,
+                    y=plot_df[wsaf_col].index,
+                    z=plot_df[wsaf_col],
                     customdata=customdata,
                     zmin=0,
                     zmax=1,

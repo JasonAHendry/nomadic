@@ -12,9 +12,10 @@ from nomadic.summarize.analysis.deletions import (
 from nomadic.summarize.analysis.input_data import common_caller, common_reference_name
 from nomadic.summarize.analysis.variants import (
     compute_variant_prevalence,
-    filter_false_positives,
+    remove_false_positives,
     filter_to_analysis_set,
     load_variants_from_vcfs,
+    remove_never_observed_variants,
     rename_prevalence_by_cols,
 )
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
@@ -253,36 +254,46 @@ def main(
     timer.start()
 
     log.info("Loading variants...")
-    # variant_df = load_and_concat_variants(expt_dirs)
-    variant_df = load_variants_from_vcfs(
+    variant_df, nt_df = load_variants_from_vcfs(
         expt_dirs,
         caller=caller,
         output_dir=output_dir,
         bed_path=Path(regions.path),
         reference_name=reference_name,
+        exclude_amplicons=panel_settings.excluded_amplicons,
+        exclude_mutations=panel_settings.filtered_mutations,
+        log=log,
     )
     timer.time("Loading and annotating variants from VCFs")
-
-    variant_df.to_csv(f"{output_dir}/intermediate.summary.variants.csv", index=False)
 
     # # Merge with the quality control results, then we can subset to the analysis set
     analysis_df = filter_to_analysis_set(
         variant_df,
         coverage_df=coverage_df,
-        excluded_amplicons=panel_settings.excluded_amplicons,
-        filtered_mutations=panel_settings.filtered_mutations,
     )
     timer.time("Filtering to analysis set")
+    nt_df = filter_to_analysis_set(
+        nt_df,
+        coverage_df=coverage_df,
+    )
+    timer.time("Filtering nt set")
 
     # Filter out false positives
-    analysis_df = filter_false_positives(analysis_df, min_obs=1, min_wsaf=0.33)
-    analysis_df.to_csv(f"{output_dir}/summary.variants.analysis_set.csv", index=False)
+    analysis_df = remove_false_positives(analysis_df, min_obs=1, min_aa_wsaf=0.33)
     timer.time("Filtering false positives")
+    analysis_df = remove_never_observed_variants(analysis_df)
+    timer.time("Removing never observed variants")
+    analysis_df.to_csv(f"{output_dir}/summary.variants.analysis_set.csv", index=False)
+    timer.time("Writing analysis set to CSV")
+
+    nt_df.to_csv(f"{output_dir}/summary.nt_changes.csv", index=False)
+    timer.time("Writing nt changes to CSV")
 
     # Then we will compute prevalence
     prev_df = compute_variant_prevalence(analysis_df)
-    prev_df.to_csv(f"{output_dir}/summary.variants.prevalence.csv", index=False)
     timer.time("Computing variant prevalence")
+    prev_df.to_csv(f"{output_dir}/summary.variants.prevalence.csv", index=False)
+    timer.time("Writing variant prevalence to CSV")
 
     for col in prevalence_by:
         prev_by_col_df = compute_variant_prevalence(

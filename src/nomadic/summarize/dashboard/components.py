@@ -15,7 +15,6 @@ from i18n import t
 from nomadic.summarize.analysis.deletions import gene_deletion_prevalence_by
 from nomadic.summarize.analysis.metadata import (
     METADATA_COLUMN_PREFIX,
-    remove_metadata_prefix,
 )
 from nomadic.summarize.analysis.qc import Status
 from nomadic.summarize.analysis.variants import compute_variant_prevalence
@@ -854,15 +853,14 @@ class MapComponent(SummaryDashboardComponent):
                 return loc.lower().replace("-", "").replace(" ", "").replace("'", "")
 
             # Split the gene-mutation value and calculate prevalence by region
-            gene, aa_change = target_mutation.split("-")
 
             if map_style == "choropleth" and region_by is not None:
                 metadata_col = METADATA_COLUMN_PREFIX + region_by
                 df = compute_variant_prevalence(
-                    self.analysis_df.query("gene == @gene"),
+                    self.analysis_df.query("mutation == @target_mutation"),
                     self.master_df,
                     [metadata_col],
-                ).query("aa_change == @aa_change")
+                )
 
                 # Filter sites with very low sample counts to avoid misleading prevalence estimates
                 df = df[df["n_passed"] >= 10]

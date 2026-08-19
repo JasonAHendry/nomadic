@@ -1,0 +1,4 @@
+barcode	gene	aa_pos	mut_type	mut_wsaf	abs_wsaf	depth
+sample1-unphased	DHFR-TS	51	unphased	0.31		4000
+sample2-mixed	DHFR-TS	51	mixed	0.31		4000
+sample3-mut	DHFR-TS	51	mutant	0.99	0.01	4000

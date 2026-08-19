@@ -9,7 +9,6 @@ Inventory is a dataframe with the following columns:
 
 from dataclasses import dataclass
 from pathlib import Path
-from posixpath import basename
 from typing import Optional
 
 import numpy as np
@@ -108,9 +107,7 @@ def experiments_in_inventory(
         return expt_names_in_inventory
 
     return [
-        expt_dir
-        for expt_dir in expt_dirs
-        if expt_dir.name in expt_names_in_inventory
+        expt_dir for expt_dir in expt_dirs if expt_dir.name in expt_names_in_inventory
     ]
 
 

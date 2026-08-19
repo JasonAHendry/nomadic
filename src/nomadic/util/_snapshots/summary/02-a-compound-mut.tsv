@@ -1,0 +1,2 @@
+barcode	chrom	amplicon	gene	aa_pos	aa_change	mutation	mut_type	nt_change	depth	aa_wsaf
+sample1-mut	Pf3D7_04_v3	dhfr-p1-410	DHFR-TS	51	N51F	DHFR-TS-N51F	mutant	748238A>T+748239A>T	3000	0.99

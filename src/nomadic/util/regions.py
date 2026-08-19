@@ -1,5 +1,4 @@
 import os
-from typing import Optional
 import seaborn as sns
 
 from matplotlib.colors import rgb2hex

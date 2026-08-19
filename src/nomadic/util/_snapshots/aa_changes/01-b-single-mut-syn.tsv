@@ -1,0 +1,2 @@
+barcode	chrom	pos	amplicon	csq_type	gene	transcript	coding_strand	aa_pos	aa_change	nt_change
+sample1-mut	Pf3D7_04_v3	748240	dhfr-p1-410	synonymous	DHFR-TS	PF3D7_0417200.1	+	51	N51N	748240T>C

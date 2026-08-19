@@ -176,22 +176,19 @@ class ExperimentPipelineRT(ABC):
 
         # Annotate
         annotator = VariantAnnotator(
-            input_vcf=filtered_vcf,
+            fasta_path=self.reference.fasta_path,
+            gff_path=self.reference.gff_path,
             bed_path=self.regions.path,
-            reference=self.reference,
             caller=caller,
-            output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
         )
-        annotator.run()
+        annotated_vcf = filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz")
+        annotator.annotate_variants(filtered_vcf, annotated_vcf)
         csv_path = self.expt_dirs.get_summary_files().variants
-        temp_path = csv_path.replace(".csv", "temp.csv")
-        annotator.convert_to_csv(temp_path)
+        df = annotator.summarize_aa_changes(annotated_vcf)
 
-        df = pd.read_csv(temp_path)
         df.to_csv(csv_path, index=False)
 
         # Clean-up
-        os.remove(temp_path)
         os.remove(filtered_vcf)
 
 

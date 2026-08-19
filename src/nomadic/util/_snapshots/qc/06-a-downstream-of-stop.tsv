@@ -1,0 +1,3 @@
+barcode	gene	aa_pos	mut_type	mut_wsaf	abs_wsaf	depth
+sample1-stop-mut	DHFR-TS	50	mutant	0.99		5000
+sample1-stop-mut	DHFR-TS	51	mutant	0.99		5000
