@@ -7,8 +7,6 @@ from io import StringIO
 import numpy as np
 import pandas as pd
 
-from line_profiler import profile
-
 
 _AA_CHANGE_RE = re.compile(r"^(\d+)([A-Za-z])(?:>\1([A-Za-z\*]))?$")
 _AA_POS_RE = re.compile(r"\d+")
@@ -49,7 +47,6 @@ class VariantAnnotator:
 
         subprocess.run(cmd, check=True, shell=True)
 
-    @profile
     def summarize_aa_changes(
         self,
         input_vcf: str = "-",
@@ -481,7 +478,6 @@ class VariantAnnotator:
 
         return cmd
 
-    @profile
     def _parse_to_qc(
         self, data: str, exclude_amplicons: Optional[list[str]] = None
     ) -> pd.DataFrame:
@@ -652,7 +648,6 @@ def extract_bcsq_info_vec(bcsq: pd.Series) -> pd.DataFrame:
     return result[["gene", "aa_pos"]].reindex(bcsq.index)
 
 
-@profile
 def resolve_bcsq_references(df: pd.DataFrame, ref_positions: pd.Series) -> pd.DataFrame:
     """
     Resolves gene, aa_pos for bcsq @position
@@ -788,7 +783,6 @@ def aggregate_qc_by_aa_pos(df: pd.DataFrame) -> pd.DataFrame:
 _AA_POS_RE = re.compile(r"\d+")
 
 
-@profile
 def extract_bcsq_info(bcsq: pd.Series) -> pd.DataFrame:
     """
     Extract gene and amino acid position from BCSQ strings.
