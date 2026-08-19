@@ -29,3 +29,5 @@ dependencies:
   - mkdocs-material
   - pymdown-extensions
   - rsync
+  - pip:
+      - pytest-snapshot
