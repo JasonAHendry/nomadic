@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -80,7 +80,7 @@ def main(
     )
     experiment_settings = ExperimentSettings(
         name=expt_name,
-        start_date=datetime.now().replace(microsecond=0),
+        start_date=datetime.now(timezone.utc).replace(microsecond=0),
         fastq_dir=fastq_dir,
         minknow_dir=minknow_dir_settings,
         metadata_csv=metadata_path,

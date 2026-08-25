@@ -28,6 +28,24 @@ pd.options.mode.chained_assignment = None
 
 TIMER_INTERVAL_ID = "interval"
 
+
+def utc_now() -> datetime.datetime:
+    """Return the current UTC time"""
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def format_local_time(dt: datetime.datetime) -> str:
+    """Display a UTC timestamp in the local timezone."""
+    return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def format_elapsed_time(start: datetime.datetime, end: datetime.datetime) -> str:
+    """Display an elapsed duration without fractional seconds."""
+    elapsed = end - start
+    elapsed = datetime.timedelta(seconds=int(elapsed.total_seconds()))
+    return str(elapsed)
+
+
 MAPPING_CATS = ["n_primary", "n_supplementary", "n_secondary", "n_unmapped"]
 MAPPING_COLS = dict(
     zip(
@@ -119,7 +137,7 @@ class ExperimentSummary(RealtimeDashboardComponent):
 
     def __init__(self, expt_name: str, component_id: str):
         super().__init__(expt_name, component_id)
-        self.t0 = datetime.datetime.now().replace(microsecond=0)
+        self.t0 = utc_now()
 
     def _define_layout(self):
         """
@@ -150,7 +168,7 @@ class ExperimentSummary(RealtimeDashboardComponent):
         def _update(_):
             """Called every time an input changes"""
 
-            t1 = datetime.datetime.now().replace(microsecond=0)
+            t1 = utc_now()
 
             children = [
                 html.H3("Run Details"),
@@ -158,9 +176,9 @@ class ExperimentSummary(RealtimeDashboardComponent):
                     [
                         f"Experiment: {self.expt_name}",
                         html.Br(),
-                        f"Started at: {self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                        f"Started at: {format_local_time(self.t0)}",
                         html.Br(),
-                        f"Time elapsed: {t1 - self.t0}",
+                        f"Time elapsed: {format_elapsed_time(self.t0, t1)}",
                     ]
                 ),
             ]
@@ -188,8 +206,10 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
         super().__init__(expt_name, component_id)
         if start_time is not None:
             self.t0 = start_time
+            if self.t0.tzinfo is None:
+                self.t0 = self.t0.replace(tzinfo=datetime.timezone.utc)
         else:
-            self.t0 = datetime.datetime.now().replace(microsecond=0)
+            self.t0 = utc_now()
         self.fastq_csv = fastq_csv
         self.is_realtime = is_realtime
 
@@ -229,7 +249,7 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
                 n_fastq = df["n_processed_fastq"].sum()
 
             # Update time
-            t1 = datetime.datetime.now().replace(microsecond=0)
+            t1 = utc_now()
 
             # Define the text section
             # TODO: this is pretty horrible to make look decent
@@ -239,9 +259,9 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
             content = [
                 f"{t('Experiment Name')}:{tab * (n_tabs - 1)}{self.expt_name}",
                 html.Br(),
-                f"{t('Started at')}:{tab * n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"{t('Started at')}:{tab * n_tabs}{format_local_time(self.t0)}",
                 html.Br(),
-                f"{t('Time elapsed')}:{tab * n_tabs}{t1 - self.t0}",
+                f"{t('Time elapsed')}:{tab * n_tabs}{format_elapsed_time(self.t0, t1)}",
                 html.Br(),
                 f"{t('FASTQs Processed')}:{tab * (n_tabs - 2)}{n_fastq}",
             ]

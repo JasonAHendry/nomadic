@@ -1,5 +1,6 @@
+import time
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import timedelta
 
 from nomadic.realtime.steps import (
     CallVariantsRTBcftools,
@@ -63,7 +64,7 @@ class BarcodePipelineRT(ABC):
 
         """
 
-        t0 = datetime.now().replace(microsecond=0)
+        t0 = time.perf_counter()
         print()
         print("=" * 80)
         print(f"Updating: {self.barcode_name}")
@@ -71,10 +72,11 @@ class BarcodePipelineRT(ABC):
 
         self._run(new_fastq=new_fastq, incr_id=incr_id)
 
-        t1 = datetime.now().replace(microsecond=0)
+        t1 = time.perf_counter()
+        elapsed = timedelta(seconds=round(t1 - t0))
         print("-" * 80)
         print(f"Done with: {self.barcode_name}")
-        print(f"Time elapsed: {t1 - t0}")
+        print(f"Time elapsed: {elapsed}")
         print("=" * 80)
 
 
