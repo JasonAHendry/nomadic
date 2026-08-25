@@ -530,7 +530,7 @@ class VariantAnnotator:
         from a VCF file and output them as a TSV file
         """
         cmd = "bcftools query"
-        cmd += " -f '[%SAMPLE\t%CHROM\t%POS\t%REF\t%AMP_ID\t%GT\t%TGT\t%DP\t%WSAF\n]'"
+        cmd += f" -f '[%SAMPLE\t%CHROM\t%POS\t%REF\t%AMP_ID\t%GT\t%TGT\t%DP\t%{self.wsaf_query_tag}\n]'"
         if output_tsv:
             cmd += f" -o {shlex.quote(output_tsv)}"
         cmd += f" {shlex.quote(input_vcf)}"
