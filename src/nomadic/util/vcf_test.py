@@ -108,7 +108,7 @@ def test_csq_command(vcf_annotator):
 
 @pytest.mark.parametrize(
     "annotated_vcf",
-    (vcf_test_data_dir / "annotated").glob("*.vcf"),
+    list((vcf_test_data_dir / "annotated").glob("*.vcf")),
     ids=lambda p: p.stem,
 )
 def test_aa_changes(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot):
@@ -126,7 +126,7 @@ def test_aa_changes(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapsh
 
 @pytest.mark.parametrize(
     "annotated_vcf",
-    (vcf_test_data_dir / "annotated").glob("*.vcf"),
+    list((vcf_test_data_dir / "annotated").glob("*.vcf")),
     ids=lambda p: p.stem,
 )
 def test_qc(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot):
@@ -142,7 +142,7 @@ def test_qc(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot):
 
 @pytest.mark.parametrize(
     "annotated_vcf",
-    (vcf_test_data_dir / "annotated").glob("*.vcf"),
+    list((vcf_test_data_dir / "annotated").glob("*.vcf")),
     ids=lambda p: p.stem,
 )
 def test_summarize_aa_changes(
@@ -157,7 +157,7 @@ def test_summarize_aa_changes(
 
 @pytest.mark.parametrize(
     "annotated_vcf",
-    (vcf_test_data_dir / "annotated").glob("*.vcf"),
+    list((vcf_test_data_dir / "annotated").glob("*.vcf")),
     ids=lambda p: p.stem,
 )
 def test_summarize_nt_changes(
