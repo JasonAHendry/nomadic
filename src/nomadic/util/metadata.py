@@ -214,21 +214,21 @@ class MetadataTableParser:
         _, ext = os.path.splitext(path)
         ext = ext.lower()
         if ext == ".xlsx":
-            xlsx = pd.ExcelFile(path, engine="openpyxl")
-            # name in nomadic excel template, and in the (legacy) warehouse template
-            target_sheets = ["nomadic", "rxn_metadata"]
-            # Find first matching sheetname or use first sheet
-            sheet_names = [
-                sheetname
-                for sheetname in target_sheets
-                if sheetname in xlsx.sheet_names
-            ] + [xlsx.sheet_names[0]]
-            data = pd.read_excel(
-                path,
-                dtype={"sample_id": "str"},
-                sheet_name=sheet_names[0],
-                engine="openpyxl",
-            )
+            with pd.ExcelFile(path, engine="openpyxl") as xlsx:
+                # name in nomadic excel template, and in the (legacy) warehouse template
+                target_sheets = ["nomadic", "rxn_metadata"]
+                # Find first matching sheetname or use first sheet
+                sheet_names = [
+                    sheetname
+                    for sheetname in target_sheets
+                    if sheetname in xlsx.sheet_names
+                ] + [xlsx.sheet_names[0]]
+                data = pd.read_excel(
+                    xlsx,
+                    dtype={"sample_id": "str"},
+                    sheet_name=sheet_names[0],
+                    engine="openpyxl",
+                )
             data.dropna(how="all", inplace=True)
             self.df = data
         else:
