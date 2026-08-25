@@ -78,8 +78,8 @@ def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
         dashboard = MappingRTDashboard(**shared_kwargs)
     print("Done.")
 
-    print("")
+    print()
     print("Launching dashboard (press CNTRL+C to exit):")
-    print("")
+    print()
 
     dashboard.run(debug=False, host=host, port=port)

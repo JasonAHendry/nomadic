@@ -1,26 +1,23 @@
-from typing import List
-
 from nomadic.download.references import REFERENCE_COLLECTION
-from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.experiment import ExperimentDirectories
-from nomadic.util.regions import RegionBEDParser
-
-from nomadic.realtime.watchers import BarcodeWatcher
+from nomadic.realtime.dashboard.builders import (
+    CallingRTDashboard,
+    MappingRTDashboard,
+    RealtimeDashboardBuilder,
+)
 from nomadic.realtime.pipelines.barcode import (
-    BarcodePipelineRT,
-    BarcodeMappingPipelineRT,
     BarcodeCallingPipelineRT,
+    BarcodeMappingPipelineRT,
+    BarcodePipelineRT,
 )
 from nomadic.realtime.pipelines.experiment import (
     ExperimentPipelineRT,
-    ExptMappingPipelineRT,
     ExptCallingPipelineRT,
+    ExptMappingPipelineRT,
 )
-from nomadic.realtime.dashboard.builders import (
-    RealtimeDashboardBuilder,
-    MappingRTDashboard,
-    CallingRTDashboard,
-)
+from nomadic.realtime.watchers import BarcodeWatcher
+from nomadic.util.experiment import ExperimentDirectories
+from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.regions import RegionBEDParser
 
 
 class PipelineFactory:
@@ -80,7 +77,7 @@ class PipelineFactory:
 
         return BarcodeMappingPipelineRT(**kwargs)
 
-    def get_watchers(self) -> List[BarcodeWatcher]:
+    def get_watchers(self) -> list[BarcodeWatcher]:
         """
         Initialise watchers for each barcode, and return them
 

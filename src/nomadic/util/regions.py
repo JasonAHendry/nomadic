@@ -1,6 +1,6 @@
 import os
-import seaborn as sns
 
+import seaborn as sns
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.bed import load_bed_as_dataframe

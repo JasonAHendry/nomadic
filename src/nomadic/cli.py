@@ -2,8 +2,8 @@ from collections import OrderedDict
 
 import click
 
-from nomadic.configure.commands import configure
 from nomadic.backup.commands import backup
+from nomadic.configure.commands import configure
 from nomadic.dashboard.commands import dashboard
 from nomadic.download.commands import download
 from nomadic.process.commands import process
@@ -16,7 +16,7 @@ from nomadic.summarize.commands import summarize
 # From: https://stackoverflow.com/questions/47972638/how-can-i-define-the-order-of-click-sub-commands-in-help
 class OrderedGroup(click.Group):
     def __init__(self, name=None, commands=None, **attrs):
-        super(OrderedGroup, self).__init__(name, commands, **attrs)
+        super().__init__(name, commands, **attrs)
         #: the registered subcommands by their exported names.
         self.commands = commands or OrderedDict()
 
@@ -31,7 +31,6 @@ def cli():
     Mobile sequencing and analysis in real-time
 
     """
-    pass
 
 
 cli.add_command(start)

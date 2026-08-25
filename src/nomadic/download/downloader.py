@@ -37,7 +37,7 @@ class ReferenceDownloader:
                 url=self.ref.fasta_url, filename=self.ref.fasta_path
             )
             print("Done.")
-            print("")
+            print()
         else:
             print("Already downloaded FASTA.")
 
@@ -82,9 +82,7 @@ class ReferenceDownloader:
         # Standardise
         gff_df = load_gff(self.ref.gff_path)
         gff_df.query("feature in @KEEP_FIELDS", inplace=True)
-        gff_df["feature"] = [
-            to_gff3[f] if f in to_gff3 else f for f in gff_df["feature"]
-        ]
+        gff_df["feature"] = [to_gff3.get(f, f) for f in gff_df["feature"]]
 
         # Rename attributes to what bcftools expects
         # see https://samtools.github.io/bcftools/bcftools-man.html#csq

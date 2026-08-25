@@ -1,8 +1,8 @@
+import enum
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum, auto
-import enum
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -184,7 +184,7 @@ def add_qc_status(region_qc_df: pd.DataFrame) -> pd.DataFrame:
         ],
         [
             QcStatus.CONTROL,
-            ";".join([QcStatus.CONTAM, QcStatus.LOWCOV]),
+            f"{QcStatus.CONTAM};{QcStatus.LOWCOV}",
             QcStatus.CONTAM,
             QcStatus.LOWCOV,
         ],

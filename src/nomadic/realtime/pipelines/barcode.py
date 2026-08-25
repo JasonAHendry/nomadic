@@ -1,18 +1,17 @@
-from datetime import datetime
-from typing import List
 from abc import ABC, abstractmethod
-from nomadic.util.experiment import ExperimentDirectories
-from nomadic.util.regions import RegionBEDParser
+from datetime import datetime
+
 from nomadic.realtime.steps import (
-    FASTQProcessedRT,
-    MappingRT,
-    FlagstatsRT,
-    RegionCoverage,
-    RegionDepthProfileRT,
     CallVariantsRTBcftools,
     CallVariantsRTDelve,
+    FASTQProcessedRT,
+    FlagstatsRT,
+    MappingRT,
+    RegionCoverage,
+    RegionDepthProfileRT,
 )
-
+from nomadic.util.experiment import ExperimentDirectories
+from nomadic.util.regions import RegionBEDParser
 
 # --------------------------------------------------------------------------------
 # Interface for barcode pipelines
@@ -50,14 +49,13 @@ class BarcodePipelineRT(ABC):
         self.ref_name = ref_name
 
     @abstractmethod
-    def _run(self, new_fastq: List[str], incr_id: str) -> None:
+    def _run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Run analysis steps for the pipeline on new FASTQ files
 
         """
-        pass
 
-    def run(self, new_fastq: List[str], incr_id: str) -> None:
+    def run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Wrapper to try and make the stdout easier to read
 
@@ -66,7 +64,7 @@ class BarcodePipelineRT(ABC):
         """
 
         t0 = datetime.now().replace(microsecond=0)
-        print("")
+        print()
         print("=" * 80)
         print(f"Updating: {self.barcode_name}")
         print("-" * 80)
@@ -119,7 +117,7 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
             **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
         )
 
-    def _run(self, new_fastq: List[str], incr_id: str) -> None:
+    def _run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
 
@@ -191,7 +189,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         else:
             raise RuntimeError(f"Unknown caller: {caller}")
 
-    def _run(self, new_fastq: List[str], incr_id: str) -> None:
+    def _run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
 

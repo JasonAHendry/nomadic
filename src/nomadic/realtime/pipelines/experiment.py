@@ -38,12 +38,14 @@ class ExperimentPipelineRT(ABC):
         metadata: MetadataTableParser,
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
-        reference: Reference = PlasmodiumFalciparum3D7(),
+        reference: Reference | None = None,
     ):
         """
         Store important metadata as instance attributes
 
         """
+        if reference is None:
+            reference = PlasmodiumFalciparum3D7()
 
         self.expt_dirs = expt_dirs
         self.metadata = metadata
@@ -56,7 +58,6 @@ class ExperimentPipelineRT(ABC):
         Run the complete pipeline
 
         """
-        pass
 
     def _run_fastq(self):
         """
@@ -67,9 +68,10 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(
-                    open(f"{barcode_dir}/fastq/{b}.n_processed_fastq.json", "r")
-                )
+                with open(
+                    f"{barcode_dir}/fastq/{b}.n_processed_fastq.json", "r"
+                ) as file:
+                    dt = json.load(file)
                 fastq_dts.append(dt)
             except FileNotFoundError:
                 continue
@@ -86,11 +88,11 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(
-                    open(
-                        f"{barcode_dir}/qcbams/{b}.{self.reference.name}.flagstats.json"
-                    )
-                )
+                with open(
+                    f"{barcode_dir}/qcbams/{b}.{self.reference.name}.flagstats.json",
+                    "r",
+                ) as file:
+                    dt = json.load(file)
                 dt["barcode"] = b
                 qcbams_dts.append(dt)
             except FileNotFoundError:
@@ -236,8 +238,10 @@ class ExptCallingPipelineRT(ExperimentPipelineRT):
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
         caller: str,
-        reference: Reference = PlasmodiumFalciparum3D7(),
+        reference: Reference | None = None,
     ):
+        if reference is None:
+            reference = PlasmodiumFalciparum3D7()
         self.caller = caller
         super().__init__(metadata, expt_dirs, regions, reference)
 

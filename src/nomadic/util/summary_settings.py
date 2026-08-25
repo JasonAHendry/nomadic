@@ -22,7 +22,8 @@ class Settings(BaseModel):
 
 def load_settings(settings_file: Path) -> Settings:
     """Load settings from a file."""
-    data = yaml.safe_load(open(settings_file, "r"))
+    with open(settings_file, "r") as f:
+        data = yaml.safe_load(f)
     return Settings(**data)
 
 

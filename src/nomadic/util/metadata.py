@@ -1,17 +1,16 @@
 import os
 import re
 import warnings
-from typing import List, Optional
+from typing import Optional
 
 import pandas as pd
 
 from .exceptions import MetadataFormatError
 
-
 STANDARD_METADATA_FILENAME = "samples.csv"
 
 
-def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";", "\t"]):
+def get_csv_delimiter(csv_path: str, delimiters: Optional[list[str]] = None):
     """
     Determine which delimiter is being used in a CSV
 
@@ -19,6 +18,8 @@ def get_csv_delimiter(csv_path: str, delimiters: List[str] = [",", ";", "\t"]):
     a regex sep=[,;] does not work.
 
     """
+    if delimiters is None:
+        delimiters = [",", ";", "\t"]
 
     with open(csv_path, "r") as csv:
         for header in csv:
@@ -243,7 +244,7 @@ class MetadataTableParser:
 
         normalized_column_names = [c.strip().lower() for c in self.df.columns]
 
-        for standard_column_name in self.ALTERNATIVE_NAMES.keys():
+        for standard_column_name in self.ALTERNATIVE_NAMES:
             if standard_column_name not in self.df.columns:
                 for normalized_column in normalized_column_names:
                     if re.fullmatch(

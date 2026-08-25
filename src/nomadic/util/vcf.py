@@ -1,12 +1,11 @@
 import re
 import shlex
 import subprocess
-from typing import Literal, Optional
 from io import StringIO
+from typing import Literal, Optional
 
 import numpy as np
 import pandas as pd
-
 
 _AA_CHANGE_RE = re.compile(r"^(\d+)([A-Za-z])(?:>\1([A-Za-z\*]))?$")
 _AA_POS_RE = re.compile(r"\d+")

@@ -1,28 +1,27 @@
 import glob
-from importlib.resources import as_file, files
 import logging
 import os
 import threading
-from abc import ABC, abstractmethod
 import webbrowser
-from dash import Dash, Input, Output, callback, html, dcc
+from abc import ABC, abstractmethod
+from importlib.resources import as_file, files
 
-from i18n import t
 import i18n
 import pandas as pd
+from dash import Dash, Input, Output, callback, dcc, html
+from i18n import t
 
 from nomadic.summarize.analysis.metadata import METADATA_COLUMN_PREFIX
-
 from nomadic.summarize.analysis.variants import compute_variant_prevalence
 from nomadic.summarize.dashboard.components import (
     AmpliconsBarplot,
     GeneDeletionsBarplot,
+    MapComponent,
+    PrevalenceBarplot,
     PrevalenceHeatmap,
+    QualityControl,
     SamplesPie,
     ThroughputSummary,
-    QualityControl,
-    PrevalenceBarplot,
-    MapComponent,
 )
 from nomadic.util.summary_settings import Settings, get_map_settings
 
@@ -48,7 +47,6 @@ class SummaryDashboardBuilder(ABC):
         the overall dashboard organisation
 
         """
-        pass
 
     def _gen_app(self):
         """
@@ -214,7 +212,7 @@ class SummaryDashboardBuilder(ABC):
             dropdown_amplicon_set = dcc.Dropdown(
                 id="prevalence-dropdown-amplicon-set",
                 options=list(amplicon_sets.keys()),
-                value=list(amplicon_sets.keys())[0],
+                value=next(iter(amplicon_sets.keys())),
                 style=dict(width="300px"),
                 clearable=False,
             )
@@ -520,10 +518,8 @@ class SummaryDashboardBuilder(ABC):
 
         region_dropdown = dcc.Dropdown(
             id="map-region-dropdown",
-            options=[
-                {"label": name.capitalize(), "value": name} for name in regions.keys()
-            ],
-            value=list(regions.keys())[0] if regions else None,
+            options=[{"label": name.capitalize(), "value": name} for name in regions],
+            value=next(iter(regions.keys())) if regions else None,
             style=dict(width="300px"),
             clearable=False,
         )
@@ -642,9 +638,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
 
         # Read header only
         df_header = pd.read_csv(throughput_csv, nrows=0)
-        dtypes: dict[str, type[str] | type[int]] = {
-            col: int for col in df_header.columns
-        }
+        dtypes: dict[str, type[str | int]] = {col: int for col in df_header.columns}
         dtypes["sample_type"] = str
         self.throughput_df = pd.read_csv(
             throughput_csv, index_col="sample_type", dtype=dtypes

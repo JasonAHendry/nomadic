@@ -1,15 +1,14 @@
-from abc import ABC, abstractmethod
 import json
 import os
-from typing import Optional
 import warnings
+from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
-
 from i18n import t
 
 from nomadic.summarize.analysis.deletions import gene_deletion_prevalence_by
@@ -70,7 +69,6 @@ class SummaryDashboardComponent(ABC):
         in response to the timer, as well (potentially) other inputs
 
         """
-        pass
 
 
 # --------------------------------------------------------------------------------

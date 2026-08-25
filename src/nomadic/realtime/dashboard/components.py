@@ -1,8 +1,8 @@
 import datetime
 import os
+import re
 from abc import ABC, abstractmethod
 from typing import Optional
-import re
 
 import numpy as np
 import pandas as pd
@@ -11,11 +11,11 @@ import plotly.graph_objects as go
 import seaborn as sns
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
+from i18n import t
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
-from i18n import t
 
 pd.options.mode.chained_assignment = None
 
@@ -97,7 +97,6 @@ class RealtimeDashboardComponent(ABC):
         in response to the timer, as well (potentially) other inputs
 
         """
-        pass
 
 
 # --------------------------------------------------------------------------------

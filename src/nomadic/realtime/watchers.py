@@ -44,7 +44,7 @@ class BarcodeWatcher:
         """
         Is it a FASTQ file?
         """
-        return file_name.endswith(".fastq") or file_name.endswith(".fastq.gz")
+        return file_name.endswith((".fastq", ".fastq.gz"))
 
     def _check_fastqs(self):
         """
@@ -61,13 +61,11 @@ class BarcodeWatcher:
             return None
 
         # If it has, collect the FASTQs
-        observed_fastqs = set(
-            [
-                f"{fastq_barcode_dir}/{file}"
-                for file in os.listdir(fastq_barcode_dir)
-                if self._is_fastq(file)
-            ]
-        )
+        observed_fastqs = {
+            f"{fastq_barcode_dir}/{file}"
+            for file in os.listdir(fastq_barcode_dir)
+            if self._is_fastq(file)
+        }
 
         # Are any unprocessed?
         return observed_fastqs.difference(self.processed_fastqs)

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 
 from nomadic.util.summary_settings import Settings, get_master_columns_mapping
@@ -24,9 +26,11 @@ def master_metadata_from_expts(expts, *, shared_columns: list[str]) -> pd.DataFr
 
 def get_shared_metadata_columns(
     metadata_dfs: list[pd.DataFrame],
-    fixed_columns: list[str] = ["expt_name", "barcode", "sample_id", "sample_type"],
+    fixed_columns: Optional[list[str]] = None,
 ) -> list[str]:
     """Get metadata columns that are shared acrossa all experiments"""
+    if fixed_columns is None:
+        fixed_columns = ["expt_name", "barcode", "sample_id", "sample_type"]
 
     shared_columns = set(metadata_dfs[0].columns)
     for df in metadata_dfs[1:]:

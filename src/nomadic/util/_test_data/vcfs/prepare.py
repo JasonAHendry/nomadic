@@ -1,8 +1,8 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
-from nomadic.util.vcf import VariantAnnotator
 from nomadic.download.references import PlasmodiumFalciparum3D7
+from nomadic.util.vcf import VariantAnnotator
 
 test_vcf_folders = [Path("src/nomadic/util/_test_data/vcfs/delve")]
 

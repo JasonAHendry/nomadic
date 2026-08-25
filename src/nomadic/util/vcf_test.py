@@ -1,5 +1,5 @@
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -91,9 +91,10 @@ def test_csq_command(vcf_annotator):
         "Annotated VCF does not contain the expected BCSQ in the INFO field."
     )
 
-    bcsq_field = [
+    bcsq_field = next(
         field for field in info_field.split(";") if field.startswith("BCSQ=")
-    ][0]
+    )
+
     assert (
         bcsq_field
         == "BCSQ=missense|DHFR-TS|PF3D7_0417200.1|protein_coding|+|51N>51I|748239A>T"

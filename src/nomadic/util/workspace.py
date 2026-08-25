@@ -1,11 +1,11 @@
-from itertools import chain
 import os
+from itertools import chain
 from pathlib import Path
 from typing import Optional
 
 import click
 
-from nomadic.util.config import get_config_value, load_config, default_config_path
+from nomadic.util.config import default_config_path, get_config_value, load_config
 from nomadic.util.dirs import produce_dir
 
 

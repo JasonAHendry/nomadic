@@ -1,24 +1,14 @@
 import glob
 import os
 import shutil
-from typing import Optional
 from pathlib import Path
-
+from typing import Optional
 
 from nomadic.summarize.analysis.deletions import (
     gene_deletion_prevalence_by,
     gene_deletions,
 )
 from nomadic.summarize.analysis.input_data import common_caller, common_reference_name
-from nomadic.summarize.analysis.variants import (
-    compute_variant_prevalence,
-    remove_false_positives,
-    filter_to_analysis_set,
-    load_variants_from_vcfs,
-    remove_never_observed_variants,
-    rename_prevalence_by_cols,
-)
-from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.summarize.analysis.inventory import (
     add_inventory_status,
     compute_throughput,
@@ -47,22 +37,30 @@ from nomadic.summarize.analysis.qc import (
     replicates_qc,
     samples_qc,
 )
-from nomadic.util.panel import get_panel_settings
-from nomadic.util.summary import looks_like_summary_dir
-from nomadic.util.timer import Timer
-from nomadic.util.workspace import Workspace
+from nomadic.summarize.analysis.variants import (
+    compute_variant_prevalence,
+    filter_to_analysis_set,
+    load_variants_from_vcfs,
+    remove_false_positives,
+    remove_never_observed_variants,
+    rename_prevalence_by_cols,
+)
+from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.util.dirs import produce_dir
-from nomadic.util.regions import RegionBEDParser, common_regions
 from nomadic.util.experiment import (
     experiment_outputs,
 )
 from nomadic.util.logging_config import LoggingFascade
+from nomadic.util.panel import get_panel_settings
 from nomadic.util.port import next_free_port
+from nomadic.util.regions import RegionBEDParser, common_regions
+from nomadic.util.summary import looks_like_summary_dir
 from nomadic.util.summary_settings import (
     Settings,
     load_settings,
 )
-
+from nomadic.util.timer import Timer
+from nomadic.util.workspace import Workspace
 
 # --------------------------------------------------------------------------------
 # Variant analysis
@@ -404,9 +402,9 @@ def view(input_dir: Path, summary_name: str, host: str, port: Optional[int]) -> 
         deletion_genes=deletion_genes,
     )
 
-    print("")
+    print()
     print("Launching dashboard (press CNTRL+C to exit):")
-    print("")
+    print()
     if port is None:
         port = next_free_port(8050)
     debug = bool(os.getenv("NOMADIC_DEBUG"))

@@ -1,7 +1,7 @@
 import pytest
-from nomadic.util.metadata import correct_barcode_format, MetadataTableParser
-from nomadic.util.exceptions import MetadataFormatError
 
+from nomadic.util.exceptions import MetadataFormatError
+from nomadic.util.metadata import MetadataTableParser, correct_barcode_format
 
 # --------------------------------------------------------------------------------
 # Tests for check_barcode_format
@@ -41,9 +41,8 @@ def test_check_barcode_warning(barcode, try_to_fix, expected):
     ],
 )
 def test_check_barcode_warning_error(barcode, try_to_fix, expected):
-    with pytest.warns(UserWarning):
-        with pytest.raises(MetadataFormatError):
-            assert correct_barcode_format(barcode, try_to_fix) == expected
+    with pytest.warns(UserWarning), pytest.raises(MetadataFormatError):
+        assert correct_barcode_format(barcode, try_to_fix) == expected
 
 
 # --------------------------------------------------------------------------------

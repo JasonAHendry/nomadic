@@ -1,21 +1,21 @@
 import glob
-import os
 import json
+import os
 import shutil
-import pandas as pd
-from pathlib import Path
-from typing import Literal, NamedTuple, Any, Optional
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Literal, NamedTuple, Optional
+
+import pandas as pd
 
 from nomadic.util.dirs import produce_dir
 from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.metadata import (
-    MetadataTableParser,
-    ExtendedMetadataTableParser,
     STANDARD_METADATA_FILENAME,
+    ExtendedMetadataTableParser,
+    MetadataTableParser,
 )
 from nomadic.util.regions import RegionBEDParser
-
 
 # --------------------------------------------------------------------------------
 # Handle summary file names: legacy and current
@@ -148,9 +148,8 @@ class ExperimentDirectories:
             if not os.path.exists(metadata_csv):
                 metadata.df.to_csv(metadata_csv, index=False)
 
-        if regions is not None:
-            if not os.path.exists(self.regions_bed):
-                shutil.copy(regions.path, self.regions_bed)
+        if regions is not None and not os.path.exists(self.regions_bed):
+            shutil.copy(regions.path, self.regions_bed)
 
 
 # --------------------------------------------------------------------------------
@@ -271,7 +270,8 @@ def experiment_outputs(
         caller = "bcftools"  # if no settings, was using bcftools
         reference_name = "Unknown"
     else:
-        settings = json.load(open(settings_path, "r"))
+        with open(settings_path, "r") as f:
+            settings = json.load(f)
         caller = settings["caller"]
         reference_name = str(settings["reference_name"])
 

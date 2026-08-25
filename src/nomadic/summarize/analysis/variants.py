@@ -1,7 +1,8 @@
+import subprocess
+from collections.abc import Iterable
 from logging import Logger
 from pathlib import Path
-import subprocess
-from typing import Iterable, Optional
+from typing import Optional
 
 import pandas as pd
 from statsmodels.stats.proportion import proportion_confint
@@ -10,7 +11,6 @@ from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.timer import Timer
 from nomadic.util.vcf import VariantAnnotator
 from nomadic.util.wrappers import bcftools
-
 
 # These columns are used to define unique variants
 VARIANTS_GROUP_COLUMNS = [

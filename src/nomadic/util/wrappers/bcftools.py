@@ -1,9 +1,8 @@
 import os
-import uuid
+import shlex
 import shutil
 import subprocess
-import shlex
-from typing import List
+import uuid
 
 
 def view(input_vcf, output_vcf, dry_run=False, **kwargs):
@@ -87,7 +86,7 @@ def index(input_vcf):
     subprocess.run(cmd, check=True)
 
 
-def merge(vcfs: List[str], output_vcf: str):
+def merge(vcfs: list[str], output_vcf: str):
     """
     Run `bcftools merge` on a list of VCF files
 
@@ -115,16 +114,15 @@ def reheader(input_vcf, output_vcf, sample_names):
     """
 
     # Generate random file name
-    sample_file = f"sample_{str(uuid.uuid4())}.txt"
+    sample_file = f"sample_{uuid.uuid4()!s}.txt"
 
     # Write sample names to file
     with open(sample_file, "w") as fn:
-        for sample_name in sample_names:
-            fn.write(f"{sample_name}\n")
+        fn.writelines(f"{sample_name}\n" for sample_name in sample_names)
 
     # Create temporary file if input and output have same name
     if input_vcf == output_vcf:
-        output_vcf = f"{input_vcf}".replace(".vcf", f"{str(uuid.uuid4())}.vcf")
+        output_vcf = f"{input_vcf}".replace(".vcf", f"{uuid.uuid4()!s}.vcf")
         cleanup = True
 
     # Construct and run command
