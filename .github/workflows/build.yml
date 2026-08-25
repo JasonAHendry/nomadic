@@ -38,8 +38,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ env.CONDA }}/envs
-          key:
-            conda-${{ runner.os }}--${{ runner.arch }}--${{
+          key: conda-${{ runner.os }}--${{ runner.arch }}--${{
             steps.get-date.outputs.today }}-${{
             hashFiles('environments/dev.yml') }}-${{ env.CACHE_NUMBER
             }}
@@ -49,8 +48,7 @@ jobs:
         id: cache
 
       - name: Update environment
-        run:
-          conda env update -n nomadic-dev -f environments/dev.yml
+        run: conda env update -n nomadic-dev -f environments/dev.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Conda info
@@ -62,14 +60,17 @@ jobs:
         run: |
           pip install . --no-deps
 
+      - name: Download reference genome
+        run: |
+          nomadic download -r Pf3D7
+
       - name: Run tests
         run: |
           pytest
-      
+
       - name: Smoke test nomadic
         run: |
           nomadic --help
-
 
   ruff:
     runs-on: ubuntu-latest
