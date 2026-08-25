@@ -119,6 +119,15 @@ def check_sample_type_format(sample_type: str, try_to_fix: bool = False) -> str:
         sample_type = str(sample_type)
 
     sample_type = sample_type.strip()  # safe to do this in all cases
+
+    # Match sample types that were used in older excel nomads sheet, and we don't want to warn for those
+    sample_type_mapping = {
+        "Field": "field",
+        "Positive": "pos",
+        "Negative": "neg",
+    }
+    sample_type = sample_type_mapping.get(sample_type, sample_type)
+
     if sample_type in EXPECTED:
         return sample_type
 

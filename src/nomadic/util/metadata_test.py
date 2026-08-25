@@ -199,6 +199,7 @@ def test_simple_excel_loading():
     ]
 
 
+@pytest.mark.filterwarnings("error")
 def test_nomads_worksheet_excel_loading():
     metadata_path = test_files_folder + "metadata/NOMADS_Library_Worksheet_good.xlsx"
     metadata = MetadataTableParser(metadata_path)
