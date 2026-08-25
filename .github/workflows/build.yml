@@ -60,9 +60,10 @@ jobs:
         run: |
           pip install . --no-deps
 
-      - name: Download reference genome
-        run: |
-          nomadic download -r Pf3D7
+      # Currently not working because links have changed, enable once fixed
+      # - name: Download reference genome
+      #   run: |
+      #     nomadic download -r Pf3D7
 
       - name: Run tests
         run: |

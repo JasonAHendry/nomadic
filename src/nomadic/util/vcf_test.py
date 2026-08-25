@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 
@@ -75,6 +76,10 @@ def test_wsaf_command(vcf_annotator):
     )
 
 
+@pytest.mark.skipif(
+    os.getenv("CI") == "true",
+    reason="Skipping test in CI environment because currently reference genomes are not downloaded.",
+)
 def test_csq_command(vcf_annotator):
     vcf_path = vcf_test_data_dir / "delve" / "01-a-single-mut-mis.vcf"
 
