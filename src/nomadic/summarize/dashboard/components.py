@@ -322,7 +322,7 @@ class QualityControl(SummaryDashboardComponent):
     def __init__(
         self,
         summary_name: str,
-        coverage_df: pd.DataFrame,
+        experiment_qc_df: pd.DataFrame,
         component_id: str,
         dropdown_id: str,
     ) -> None:
@@ -331,14 +331,14 @@ class QualityControl(SummaryDashboardComponent):
 
         """
 
-        self.coverage_df = coverage_df
+        self.experiment_qc_df = experiment_qc_df
         self.plot_df = pd.pivot_table(
             index="expt_name",
             columns="name",
             values=[*self.STATISTICS, "n_field"],
             dropna=False,
             observed=False,
-            data=self.coverage_df,
+            data=self.experiment_qc_df,
         )
 
         self.dropdown_id = dropdown_id
@@ -470,6 +470,7 @@ class PrevalenceBarplot(SummaryDashboardComponent):
             else:
                 plot_df = compute_variant_prevalence(analysis_df, self.master_df, [by])
             plot_df.sort_values(["gene", "chrom", "aa_pos"], inplace=True)
+            plot_df["mutation"] = plot_df["gene"] + "-" + plot_df["aa_change"]
 
             data = []
             htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"

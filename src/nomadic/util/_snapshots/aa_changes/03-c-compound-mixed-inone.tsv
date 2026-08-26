@@ -1,3 +1,3 @@
 barcode	chrom	pos	amplicon	csq_type	gene	transcript	coding_strand	aa_pos	aa_change	nt_change
-sample1-mixed	Pf3D7_04_v3	748238	dhfr-p1-410	missense	DHFR-TS	PF3D7_0417200.1	+	51	N51Y	748238A>T
-sample1-mixed	Pf3D7_04_v3	748238	dhfr-p1-410	missense	DHFR-TS	PF3D7_0417200.1	+	51	N51F	748238A>T+748239A>T
+sample1-mixed	Pf3D7_04_v3	748238	dhfr-p1-410	missense	dhfr	PF3D7_0417200.1	+	51	N51Y	748238A>T
+sample1-mixed	Pf3D7_04_v3	748238	dhfr-p1-410	missense	dhfr	PF3D7_0417200.1	+	51	N51F	748238A>T+748239A>T

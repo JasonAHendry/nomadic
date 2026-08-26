@@ -11,7 +11,10 @@ import pandas as pd
 from dash import Dash, Input, Output, callback, dcc, html
 from i18n import t
 
-from nomadic.summarize.analysis.metadata import METADATA_COLUMN_PREFIX
+from nomadic.summarize.analysis.metadata import (
+    METADATA_COLUMN_PREFIX,
+    prefix_metadata_columns,
+)
 from nomadic.summarize.analysis.variants import compute_variant_prevalence
 from nomadic.summarize.dashboard.components import (
     AmpliconsBarplot,
@@ -106,7 +109,7 @@ class SummaryDashboardBuilder(ABC):
         # Create the component
         self.expt_summary = ThroughputSummary(
             summary_name=self.summary_name,
-            component_id="thoughput-summary",
+            component_id="throughput-summary",
             throughput_df=throughput_df,
         )
 
@@ -149,7 +152,7 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.samples)
         self.layout.append(quality_row)
 
-    def _add_experiment_qc(self, coverage_df: pd.DataFrame) -> None:
+    def _add_experiment_qc(self, experiment_qc_df: pd.DataFrame) -> None:
         """
         Add a panel that shows quality control results
 
@@ -168,7 +171,7 @@ class SummaryDashboardBuilder(ABC):
             self.summary_name,
             component_id="quality-heat",
             dropdown_id="quality-dropdown",
-            coverage_df=coverage_df,
+            experiment_qc_df=experiment_qc_df,
         )
 
         quality_row = html.Div(
@@ -610,8 +613,8 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         throughput_csv: str,
         samples_csv: str,
         samples_amplicons_csv: str,
-        coverage_csv: str,
-        analysis_csv: str,
+        experiment_qc_csv: str,
+        aa_changes_csvs: list[str],
         gene_deletions_csv: str,
         master_csv: str,
         amplicons: list[str],
@@ -633,8 +636,13 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
 
         super().__init__(summary_name, self.CSS_STYLE)
 
-        master_df = pd.read_csv(master_csv, dtype={"sample_id": str})
-        analysis_df = pd.read_csv(analysis_csv, dtype={"sample_id": str})
+        master_df = pd.read_csv(master_csv, dtype={"sample_id": str}).pipe(
+            prefix_metadata_columns
+        )
+        analysis_df = pd.DataFrame()
+        for aa_changes_csv in aa_changes_csvs:
+            df = pd.read_csv(aa_changes_csv, dtype={"sample_id": str})
+            analysis_df = pd.concat([analysis_df, df], ignore_index=True)
 
         # Read header only
         df_header = pd.read_csv(throughput_csv, nrows=0)
@@ -647,14 +655,14 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         samples_amplicons_df = pd.read_csv(
             samples_amplicons_csv, dtype={"sample_id": str}
         )
-        coverage_df = pd.read_csv(coverage_csv, dtype={"sample_id": str})
+        experiment_qc_df = pd.read_csv(experiment_qc_csv, dtype={"sample_id": str})
 
         self.master_df = master_df
         self.analysis_df = analysis_df
         self.gene_deletions_csv = gene_deletions_csv
         self.samples_df = samples_df
         self.samples_amplicons_df = samples_amplicons_df
-        self.coverage_df = coverage_df
+        self.experiment_qc_df = experiment_qc_df
         self.geojson_glob = geojson_glob
         self.location_coords_csv = location_coords_csv
         self.map_center, self.map_zoom_level = get_map_settings(settings)
@@ -670,7 +678,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         """
         self._add_throughput_banner(self.throughput_df)
         self._add_samples(self.samples_df, self.samples_amplicons_df)
-        self._add_experiment_qc(self.coverage_df)
+        self._add_experiment_qc(self.experiment_qc_df)
         self._add_prevalence_row(
             self.analysis_df, self.master_df, self.amplicon_names, self.amplicon_sets
         )

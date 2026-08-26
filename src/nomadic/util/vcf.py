@@ -10,6 +10,16 @@ import pandas as pd
 _AA_CHANGE_RE = re.compile(r"^(\d+)([A-Za-z])(?:>\1([A-Za-z\*]))?$")
 _AA_POS_RE = re.compile(r"\d+")
 
+# cols
+BARCODE_COL = "barcode"
+
+GENE_COL = "gene"
+AA_CHANGE_COL = "aa_change"
+AA_POS_COL = "aa_pos"
+AA_CALL_COL = "aa_call"
+
+REF_POS_COL = "ref_pos"
+
 
 class VariantAnnotator:
     AMP_HEADER = (
@@ -70,92 +80,94 @@ class VariantAnnotator:
         ).decode("utf-8")
         df_qc = self._parse_to_qc(output_qc, exclude_amplicons=exclude_amplicons)
 
-        all_samples = df_qc["barcode"].unique()
+        all_samples = df_qc[BARCODE_COL].unique()
 
         all_mutations = df_aa_changes[
             ["chrom", "amplicon", "gene", "aa_pos", "aa_change"]
         ].drop_duplicates()
 
-        all_mutations["mutation"] = (
-            all_mutations["gene"] + "-" + all_mutations["aa_change"]
-        )
-
         if exclude_mutations is not None:
-            all_mutations = all_mutations.loc[
-                ~all_mutations["mutation"].isin(exclude_mutations)
-            ]
+            exclude_mutation_mask = pd.MultiIndex.from_frame(
+                all_mutations[[GENE_COL, AA_CHANGE_COL]]
+            ).isin([x.split("-", 1) for x in exclude_mutations])
+            all_mutations = all_mutations.loc[~exclude_mutation_mask]
 
-        mutation_status_df = pd.merge(
-            df_aa_changes[["barcode", "gene", "aa_pos", "aa_change", "nt_change"]],
-            df_qc.query("mut_type in ['mixed', 'mutant']")[
-                ["barcode", "gene", "aa_pos", "mut_type"]
-            ],
-            how="inner",
-            on=["barcode", "gene", "aa_pos"],
-            validate="many_to_one",
+        index = pd.DataFrame({BARCODE_COL: all_samples}).merge(
+            all_mutations, how="cross"
         )
-
-        index = pd.DataFrame({"barcode": all_samples}).merge(all_mutations, how="cross")
         result_df = index.merge(
-            df_qc.query("mut_type in ['wt', 'failed', 'unphased']")[
-                ["barcode", "gene", "aa_pos", "mut_type"]
+            df_qc.query("aa_call in ['wt', 'failed', 'unphased']")[
+                [BARCODE_COL, GENE_COL, AA_POS_COL, AA_CALL_COL]
             ],
             how="left",
-            on=["barcode", "gene", "aa_pos"],
+            on=[BARCODE_COL, GENE_COL, AA_POS_COL],
             validate="many_to_one",
         )
-        result_df["mut_type"] = (
-            result_df["mut_type"]
+        result_df[AA_CALL_COL] = (
+            result_df[AA_CALL_COL]
             .astype("category")
             .cat.set_categories(
                 ["mutant", "mixed", "absent", "wt", "unphased", "failed"], ordered=True
             )
         )
+        mutation_status_df = pd.merge(
+            df_aa_changes[
+                [BARCODE_COL, GENE_COL, AA_POS_COL, AA_CHANGE_COL, "nt_change"]
+            ],
+            df_qc.query("aa_call in ['mixed', 'mutant']")[
+                [BARCODE_COL, GENE_COL, AA_POS_COL, AA_CALL_COL]
+            ],
+            how="inner",
+            on=[BARCODE_COL, GENE_COL, AA_POS_COL],
+            validate="many_to_one",
+        )
         result_df = result_df.merge(
             mutation_status_df,
             how="left",
-            on=["barcode", "gene", "aa_pos", "aa_change"],
+            on=[BARCODE_COL, GENE_COL, AA_POS_COL, AA_CHANGE_COL],
             suffixes=("", "_update"),
             validate="one_to_many",
         )
-        result_df["mut_type"] = result_df["mut_type"].combine_first(
-            result_df["mut_type_update"]
+        result_df[AA_CALL_COL] = result_df[AA_CALL_COL].combine_first(
+            result_df[AA_CALL_COL + "_update"]
         )
-        result_df.drop(columns=["mut_type_update"], inplace=True)
-        result_df["mut_type"] = result_df["mut_type"].fillna("absent")
+        result_df.drop(columns=[AA_CALL_COL + "_update"], inplace=True)
+        result_df[AA_CALL_COL] = result_df[AA_CALL_COL].fillna("absent")
 
         # Remove any mutations for which there was never a mutant/mixed call
         result_df = result_df.loc[
             result_df.groupby(["gene", "aa_pos", "aa_change"], dropna=False)[
-                "mut_type"
+                AA_CALL_COL
             ].transform(lambda x: (x.isin(["mutant", "mixed"])).any())
         ]
 
         # Merge in wsaf
         result_df = result_df.merge(
-            df_qc[["barcode", "gene", "aa_pos", "mut_wsaf", "abs_wsaf", "depth"]],
+            df_qc[[BARCODE_COL, GENE_COL, AA_POS_COL, "mut_wsaf", "abs_wsaf", "aa_dp"]],
             how="left",
-            on=["barcode", "gene", "aa_pos"],
+            on=[BARCODE_COL, GENE_COL, AA_POS_COL],
             validate="many_to_one",
         )
 
         result_df["aa_wsaf"] = pd.NA
-        mut_mask = result_df["mut_type"].isin(["mutant", "mixed"])
+        mut_mask = result_df[AA_CALL_COL].isin(["mutant", "mixed"])
         result_df.loc[mut_mask, "aa_wsaf"] = result_df.loc[mut_mask, "mut_wsaf"]
 
-        abs_mask = result_df["mut_type"].isin(["wt", "absent"])
+        abs_mask = result_df[AA_CALL_COL].isin(["wt", "absent"])
         result_df.loc[abs_mask, "aa_wsaf"] = result_df.loc[abs_mask, "abs_wsaf"]
 
         result_df.drop(columns=["mut_wsaf", "abs_wsaf"], inplace=True)
 
         result_df["n_changes"] = result_df["nt_change"].str.count(r"\+") + 1
-        elligible_mask = result_df["mut_type"].eq("mixed") & result_df.query(
-            "mut_type == 'mixed'"
-        ).groupby(["barcode", "gene", "aa_pos"])["n_changes"].transform("size").gt(1)
+        elligible_mask = result_df[AA_CALL_COL].eq("mixed") & result_df.query(
+            f"{AA_CALL_COL} == 'mixed'"
+        ).groupby([BARCODE_COL, GENE_COL, AA_POS_COL])["n_changes"].transform(
+            "size"
+        ).gt(1)
 
         flip_mask = (
             result_df[elligible_mask]
-            .groupby(["barcode", "gene", "aa_pos"])["n_changes"]
+            .groupby([BARCODE_COL, GENE_COL, AA_POS_COL])["n_changes"]
             .idxmin()
         )
 
@@ -163,7 +175,7 @@ class VariantAnnotator:
         result_df.drop(columns=["n_changes"], inplace=True)
 
         # Deduplicate samples with same AA change multiple times
-        keys = ["barcode", "gene", "aa_change"]
+        keys = [BARCODE_COL, GENE_COL, AA_CHANGE_COL]
         dup_mask = result_df.duplicated(keys, keep=False)
 
         result_df.loc[dup_mask, "nt_change"] = (
@@ -175,7 +187,20 @@ class VariantAnnotator:
 
         result_df = result_df.drop_duplicates(keys, keep="first")
 
-        return result_df
+        return result_df[
+            [
+                BARCODE_COL,
+                "chrom",
+                "amplicon",
+                GENE_COL,
+                AA_POS_COL,
+                AA_CHANGE_COL,
+                AA_CALL_COL,
+                "aa_dp",
+                "aa_wsaf",
+                "nt_change",
+            ]
+        ]
 
     def summarize_nt_changes(
         self,
@@ -190,7 +215,7 @@ class VariantAnnotator:
             df_nt_changes = df_nt_changes.loc[
                 ~df_nt_changes["amplicon"].isin(exclude_amplicons)
             ]
-        df_nt_changes["gt"] = mut_type_from_gt(df_nt_changes["gt"])
+        df_nt_changes["gt"] = call_from_gt(df_nt_changes["gt"])
 
         df_nt_changes.loc[df_nt_changes["gt"] == "mutant", "tgt"] = df_nt_changes.loc[
             df_nt_changes["gt"] == "mutant", "tgt"
@@ -205,40 +230,40 @@ class VariantAnnotator:
 
         df_mut = df_nt_changes.loc[
             df_nt_changes["gt"].isin(["mutant", "mixed"]),
-            ["barcode", "chrom", "pos", "amplicon", "ref", "tgt", "gt", "wsaf"],
+            [BARCODE_COL, "chrom", "pos", "amplicon", "ref", "tgt", "gt", "wsaf"],
         ]
         df_mut["alt"] = df_mut["tgt"].str.split("/")
         df_mut = df_mut.explode("alt", ignore_index=True)
         df_mut = df_mut.loc[df_mut["ref"] != df_mut["alt"]]
         df_mut = df_mut.drop(columns=["tgt"])
 
-        all_samples = df_nt_changes["barcode"].unique()
+        all_samples = df_nt_changes[BARCODE_COL].unique()
 
         all_mutations = df_mut[
             ["chrom", "pos", "amplicon", "ref", "alt"]
         ].drop_duplicates()
 
         result_df = pd.merge(
-            pd.DataFrame({"barcode": all_samples}).merge(all_mutations, how="cross"),
-            df_nt_changes[["barcode", "chrom", "pos", "dp"]],
+            pd.DataFrame({BARCODE_COL: all_samples}).merge(all_mutations, how="cross"),
+            df_nt_changes[[BARCODE_COL, "chrom", "pos", "dp"]],
             how="left",
-            on=["barcode", "chrom", "pos"],
+            on=[BARCODE_COL, "chrom", "pos"],
             validate="many_to_one",
         )
 
         result_df = result_df.merge(
             df_nt_changes.query("gt in ['wt', 'failed']")[
-                ["barcode", "chrom", "pos", "gt"]
+                [BARCODE_COL, "chrom", "pos", "gt"]
             ],
             how="left",
-            on=["barcode", "chrom", "pos"],
+            on=[BARCODE_COL, "chrom", "pos"],
             validate="many_to_one",
         )
 
         result_df = result_df.merge(
-            df_nt_changes.query("gt in ['wt']")[["barcode", "chrom", "pos", "wsaf"]],
+            df_nt_changes.query("gt in ['wt']")[[BARCODE_COL, "chrom", "pos", "wsaf"]],
             how="left",
-            on=["barcode", "chrom", "pos"],
+            on=[BARCODE_COL, "chrom", "pos"],
             validate="many_to_one",
         )
 
@@ -251,9 +276,9 @@ class VariantAnnotator:
         )
 
         result_df = result_df.merge(
-            df_mut[["barcode", "chrom", "pos", "ref", "alt", "gt", "wsaf"]],
+            df_mut[[BARCODE_COL, "chrom", "pos", "ref", "alt", "gt", "wsaf"]],
             how="left",
-            on=["barcode", "chrom", "pos", "ref", "alt"],
+            on=[BARCODE_COL, "chrom", "pos", "ref", "alt"],
             suffixes=("", "_update"),
             validate="many_to_one",
         )
@@ -452,9 +477,12 @@ class VariantAnnotator:
                     aa_change = None
                 nt_change = fields[6]
 
+            gene = fields[1].lower()
+            gene = map_gene_names.get(gene, gene)
+
             yield (
                 fields[0],  # csq_type
-                fields[1],  # gene
+                gene,
                 fields[2],  # transcript
                 coding_strand,
                 aa_pos,
@@ -513,11 +541,11 @@ class VariantAnnotator:
         df["aa_pos"] = df["aa_pos"].astype(int)
         df["gene"] = df["gene"].astype(str)
 
-        df["mut_type"] = mut_type_from_gt(df["gt"])
+        df[AA_CALL_COL] = call_from_gt(df["gt"])
 
         df = df.assign(
-            mut_wsaf=df["wsaf"].where(df["mut_type"].isin(["mutant", "mixed"])),
-            abs_wsaf=df["wsaf"].where(df["mut_type"].isin(["wt"])),
+            mut_wsaf=df["wsaf"].where(df[AA_CALL_COL].isin(["mutant", "mixed"])),
+            abs_wsaf=df["wsaf"].where(df[AA_CALL_COL].isin(["wt"])),
         )
 
         return aggregate_qc_by_aa_pos(df)
@@ -621,8 +649,8 @@ def extract_bcsq_info_vec(bcsq: pd.Series) -> pd.DataFrame:
 
     parsed = pd.DataFrame(
         {
-            "gene": parts[1],
-            "aa_pos": parts[5].str.extract(r"(\d+)", expand=False).astype("Int64"),
+            GENE_COL: parts[1],
+            AA_POS_COL: parts[5].str.extract(r"(\d+)", expand=False).astype("Int64"),
         },
         index=annotations.index,
     )
@@ -651,32 +679,34 @@ def resolve_bcsq_references(df: pd.DataFrame, ref_positions: pd.Series) -> pd.Da
     """
     Resolves gene, aa_pos for bcsq @position
     """
-    result = df[["gene", "aa_pos"]].copy()
+    result = df[[GENE_COL, AA_POS_COL]].copy()
 
     # Filter to rows where gene and aa_pos are missing, but ref_positions is not empty
-    mask = df["aa_pos"].isna() & df["gene"].isna() & ref_positions.notna()
+    mask = df[AA_POS_COL].isna() & df[GENE_COL].isna() & ref_positions.notna()
 
-    lookup = df.set_index(["barcode", "chrom", "pos"])[["aa_pos", "gene"]]
+    lookup = df.set_index(["barcode", "chrom", "pos"])[[AA_POS_COL, GENE_COL]]
 
     if not lookup.index.is_unique:
-        raise ValueError("The combination of chrom and pos is not unique in the VCF")
+        raise ValueError(
+            "The combination of barcode, chrom and pos is not unique in the VCF"
+        )
 
     refs = pd.DataFrame(
         {
             "barcode": df.loc[mask, "barcode"],
             "chrom": df.loc[mask, "chrom"],
-            "ref_pos": ref_positions[mask],
+            REF_POS_COL: ref_positions[mask],
         }
     )
 
-    refs = refs.explode("ref_pos")
+    refs = refs.explode(REF_POS_COL)
 
     # Create all keys to look up
     keys = pd.MultiIndex.from_arrays(
         [
             refs["barcode"],
             refs["chrom"],
-            refs["ref_pos"],
+            refs[REF_POS_COL],
         ],
         names=["barcode", "chrom", "pos"],
     )
@@ -696,12 +726,12 @@ def resolve_bcsq_references(df: pd.DataFrame, ref_positions: pd.Series) -> pd.Da
 
     grouped = resolved.groupby(level=0)
     resolved_unique = grouped.agg(
-        gene=("gene", "first"),
-        aa_pos=("aa_pos", "first"),
+        gene=(GENE_COL, "first"),
+        aa_pos=(AA_POS_COL, "first"),
     )
 
-    result.loc[resolved_unique.index, ["gene", "aa_pos"]] = resolved_unique[
-        ["gene", "aa_pos"]
+    result.loc[resolved_unique.index, [GENE_COL, AA_POS_COL]] = resolved_unique[
+        [GENE_COL, AA_POS_COL]
     ]
     return result
 
@@ -718,7 +748,7 @@ GT_TO_MUT_TYPE = {
 }
 
 
-def mut_type_from_gt(gts: pd.Series) -> pd.Series:
+def call_from_gt(gts: pd.Series) -> pd.Series:
     result = gts.map(GT_TO_MUT_TYPE)
 
     unknown = result.isna()
@@ -732,25 +762,25 @@ def mut_type_from_gt(gts: pd.Series) -> pd.Series:
 def aggregate_qc_by_aa_pos(df: pd.DataFrame) -> pd.DataFrame:
     # to be able to agg faster
     df = df.assign(
-        failed=df["mut_type"].eq("failed"),
-        mixed=df["mut_type"].eq("mixed"),
-        mutant=df["mut_type"].eq("mutant"),
+        failed=df[AA_CALL_COL].eq("failed"),
+        mixed=df[AA_CALL_COL].eq("mixed"),
+        mutant=df[AA_CALL_COL].eq("mutant"),
     )
 
     result = (
-        df.groupby(["barcode", "gene", "aa_pos"])
+        df.groupby(["barcode", GENE_COL, AA_POS_COL])
         .agg(
             failed=("failed", "max"),
             mixed_count=("mixed", "sum"),
             mutant=("mutant", "max"),
             mut_wsaf=("mut_wsaf", "min"),
             abs_wsaf=("abs_wsaf", "max"),
-            depth=("dp", "min"),
+            aa_dp=("dp", "min"),
         )
         .reset_index()
     )
 
-    result["mut_type"] = np.select(
+    result[AA_CALL_COL] = np.select(
         [
             result["failed"],
             result["mixed_count"] > 1,
@@ -769,12 +799,12 @@ def aggregate_qc_by_aa_pos(df: pd.DataFrame) -> pd.DataFrame:
     return result[
         [
             "barcode",
-            "gene",
-            "aa_pos",
-            "mut_type",
+            GENE_COL,
+            AA_POS_COL,
+            AA_CALL_COL,
             "mut_wsaf",
             "abs_wsaf",
-            "depth",
+            "aa_dp",
         ]
     ]
 
@@ -824,7 +854,8 @@ def extract_bcsq_info(bcsq: pd.Series) -> pd.DataFrame:
             if len(fields) < 6:
                 continue
 
-            current_gene = fields[1]
+            current_gene = fields[1].lower()
+            current_gene = map_gene_names.get(current_gene, current_gene)
 
             match = _AA_POS_RE.search(fields[5])
             current_aa_pos = int(match.group()) if match else None
@@ -849,9 +880,16 @@ def extract_bcsq_info(bcsq: pd.Series) -> pd.DataFrame:
 
     return pd.DataFrame(
         {
-            "gene": genes,
-            "aa_pos": pd.array(aa_positions, dtype="Int64"),
-            "ref_pos": ref_positions,
+            GENE_COL: genes,
+            AA_POS_COL: pd.array(aa_positions, dtype="Int64"),
+            REF_POS_COL: ref_positions,
         },
         index=bcsq.index,
     )
+
+
+map_gene_names = {
+    "dhfr-ts": "dhfr",
+    "pppk-dhps": "dhps",
+    "hrpiii": "hrp3",
+}

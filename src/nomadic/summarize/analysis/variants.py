@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 from collections.abc import Iterable
 from logging import Logger
@@ -9,19 +10,20 @@ from statsmodels.stats.proportion import proportion_confint
 
 from nomadic.download.references import REFERENCE_COLLECTION
 from nomadic.util.timer import Timer
-from nomadic.util.vcf import VariantAnnotator
+from nomadic.util.vcf import (
+    AA_CALL_COL,
+    AA_CHANGE_COL,
+    AA_POS_COL,
+    GENE_COL,
+    VariantAnnotator,
+)
 from nomadic.util.wrappers import bcftools
 
-# These columns are used to define unique variants
-VARIANTS_GROUP_COLUMNS = [
-    "gene",
+AA_GROUP_COLUMNS = [
     "chrom",
-    "aa_pos",
-]
-
-# These groups are used to define a unique mutation, e.g. A127E
-VARIANTS_MUTATION_COLUMNS = [
-    "aa_change",
+    GENE_COL,
+    AA_POS_COL,
+    AA_CHANGE_COL,
 ]
 
 
@@ -29,7 +31,9 @@ def load_variants_from_vcfs(
     expt_dirs: Iterable[Path],
     *,
     caller: str,
-    output_dir: Path,
+    temp_dir: Path,
+    filtered_vcf: Path,
+    annotated_vcf: Path,
     bed_path: Path,
     reference_name: str,
     exclude_amplicons: Optional[list[str]] = None,
@@ -54,7 +58,6 @@ def load_variants_from_vcfs(
             f"Experiment directories can not contain the string '{seperator}', as this is used to separate experiment name and barcode when loading from VCFs. Please rename the following directories: {', '.join([d.name for d in expt_dirs if seperator in d.name])}."
         )
 
-    temp_dir = output_dir / "temp_vcf_processing"
     if temp_dir.exists():
         # Should be removed by initialization of the output directory, but just in case, we check here
         raise FileExistsError(
@@ -73,7 +76,6 @@ def load_variants_from_vcfs(
         log.info(f"  Merging {len(temp_vcfs)} VCFs...")
 
     # Now we can merge all the temp VCFs together
-    filtered_vcf = output_dir / "summary.variants.filtered.vcf.gz"
     merge_and_filter_vcfs(temp_vcfs, output_path=filtered_vcf)
     timer.time("Merging VCF files")
 
@@ -87,8 +89,6 @@ def load_variants_from_vcfs(
         bed_path=(str(bed_path)),
         caller=caller,
     )
-
-    annotated_vcf = output_dir / "summary.variants.annotated.vcf.gz"
 
     annotator.annotate_variants(
         input_vcf=str(filtered_vcf), output_vcf=str(annotated_vcf)
@@ -134,7 +134,7 @@ def load_variants_from_vcfs(
         log.info("  Done loading variants from VCFs.")
     timer.report()
 
-    # shutil.rmtree(temp_dir)
+    shutil.rmtree(temp_dir)
 
     return variant_df, nt_df
 
@@ -348,13 +348,13 @@ def remove_false_positives(
 
     """
 
-    mut = variants_df.loc[variants_df["mut_type"].isin(["mixed", "mutant"])]
+    mut = variants_df.loc[variants_df[AA_CALL_COL].isin(["mixed", "mutant"])]
     df = variants_df.merge(
-        mut.groupby(VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS).agg(
-            n_mut=pd.NamedAgg("mut_type", len),
+        mut.groupby(AA_GROUP_COLUMNS).agg(
+            n_mut=pd.NamedAgg(AA_CALL_COL, len),
             aa_wsaf_max=pd.NamedAgg("aa_wsaf", "max"),
         ),
-        on=VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS,
+        on=AA_GROUP_COLUMNS,
         how="left",
     )
     df = df[~(df["n_mut"].le(min_obs) & df["aa_wsaf_max"].lt(min_aa_wsaf))].drop(
@@ -368,14 +368,12 @@ def remove_never_observed_variants(variants_df: pd.DataFrame) -> pd.DataFrame:
     Remove variants that have never been observed in any sample in the analysis set.
     """
 
-    mut = variants_df.loc[
-        variants_df["mut_type"].isin(["mixed", "mutant", "false_positive"])
-    ]
+    mut = variants_df.loc[variants_df[AA_CALL_COL].isin(["mixed", "mutant"])]
     df = variants_df.merge(
-        mut.groupby(VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS).agg(
-            n_mut=pd.NamedAgg("mut_type", len),
+        mut.groupby(AA_GROUP_COLUMNS).agg(
+            n_mut=pd.NamedAgg(AA_CALL_COL, len),
         ),
-        on=VARIANTS_GROUP_COLUMNS + VARIANTS_MUTATION_COLUMNS,
+        on=AA_GROUP_COLUMNS,
         how="left",
     )
     df = df[df["n_mut"].gt(0)].drop(columns=["n_mut"])
@@ -407,21 +405,20 @@ def compute_variant_prevalence(
             validate="m:1",
         )
 
-    variants_groups = ["chrom", "gene", "aa_pos", "aa_change", "mutation"]
     passed_types = {"mixed", "mutant", "absent", "wt"}
 
     # Precompute so we can use fast sum aggregation
     variants_df = variants_df.assign(
-        _passed=variants_df["mut_type"].isin(passed_types),
-        _wt=variants_df["mut_type"].eq("wt"),
-        _mixed=variants_df["mut_type"].eq("mixed"),
-        _mut=variants_df["mut_type"].eq("mutant"),
+        _passed=variants_df[AA_CALL_COL].isin(passed_types),
+        _wt=variants_df[AA_CALL_COL].eq("wt"),
+        _mixed=variants_df[AA_CALL_COL].eq("mixed"),
+        _mut=variants_df[AA_CALL_COL].eq("mutant"),
     )
 
     prev_df = variants_df.groupby(
-        variants_groups + additional_groups, as_index=False
+        AA_GROUP_COLUMNS + additional_groups, as_index=False
     ).agg(
-        n_samples=("mut_type", "size"),
+        n_samples=(AA_CALL_COL, "size"),
         n_passed=("_passed", "sum"),
         n_wt=("_wt", "sum"),
         n_mixed=("_mixed", "sum"),

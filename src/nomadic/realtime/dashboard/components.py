@@ -1143,6 +1143,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
             # Filter on target, variant types, and passing QC
             qry = "amplicon == @target_region"
             if "gt" in df.columns:
+                # Old format
                 qry += " and mut_type in @self.MUT_SET"
                 qry += " and gt != './.'"
 
@@ -1169,15 +1170,15 @@ class VariantHeatmap(RealtimeDashboardComponent):
             if "dp" in target_df.columns:
                 depth_col = "dp"
 
-            type_col = "mut_type"
+            call_col = "aa_call"
             if "gt" in target_df.columns:
-                type_col = "gt"
+                call_col = "gt"
 
             # Pivot
             plot_df = pd.pivot_table(
                 index="aa_change",
                 columns="sample_string",
-                values=[wsaf_col, depth_col, type_col],
+                values=[wsaf_col, depth_col, call_col],
                 aggfunc=lambda x: x,
                 data=target_df,
                 dropna=False,
@@ -1198,7 +1199,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
             plot_df.sort_index(inplace=True)
 
             # Hover statment
-            customdata = np.stack([plot_df[depth_col], plot_df[type_col]], axis=-1)
+            customdata = np.stack([plot_df[depth_col], plot_df[call_col]], axis=-1)
             htemp = "<b>%{x}</b><br>"
             htemp += "<b>WSAF:</b> %{z:0.3f}<br>"
             htemp += "<b>Depth:</b> %{customdata[0]}<br>"
