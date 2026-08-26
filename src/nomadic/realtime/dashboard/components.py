@@ -1166,7 +1166,7 @@ class VariantHeatmap(RealtimeDashboardComponent):
             if "wsaf" in target_df.columns:
                 wsaf_col = "wsaf"
 
-            depth_col = "depth"
+            depth_col = "aa_dp"
             if "dp" in target_df.columns:
                 depth_col = "dp"
 

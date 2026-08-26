@@ -42,6 +42,7 @@ from nomadic.summarize.analysis.variants import (
     filter_to_analysis_set,
     load_variants_from_vcfs,
     remove_false_positives,
+    remove_never_observed_nt_variants,
     remove_never_observed_variants,
     rename_prevalence_by_cols,
 )
@@ -289,6 +290,7 @@ def main(
     aa_changes_df = remove_false_positives(aa_changes_df, min_obs=1, min_aa_wsaf=0.33)
     timer.time("Filtering false positives")
     aa_changes_df = remove_never_observed_variants(aa_changes_df)
+    nt_changes_df = remove_never_observed_nt_variants(nt_changes_df)
     timer.time("Removing never observed variants")
 
     if panel_settings.amplicon_sets:

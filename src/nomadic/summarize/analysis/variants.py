@@ -457,3 +457,20 @@ def rename_prevalence_by_cols(
         col: col.replace(old_prefix, new_prefix, 1) for col in prevalence_by_cols
     }
     return df.rename(columns=rename_dict)
+
+
+def remove_never_observed_nt_variants(variants_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove variants that have never been observed in any sample in the analysis set.
+    """
+
+    mut = variants_df.loc[variants_df["gt"].isin(["mixed", "mutant"])]
+    df = variants_df.merge(
+        mut.groupby(["chrom", "pos", "ref", "alt"]).agg(
+            n_mut=pd.NamedAgg("gt", len),
+        ),
+        on=["chrom", "pos", "ref", "alt"],
+        how="left",
+    )
+    df = df[df["n_mut"].gt(0)].drop(columns=["n_mut"])
+    return df

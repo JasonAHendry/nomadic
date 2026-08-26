@@ -30,17 +30,28 @@ class SummaryFiles(NamedTuple):
     read_mapping: str
     region_coverage: str
     depth_profiles: str
-    variants: str
+    aa_changes: str
+    nt_changes: Optional[str] = None  # optional, not always present
 
 
 # Currently used summary file names
 DEFAULT_CONFIG_PATH = "config/defaults.json"
+
 SUMMARY_NAMES = SummaryFiles(
     fastqs_processed="summary.fastqs_processed.csv",
     read_mapping="summary.read_mapping.csv",
     region_coverage="summary.region_coverage.csv",
     depth_profiles="summary.depth_profiles.csv",
-    variants="summary.variants.csv",
+    aa_changes="summary.aa_changes.csv",
+    nt_changes="summary.nt_changes.csv",
+)
+
+SUMMARY_NAMES_PRE_AA_CHANGES = SummaryFiles(
+    fastqs_processed="summary.fastqs_processed.csv",
+    read_mapping="summary.read_mapping.csv",
+    region_coverage="summary.region_coverage.csv",
+    depth_profiles="summary.depth_profiles.csv",
+    aa_changes="summary.variants.csv",
 )
 
 # Legacy summary file names for backward compatibility
@@ -49,7 +60,7 @@ SUMMARY_NAMES_LEGACY = SummaryFiles(
     read_mapping="summary.bam_flagstats.csv",
     region_coverage="summary.bedcov.csv",
     depth_profiles="summary.depth.csv",
-    variants="summary.variants.csv",
+    aa_changes="summary.variants.csv",
 )
 
 
@@ -66,6 +77,8 @@ def get_summary_files(expt_dir: Path) -> SummaryFiles:
     if (expt_dir / SUMMARY_NAMES_LEGACY.read_mapping).exists():
         # Detect legacy format using *one* of the differentiating file names
         format_used = SUMMARY_NAMES_LEGACY
+    elif (expt_dir / SUMMARY_NAMES_PRE_AA_CHANGES.aa_changes).exists():
+        format_used = SUMMARY_NAMES_PRE_AA_CHANGES
     else:
         format_used = SUMMARY_NAMES
     return SummaryFiles(*[str(expt_dir / field) for field in format_used])

@@ -11,7 +11,7 @@ def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:
     Check if the variant calling TSV is present
     """
 
-    return os.path.exists(expt_dirs.get_summary_files().variants)
+    return os.path.exists(expt_dirs.get_summary_files().aa_changes)
 
 
 def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
@@ -71,7 +71,7 @@ def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
         print("  Variant calling: True")
         dashboard = CallingRTDashboard(
             **shared_kwargs,
-            variant_csv=summary_files.variants,
+            variant_csv=summary_files.aa_changes,
         )
     else:
         print("  Variant calling: False")

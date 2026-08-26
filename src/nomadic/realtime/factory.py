@@ -119,7 +119,7 @@ class PipelineFactory:
                 read_mapping_csv=summary_files.read_mapping,
                 region_coverage_csv=summary_files.region_coverage,
                 depth_profiles_csv=summary_files.depth_profiles,
-                variant_csv=summary_files.variants,
+                variant_csv=summary_files.aa_changes,
                 start_time=start_time,
                 is_realtime=True,
             )
