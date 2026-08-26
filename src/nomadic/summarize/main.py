@@ -125,7 +125,9 @@ def main(
 
     log.info("Data status:")
     expts = [
-        experiment_outputs(expt_dir, allow_missing_files=["depth", "fastq"])
+        experiment_outputs(
+            expt_dir, allow_missing_files=["depth", "fastq", "nt_changes"]
+        )
         for expt_dir in expt_dirs
     ]
     log.info(f"  All {len(expts)} experiments are complete.")

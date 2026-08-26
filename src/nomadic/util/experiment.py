@@ -81,7 +81,9 @@ def get_summary_files(expt_dir: Path) -> SummaryFiles:
         format_used = SUMMARY_NAMES_PRE_AA_CHANGES
     else:
         format_used = SUMMARY_NAMES
-    return SummaryFiles(*[str(expt_dir / field) for field in format_used])
+    return SummaryFiles(
+        *[str(expt_dir / field) if field is not None else None for field in format_used]
+    )
 
 
 # --------------------------------------------------------------------------------
@@ -240,7 +242,17 @@ def find_regions(expt_dir: str) -> RegionBEDParser:
 def experiment_outputs(
     expt_dir: Path,
     allow_missing_files: Optional[
-        list[Literal["fastq", "depth", "region", "variant", "read"]]
+        list[
+            Literal[
+                "fastq",
+                "depth",
+                "region",
+                "aa_changes",
+                "nt_changes",
+                "variant",
+                "read",
+            ]
+        ]
     ],
 ) -> ExperimentOutputs:
     """For a given `expt_dir` return the experiment outputs as an `ExperimentOutputs` object.

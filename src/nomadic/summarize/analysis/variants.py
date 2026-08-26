@@ -424,23 +424,32 @@ def compute_variant_prevalence(
         n_mixed=("_mixed", "sum"),
         n_mut=("_mut", "sum"),
     )
+    has_passing_samples = prev_df["n_passed"].ne(0)
     # Compute frequencies
-    prev_df["per_wt"] = 100 * prev_df["n_wt"] / prev_df["n_passed"]
-    prev_df["per_mixed"] = 100 * prev_df["n_mixed"] / prev_df["n_passed"]
-    prev_df["per_mut"] = 100 * prev_df["n_mut"] / prev_df["n_passed"]
+    prev_df.loc[has_passing_samples, "per_wt"] = (
+        100 * prev_df.loc[has_passing_samples, "n_wt"] / prev_df.loc[has_passing_samples, "n_passed"]
+    )
+    prev_df.loc[has_passing_samples, "per_mixed"] = (
+        100 * prev_df.loc[has_passing_samples, "n_mixed"] / prev_df.loc[has_passing_samples, "n_passed"]
+    )
+    prev_df.loc[has_passing_samples, "per_mut"] = (
+        100 * prev_df.loc[has_passing_samples, "n_mut"] / prev_df.loc[has_passing_samples, "n_passed"]
+    )
 
     # Compute prevalence
-    prev_df["prevalence"] = prev_df["per_mixed"] + prev_df["per_mut"]
+    prev_df.loc[has_passing_samples, "prevalence"] = (
+        prev_df.loc[has_passing_samples, "per_mixed"] + prev_df.loc[has_passing_samples, "per_mut"]
+    )
 
     # Compute prevalence 95% confidence intervals
     low, high = proportion_confint(
-        prev_df["n_mut"] + prev_df["n_mixed"],
-        prev_df["n_passed"],
+        prev_df.loc[has_passing_samples, "n_mut"] + prev_df.loc[has_passing_samples, "n_mixed"],
+        prev_df.loc[has_passing_samples, "n_passed"],
         alpha=0.05,
         method="beta",
     )
-    prev_df["prevalence_lowci"] = 100 * low
-    prev_df["prevalence_highci"] = 100 * high
+    prev_df.loc[has_passing_samples, "prevalence_lowci"] = 100 * low
+    prev_df.loc[has_passing_samples, "prevalence_highci"] = 100 * high
 
     return prev_df
 
