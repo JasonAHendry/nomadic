@@ -6,8 +6,13 @@ from nomadic.util.summary_settings import Settings, get_master_columns_mapping
 
 
 def load_master_metadata(metadata_path, *, settings: Settings) -> pd.DataFrame:
-    return pd.read_csv(metadata_path, dtype={"sample_id": "str"}).rename(
-        columns=get_master_columns_mapping(settings)
+    mapping = get_master_columns_mapping(settings)
+    sample_id_column = next(
+        (source for source, destination in mapping.items() if destination == "sample_id"),
+        "sample_id",
+    )
+    return pd.read_csv(metadata_path, dtype={sample_id_column: "str"}).rename(
+        columns=mapping
     )
 
 
