@@ -1,3 +1,4 @@
+import warnings
 from typing import Optional
 
 import pandas as pd
@@ -8,7 +9,11 @@ from nomadic.util.summary_settings import Settings, get_master_columns_mapping
 def load_master_metadata(metadata_path, *, settings: Settings) -> pd.DataFrame:
     mapping = get_master_columns_mapping(settings)
     sample_id_column = next(
-        (source for source, destination in mapping.items() if destination == "sample_id"),
+        (
+            source
+            for source, destination in mapping.items()
+            if destination == "sample_id"
+        ),
         "sample_id",
     )
     return pd.read_csv(metadata_path, dtype={sample_id_column: "str"}).rename(
@@ -25,6 +30,21 @@ def master_metadata_from_expts(expts, *, shared_columns: list[str]) -> pd.DataFr
             for expt in expts
         ]
     )
+
+    # Drop safe duplicates
+    master_metadata = master_metadata.drop_duplicates()
+
+    duplicated_sample_ids = master_metadata[
+        master_metadata.duplicated(subset=["sample_id"], keep=False)
+    ]
+
+    # Log the duplicated rows as a warning
+    if not duplicated_sample_ids.empty:
+        warnings.warn(
+            f"Duplicated sample_ids found with different metadata across experiments, will keep the first occurrence. Duplicates:\n{duplicated_sample_ids}",
+            category=UserWarning,
+        )
+
     # Note, problematic if same sample ID has different metadata across experiments
     return master_metadata.drop_duplicates(subset=["sample_id"])
 

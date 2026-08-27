@@ -117,7 +117,10 @@ def main(
             raise ValueError(
                 f"Output directory {output_dir} already exists and does not look like a summary directory. Please remove it or choose a different output directory."
             )
+    summary_dir_structure = DirStructure(summary_dir=output_dir)
     produce_dir(str(output_dir))
+    for dir in summary_dir_structure.dirs:
+        produce_dir(dir)
 
     # Check experiments are complete
     if not expt_dirs:
@@ -152,11 +155,6 @@ def main(
     if settings_file_path.exists():
         settings = load_settings(settings_file_path)
         log.info(f"  Loaded summary settings from {settings_file_path}.")
-
-    summary_dir_structure = DirStructure(summary_dir=output_dir)
-
-    for dir in summary_dir_structure.dirs:
-        produce_dir(dir)
 
     ####################
     # Load metadata and check for consistency
