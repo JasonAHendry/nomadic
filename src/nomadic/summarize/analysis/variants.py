@@ -118,18 +118,22 @@ def load_variants_from_vcfs(
     restore_barcodes(variant_df, seperator)
     restore_barcodes(nt_df, seperator)
 
-    # Sanity checks that all worked and we have the same samples as before
-    # Bcftools has some magic around sample names, so good to check they are consistent with what we expected
-    all_samples_after = variant_df.groupby(["expt_name"])["barcode"].unique().to_dict()
-    assert set(experiment_sample_mapping.keys()) == set(all_samples_after.keys()), (
-        "Mismatch in experiments after loading from VCFs."
-    )
-    assert all(
-        samples == set(all_samples_after[expt_dir])
-        for expt_dir, samples in experiment_sample_mapping.items()
-    ), "Mismatch in samples after loading from VCFs."
+    if not variant_df.empty:
+        # Sanity checks that all worked and we have the same samples as before
+        # Bcftools has some magic around sample names, so good to check they are consistent with what we expected
+        all_samples_after = (
+            variant_df.groupby(["expt_name"])["barcode"].unique().to_dict()
+        )
+        assert set(experiment_sample_mapping.keys()) == set(all_samples_after.keys()), (
+            "Mismatch in experiments after loading from VCFs."
+        )
+        assert all(
+            samples == set(all_samples_after[expt_dir])
+            for expt_dir, samples in experiment_sample_mapping.items()
+        ), "Mismatch in samples after loading from VCFs."
 
     timer.time("fixing sample names and sanity checking")
+
     if log is not None:
         log.info("  Done loading variants from VCFs.")
     timer.report()
