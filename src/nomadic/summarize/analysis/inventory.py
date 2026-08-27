@@ -139,8 +139,12 @@ def compute_throughput(
             um["sample_type"], um["expt_name"], margins=True
         ).loc["field"]
 
-    throughput_df.fillna(0, inplace=True)
-    throughput_df = throughput_df.astype(int)
+    # Ensure all expected rows are present
+    throughput_df = (
+        throughput_df.reindex(["pos", "neg", "field", "field_unique"], fill_value=0)
+        .fillna(0)
+        .astype(int)
+    )
 
     return Throughput(
         n_pos=int(throughput_df.loc["pos", "All"]),
