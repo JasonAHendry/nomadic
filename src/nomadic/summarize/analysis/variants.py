@@ -28,7 +28,7 @@ AA_GROUP_COLUMNS = [
 
 
 def load_variants_from_vcfs(
-    expt_dirs: Iterable[Path],
+    expt_dirs: list[Path],
     *,
     caller: str,
     temp_dir: Path,
@@ -63,7 +63,7 @@ def load_variants_from_vcfs(
         raise FileExistsError(
             f"Temporary directory {temp_dir} already exists. Please remove it before running this function."
         )
-    temp_dir.mkdir(exist_ok=True)
+    temp_dir.mkdir()
 
     timer.time("setup")
 
@@ -141,6 +141,23 @@ def load_variants_from_vcfs(
     shutil.rmtree(temp_dir)
 
     return variant_df, nt_df
+
+
+def encode_barcodes(
+    barcodes: list, *, expt_name: str, seperator: str, vcf_file: str
+) -> list:
+    # Last checks, should be handled already
+    assert seperator not in expt_name, (
+        f"Experiment name {expt_name} cannot contain the string '{seperator}'"
+    )
+    assert all(seperator not in s for s in barcodes), (
+        f"Samples in VCF file {vcf_file} cannot contain the string '{seperator}'"
+    )
+    encoded_barcodes = [f"{expt_name}{seperator}{s}" for s in barcodes]
+    encoded_barcodes = [
+        s.replace(" ", r"\ ") for s in encoded_barcodes
+    ]  # replace space, bcftools treat spaces in samples names special
+    return encoded_barcodes
 
 
 def restore_barcodes(df: pd.DataFrame, seperator: str):
@@ -306,18 +323,13 @@ def load_and_reheader_vcfs(
                 f"Duplicate sample names found in VCF file {vcf_file}. Sample names must be unique to load from VCFs."
             )
         experiment_sample_mapping[expt_name] = experiment_sample_set
-        # Last checks, should be handled already
-        assert seperator not in expt_name, (
-            f"Experiment name {expt_name} cannot contain the string '{seperator}'"
-        )
-        assert all(seperator not in s for s in experiment_samples), (
-            f"Samples in VCF file {vcf_file} cannot contain the string '{seperator}'"
-        )
         # Make sample names unique by concating expt name and experiment sample name (the barcode)
-        unique_samples = [f"{expt_name}{seperator}{s}" for s in experiment_samples]
-        unique_samples = [
-            s.replace(" ", r"\ ") for s in unique_samples
-        ]  # replace space, bcftools treat spaces in samples names special
+        unique_samples = encode_barcodes(
+            experiment_samples,
+            expt_name=expt_name,
+            seperator=seperator,
+            vcf_file=str(vcf_file),
+        )
 
         ### Reheader vcf file and move
         temp_vcf = output_dir / f"{expt_name}.variants.temp.vcf.gz"
