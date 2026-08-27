@@ -10,9 +10,7 @@ import pandas as pd
 from nomadic.util.experiment import get_summary_files
 
 
-def create_region_coverage_df(
-    expt_dirs: Iterable[Path], inventory_df: pd.DataFrame
-) -> pd.DataFrame:
+def create_region_coverage_df(expt_dirs: Iterable[Path]) -> pd.DataFrame:
     """
     Here we load a consolidated region coverage dataframe and include information required
     for quality control
@@ -29,19 +27,28 @@ def create_region_coverage_df(
         if "sample_id" in bed_df.columns:
             bed_df.drop(columns=["sample_id"], inplace=True)
 
-        bed_df = pd.merge(
-            left=inventory_df[["expt_name", "barcode", "sample_id", "sample_type"]],
-            right=bed_df,
-            on=["expt_name", "barcode"],
-            how="inner",  # ensure we only take samples that are in the master metadata
-            validate="1:m",
-        )
         bed_dfs.append(bed_df)
     concat_df = pd.concat(bed_dfs)
 
+    return concat_df
+
+
+def merge_with_inventory(
+    coverage_df: pd.DataFrame, inventory_df: pd.DataFrame
+) -> pd.DataFrame:
+    return pd.merge(
+        left=inventory_df[["expt_name", "barcode", "sample_id", "sample_type"]],
+        right=coverage_df,
+        on=["expt_name", "barcode"],
+        how="inner",  # ensure we only take samples that are in the master metadata
+        validate="1:m",
+    )
+
+
+def add_negative_mean_coverage(coverage_df: pd.DataFrame) -> pd.DataFrame:
     # Get negative control data
     neg_df = (
-        concat_df.query("sample_type == 'neg'")
+        coverage_df.query("sample_type == 'neg'")
         .groupby(["expt_name", "name"])
         .mean_cov.mean()
         .reset_index()
@@ -49,39 +56,12 @@ def create_region_coverage_df(
     )
 
     coverage_df = pd.merge(
-        left=concat_df[
-            [
-                "expt_name",
-                "barcode",
-                "sample_id",
-                "sample_type",
-                "chrom",
-                "name",
-                "mean_cov",
-            ]
-        ],  # sample ID, will want it at some point
+        left=coverage_df,
         right=neg_df,
         on=["expt_name", "name"],
         how="left",
         validate="m:1",
     )
-
-    # Checkk that all expected columns are present
-    expected_columns = [
-        "expt_name",
-        "barcode",
-        "sample_id",
-        "sample_type",
-        "chrom",
-        "name",
-        "mean_cov",
-        "mean_cov_neg",
-    ]
-    if not all(col in coverage_df.columns for col in expected_columns):
-        raise ValueError(
-            f"Coverage dataframe is missing expected columns. Expected: {expected_columns}, got: {coverage_df.columns.tolist()}"
-        )
-
     return coverage_df
 
 
@@ -131,6 +111,31 @@ def add_quality_control_columns(
         fail_contam=fail_contam,
         passing=passing,
     )
+
+
+def validate_coverage_df(coverage_df: pd.DataFrame) -> pd.DataFrame:
+    # Check that all expected columns are present
+    expected_columns = [
+        "expt_name",
+        "barcode",
+        "sample_id",
+        "sample_type",
+        "chrom",
+        "name",
+        "mean_cov",
+        "mean_cov_neg",
+        "fail_lowcov",
+        "fail_contam_rel",
+        "fail_contam_abs",
+        "fail_contam",
+        "passing",
+        "status",
+    ]
+    if not all(col in coverage_df.columns for col in expected_columns):
+        raise ValueError(
+            f"Coverage dataframe is missing expected columns. Expected: {expected_columns}, got: {coverage_df.columns.tolist()}"
+        )
+    return coverage_df
 
 
 @dataclass

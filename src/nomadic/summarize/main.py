@@ -27,15 +27,18 @@ from nomadic.summarize.analysis.metadata import (
     validate_metadata,
 )
 from nomadic.summarize.analysis.qc import (
+    add_negative_mean_coverage,
     add_quality_control_columns,
     add_quality_control_status_column,
     amplicons_qc_summary,
     compute_field_coverage_summary,
     create_region_coverage_df,
     experiment_qc_summary,
+    merge_with_inventory,
     replicates_amplicon_qc,
     replicates_qc,
     samples_qc,
+    validate_coverage_df,
 )
 from nomadic.summarize.analysis.variants import (
     compute_variant_prevalence,
@@ -207,13 +210,21 @@ def main(
 
     # Now let's evaluate coverage
     coverage_df = (
-        create_region_coverage_df(expt_dirs, inventory_df)
+        create_region_coverage_df(expt_dirs)
+        .pipe(
+            merge_with_inventory,
+            inventory_df=inventory_df,
+        )
+        .pipe(
+            add_negative_mean_coverage,
+        )
         .pipe(
             add_quality_control_columns,
             min_coverage=qc_min_coverage,
             max_contam=qc_max_contam,
         )
         .pipe(add_quality_control_status_column)
+        .pipe(validate_coverage_df)
     )
 
     log.info("Amplicon-Sample QC Statistics:")
