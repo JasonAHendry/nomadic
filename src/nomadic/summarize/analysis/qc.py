@@ -1,7 +1,7 @@
 import enum
 from collections.abc import Iterable
 from dataclasses import dataclass
-from enum import StrEnum, auto
+from enum import Enum
 from pathlib import Path
 
 import numpy as np
@@ -158,12 +158,12 @@ def compute_field_coverage_summary(coverage_df: pd.DataFrame) -> FieldCoverageSu
     )
 
 
-class QcStatus(StrEnum):
-    PASS = auto()
-    LOWCOV = auto()
-    CONTAM = auto()
-    DUPLICATE = auto()
-    CONTROL = auto()
+class QcStatus(Enum):
+    PASS = "pass"
+    LOWCOV = "lowcov"
+    CONTAM = "contam"
+    DUPLICATE = "duplicate"
+    CONTROL = "control"
 
 
 def add_qc_status(region_qc_df: pd.DataFrame) -> pd.DataFrame:
@@ -183,12 +183,12 @@ def add_qc_status(region_qc_df: pd.DataFrame) -> pd.DataFrame:
             fail_lowcov,
         ],
         [
-            QcStatus.CONTROL,
-            f"{QcStatus.CONTAM};{QcStatus.LOWCOV}",
-            QcStatus.CONTAM,
-            QcStatus.LOWCOV,
+            QcStatus.CONTROL.value,
+            f"{QcStatus.CONTAM.value};{QcStatus.LOWCOV.value}",
+            QcStatus.CONTAM.value,
+            QcStatus.LOWCOV.value,
         ],
-        default=QcStatus.PASS,
+        default=QcStatus.PASS.value,
     )
 
     return region_qc_df.assign(status=status)
@@ -203,7 +203,9 @@ def mark_duplicates(region_qc_df: pd.DataFrame) -> pd.DataFrame:
     field = region_qc_df.loc[field_mask, ["sample_id", "name", "status", "mean_cov"]]
 
     # Sort by passing/non passing and then mean cov
-    ordered = field.assign(_passing=field["status"].eq(QcStatus.PASS)).sort_values(
+    ordered = field.assign(
+        _passing=field["status"].eq(QcStatus.PASS.value)
+    ).sort_values(
         ["sample_id", "name", "_passing", "mean_cov"],
         ascending=[True, True, False, False],
     )
@@ -215,7 +217,7 @@ def mark_duplicates(region_qc_df: pd.DataFrame) -> pd.DataFrame:
 
     status = region_qc_df["status"].copy()
     status.loc[duplicate_idx] = (
-        status.loc[duplicate_idx].astype(str) + f";{QcStatus.DUPLICATE}"
+        status.loc[duplicate_idx].astype(str) + f";{QcStatus.DUPLICATE.value}"
     )
 
     return region_qc_df.assign(status=status)
