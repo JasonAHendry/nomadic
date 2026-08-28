@@ -19,13 +19,6 @@ from nomadic.util.vcf import (
 )
 from nomadic.util.wrappers import bcftools
 
-AA_GROUP_COLUMNS = [
-    "chrom",
-    GENE_COL,
-    AA_POS_COL,
-    AA_CHANGE_COL,
-]
-
 
 def load_variants_from_vcfs(
     expt_dirs: list[Path],
@@ -146,6 +139,17 @@ SAMPLE_SEPERATOR = "___"
 
 
 def encode_barcodes(barcodes: list, *, expt_name: str, vcf_file: str) -> list:
+    """Make sample names unique by concating expt name and experiment sample name (the barcode)
+        Encode whitespace in sample names to avoid issues with bcftools, which treats whitespace in sample names specially.
+
+    Args:
+        barcodes: List of experiment sample names (barcodes).
+        expt_name: Name of the experiment.
+        vcf_file: Path to the VCF file being processed.
+
+    Returns:
+        List of encoded sample names suitable for use with bcftools.
+    """
     # Last checks, should be handled already
     assert SAMPLE_SEPERATOR not in expt_name, (
         f"Experiment name {expt_name} cannot contain the string '{SAMPLE_SEPERATOR}'"
@@ -161,6 +165,14 @@ def encode_barcodes(barcodes: list, *, expt_name: str, vcf_file: str) -> list:
 
 
 def restore_barcodes(df: pd.DataFrame):
+    """Restore original barcodes from encoded sample names.
+
+    Args:
+        df: DataFrame containing encoded sample names in the 'barcode' column.
+
+    Returns:
+        None. The DataFrame is modified in place to include 'expt_name' and restore the original 'barcode'.
+    """
     sample_names = df["barcode"].str.replace(
         r"\ ",
         " ",
@@ -183,7 +195,10 @@ def filter_to_analysis_set(
     *,
     coverage_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    # # Merge with the quality control results, then we can subset to the analysis set
+    """
+    Filter the variant dataframe to only include samples that passed quality control.
+    """
+    # Merge with the quality control results, then we can subset to the analysis set
     variant_df = pd.merge(
         right=variant_df,
         left=coverage_df.rename({"name": "amplicon"}, axis=1)[
@@ -196,6 +211,7 @@ def filter_to_analysis_set(
 
 
 def filter_variants(vcf: Path, output_path: Path):
+    """Filter a VCF file to only include PASS SNPs with at least 2 alleles."""
     subprocess.run(
         [
             "bcftools",
@@ -293,10 +309,18 @@ def load_and_reheader_vcfs(
     expt_dirs: Iterable[Path], *, output_dir: Path
 ) -> tuple[dict[str, set[str]], list[Path]]:
     """
-    Load and reheader VCFs from multiple experiments to have unique sample names.
+    Load VCF files from a list of experiment directories, reheader them to make sample names unique, and return a mapping of experiment names to sample names.
 
-    Load VCFs from multiple experiments, reheader them to have unique sample names,
-    and return a mapping of experiment names to sample names and a list of paths to the reheadered VCFs."""
+    Args:
+        expt_dirs: Iterable of paths to experiment directories containing VCF files.
+        output_dir: Directory where reheadered VCF files will be written.
+
+    Returns:
+        A tuple containing:
+            - A dictionary mapping experiment names to sets of sample names.
+            - A list of paths to the reheadered VCF files.
+    """
+
     # Record all samples for for sanity check after
     # expt_name -> set of samples in that experiment
     experiment_sample_mapping: dict[str, set[str]] = dict()
@@ -348,6 +372,15 @@ def load_and_reheader_vcfs(
         vcfs.append(temp_vcf)
 
     return experiment_sample_mapping, vcfs
+
+
+# Columns used to group amino acid variants for aggregation and filtering.
+AA_GROUP_COLUMNS = [
+    "chrom",
+    GENE_COL,
+    AA_POS_COL,
+    AA_CHANGE_COL,
+]
 
 
 def remove_false_positives(
