@@ -64,7 +64,6 @@ test_files_folder = "src/nomadic/util/_test_data/"
 )
 def test_metadata_correct(csv_path, csv_shape):
     metadata = MetadataTableParser(csv_path)
-    print(metadata)
     assert metadata.df.shape == csv_shape
 
 
