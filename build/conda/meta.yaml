@@ -29,6 +29,7 @@ requirements:
     - numpy
     - pandas
     - openpyxl
+    - statsmodels
     - seaborn
     - click
     - platformdirs
