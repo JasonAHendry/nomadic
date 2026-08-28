@@ -22,6 +22,7 @@ dependencies:
   - platformdirs
   - pyyaml
   - i18nice
+  - pydantic
   - black
   - flake8
   - pip
