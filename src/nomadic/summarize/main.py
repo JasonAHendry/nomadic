@@ -393,12 +393,16 @@ def main(
     for map_name in maps:
         file = Path(workspace.path) / "maps" / f"{map_name}.geojson"
         if file.exists():
-            shutil.copy(file, f"{output_dir}/{map_name.split('-')[-1]}.geojson")
+            produce_dir(output_dir / "maps")
+            shutil.copy(
+                file, output_dir / "maps" / f"{map_name.split('-')[-1]}.geojson"
+            )
     coords_file = f"{workspace.get_metadata_dir()}/{summary_name}.coords.csv"
     if os.path.isfile(coords_file):
+        produce_dir(output_dir / "maps")
         shutil.copy(
             coords_file,
-            os.path.join(output_dir, "coords.csv"),
+            os.path.join(output_dir, "maps", "coords.csv"),
         )
     if os.path.isfile(settings_file_path):
         shutil.copy(

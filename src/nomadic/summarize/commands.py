@@ -114,7 +114,7 @@ def summarize(
     experiment_dirs: tuple[Path],
     summary_name: str,
     workspace: Workspace,
-    output_dir: Path,
+    output_dir: Path | None,
     metadata_csv: Path,
     maps: tuple[str],
     dashboard: bool,
@@ -147,7 +147,7 @@ def summarize(
         from .main import view
 
         return view(
-            Path(workspace.get_summary_dir(summary_name)),
+            Path(output_dir or workspace.get_summary_dir(summary_name)),
             summary_name,
             host=host,
             port=port,

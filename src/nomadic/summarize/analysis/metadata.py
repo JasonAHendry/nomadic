@@ -106,5 +106,7 @@ def validate_metadata(df: pd.DataFrame) -> pd.DataFrame:
     if missing_columns:
         raise ValueError(f"Missing required columns in metadata: {missing_columns}")
     if df["sample_id"].duplicated().any():
-        raise ValueError("Duplicate sample_ids found in metadata")
+        raise ValueError(
+            f"Duplicate sample_ids found in metadata: {df['sample_id'][df['sample_id'].duplicated()].tolist()}"
+        )
     return df
