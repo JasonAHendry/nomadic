@@ -873,6 +873,9 @@ class MapComponent(SummaryDashboardComponent):
                 return loc.lower().replace("-", "").replace(" ", "").replace("'", "")
 
             # Split the gene-mutation value and calculate prevalence by region
+            self.analysis_df["mutation"] = (
+                self.analysis_df["gene"] + "-" + self.analysis_df["aa_change"]
+            )
 
             if map_style == "choropleth" and region_by is not None:
                 metadata_col = METADATA_COLUMN_PREFIX + region_by
@@ -956,10 +959,10 @@ class MapComponent(SummaryDashboardComponent):
 
                 # Group by location to get sample counts and average prevalence
                 site_data = compute_variant_prevalence(
-                    self.analysis_df.query("gene == @gene"),
+                    self.analysis_df.query("mutation == @target_mutation"),
                     self.master_df,
                     [master_location_col],
-                ).query("aa_change == @aa_change")
+                )
 
                 # Filter sites with very low sample counts to avoid misleading prevalence estimates
                 site_data = site_data[site_data["n_passed"] >= 10]
