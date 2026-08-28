@@ -52,10 +52,9 @@ def load_variants_from_vcfs(
     if log is not None:
         log.info(f"  Loading variants from VCFs in {len(expt_dirs)} experiments...")
 
-    seperator = "___"
-    if any(seperator in expt_dir.name for expt_dir in expt_dirs):
+    if any(SAMPLE_SEPERATOR in expt_dir.name for expt_dir in expt_dirs):
         raise ValueError(
-            f"Experiment directories can not contain the string '{seperator}', as this is used to separate experiment name and barcode when loading from VCFs. Please rename the following directories: {', '.join([d.name for d in expt_dirs if seperator in d.name])}."
+            f"Experiment directories can not contain the string '{SAMPLE_SEPERATOR}', as this is used to separate experiment name and barcode when loading from VCFs. Please rename the following directories: {', '.join([d.name for d in expt_dirs if SAMPLE_SEPERATOR in d.name])}."
         )
 
     if temp_dir.exists():
@@ -68,7 +67,7 @@ def load_variants_from_vcfs(
     timer.time("setup")
 
     experiment_sample_mapping, temp_vcfs = load_and_reheader_vcfs(
-        expt_dirs, seperator=seperator, output_dir=temp_dir
+        expt_dirs, output_dir=temp_dir
     )
 
     timer.time("Loading and reheadering VCF files")
@@ -115,8 +114,8 @@ def load_variants_from_vcfs(
 
     timer.time("Summarizing nucleotide changes")
 
-    restore_barcodes(variant_df, seperator)
-    restore_barcodes(nt_df, seperator)
+    restore_barcodes(variant_df)
+    restore_barcodes(nt_df)
 
     if not variant_df.empty:
         # Sanity checks that all worked and we have the same samples as before
@@ -143,24 +142,25 @@ def load_variants_from_vcfs(
     return variant_df, nt_df
 
 
-def encode_barcodes(
-    barcodes: list, *, expt_name: str, seperator: str, vcf_file: str
-) -> list:
+SAMPLE_SEPERATOR = "___"
+
+
+def encode_barcodes(barcodes: list, *, expt_name: str, vcf_file: str) -> list:
     # Last checks, should be handled already
-    assert seperator not in expt_name, (
-        f"Experiment name {expt_name} cannot contain the string '{seperator}'"
+    assert SAMPLE_SEPERATOR not in expt_name, (
+        f"Experiment name {expt_name} cannot contain the string '{SAMPLE_SEPERATOR}'"
     )
-    assert all(seperator not in s for s in barcodes), (
-        f"Samples in VCF file {vcf_file} cannot contain the string '{seperator}'"
+    assert all(SAMPLE_SEPERATOR not in s for s in barcodes), (
+        f"Samples in VCF file {vcf_file} cannot contain the string '{SAMPLE_SEPERATOR}'"
     )
-    encoded_barcodes = [f"{expt_name}{seperator}{s}" for s in barcodes]
+    encoded_barcodes = [f"{expt_name}{SAMPLE_SEPERATOR}{s}" for s in barcodes]
     encoded_barcodes = [
         s.replace(" ", r"\ ") for s in encoded_barcodes
     ]  # replace space, bcftools treat spaces in samples names special
     return encoded_barcodes
 
 
-def restore_barcodes(df: pd.DataFrame, seperator: str):
+def restore_barcodes(df: pd.DataFrame):
     sample_names = df["barcode"].str.replace(
         r"\ ",
         " ",
@@ -168,7 +168,7 @@ def restore_barcodes(df: pd.DataFrame, seperator: str):
     )  # reverse escaping of spaces
 
     sample_parts = sample_names.str.split(
-        seperator,
+        SAMPLE_SEPERATOR,
         n=1,
         expand=True,
         regex=False,
@@ -290,7 +290,7 @@ def merge_and_filter_vcfs(vcfs: Iterable[Path], *, output_path: Path, threads: i
 
 
 def load_and_reheader_vcfs(
-    expt_dirs: Iterable[Path], *, seperator: str, output_dir: Path
+    expt_dirs: Iterable[Path], *, output_dir: Path
 ) -> tuple[dict[str, set[str]], list[Path]]:
     """
     Load and reheader VCFs from multiple experiments to have unique sample names.
@@ -327,7 +327,6 @@ def load_and_reheader_vcfs(
         unique_samples = encode_barcodes(
             experiment_samples,
             expt_name=expt_name,
-            seperator=seperator,
             vcf_file=str(vcf_file),
         )
 
