@@ -485,7 +485,10 @@ class PrevalenceBarplot(SummaryDashboardComponent):
             plot_df["mutation"] = plot_df["gene"] + "-" + plot_df["aa_change"]
 
             data = []
-            htemp = "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
+            htemp = (
+                "%{y:0.1f}% (%{customdata[2]}/%{customdata[1]})"
+                + "<br>(Mutant, Mixed, WT): (%{customdata[3]},%{customdata[4]},%{customdata[5]})"
+            )
 
             if by == "All":
                 # Prepare plotting data
@@ -494,6 +497,9 @@ class PrevalenceBarplot(SummaryDashboardComponent):
                         plot_df["n_samples"],
                         plot_df["n_passed"],
                         plot_df["n_mixed"] + plot_df["n_mut"],
+                        plot_df["n_mut"],
+                        plot_df["n_mixed"],
+                        plot_df["n_wt"],
                     ],
                     axis=-1,
                 )
@@ -521,6 +527,9 @@ class PrevalenceBarplot(SummaryDashboardComponent):
                             group_df["n_samples"],
                             group_df["n_passed"],
                             group_df["n_mixed"] + group_df["n_mut"],
+                            group_df["n_mut"],
+                            group_df["n_mixed"],
+                            group_df["n_wt"],
                         ],
                         axis=-1,
                     )
@@ -633,7 +642,7 @@ class PrevalenceHeatmap(SummaryDashboardComponent):
                 htemp += "<b>Prevalence:</b> %{z:.0f}%<br>"
                 htemp += "<b>Samples:</b> %{customdata[2]}<br>"
                 htemp += "<b>Mixed:</b> %{customdata[0]}<br>"
-                htemp += "<b>Clonal:</b> %{customdata[1]}<br>"
+                htemp += "<b>Mutant:</b> %{customdata[1]}<br>"
 
                 plot_data = [
                     go.Heatmap(
