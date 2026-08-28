@@ -212,16 +212,12 @@ class AmpliconsBarplot(SummaryDashboardComponent):
         df = samples_amplicons_df
         # Store inputs
         plot_df = pd.crosstab(df["name"], df["status"])
-        n_not_sequenced = (df["status"] == Status.NOT_SEQUENCED.value).sum()
-        not_sequenced = [n_not_sequenced] * len(plot_df.index)
         # Generate figure
         fig = go.Figure(
             data=[
                 go.Bar(
                     x=plot_df.index,
-                    y=not_sequenced
-                    if status == Status.NOT_SEQUENCED
-                    else plot_df[status.value],
+                    y=plot_df[status.value],
                     texttemplate="%{y}",
                     name=t(status.value),
                     marker=dict(color=SAMPLE_COLORS[status.value]),
@@ -319,6 +315,14 @@ class QualityControl(SummaryDashboardComponent):
         "per_field_lowcov",
     ]
 
+    n_field_for = {
+        "mean_cov_field": "n_field_lowcov",
+        "mean_cov_neg": "n_field_contam",
+        "per_field_passing": "n_field_passing",
+        "per_field_contam": "n_field_contam",
+        "per_field_lowcov": "n_field_lowcov",
+    }
+
     def __init__(
         self,
         summary_name: str,
@@ -335,7 +339,13 @@ class QualityControl(SummaryDashboardComponent):
         self.plot_df = pd.pivot_table(
             index="expt_name",
             columns="name",
-            values=[*self.STATISTICS, "n_field"],
+            values=[
+                *self.STATISTICS,
+                "n_field",
+                "n_field_passing",
+                "n_field_contam",
+                "n_field_lowcov",
+            ],
             dropna=False,
             observed=False,
             data=self.experiment_qc_df,
@@ -364,6 +374,7 @@ class QualityControl(SummaryDashboardComponent):
             customdata = np.stack(
                 [
                     self.plot_df["n_field"],
+                    self.plot_df[self.n_field_for[focus_stat]],
                 ],
                 axis=-1,
             )
@@ -388,12 +399,13 @@ class QualityControl(SummaryDashboardComponent):
                     customdata=customdata,
                     hovertemplate=(
                         (
-                            "<b>%{z:.1f}%</b><br>"
+                            "<b>%{z:.0f}%</b><br>"
                             if "per_" in focus_stat
-                            else "<b>%{z:.1f}x</b><br>"
+                            else "<b>%{z:.0f}x</b><br>"
                         )
                         + "Amplicon: %{x}<br>"
-                        + "Number of samples: %{customdata[0]}<br><extra></extra>"
+                        + f"{t('n_field_hover')}: %{{customdata[0]}}<br>"
+                        + f"{t(self.n_field_for[focus_stat] + '_hover')}: %{{customdata[1]}}<br>"
                     ),
                 )
             ]

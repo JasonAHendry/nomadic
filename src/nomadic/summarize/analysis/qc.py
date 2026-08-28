@@ -369,6 +369,8 @@ def experiment_qc_summary(amplicon_qc_df: pd.DataFrame):
             mean_cov_field=pd.NamedAgg("mean_cov", "median"),
             mean_cov_neg=pd.NamedAgg("mean_cov_neg", "median"),
             n_field=pd.NamedAgg("barcode", len),
+            n_field_contam=pd.NamedAgg("fail_contam", lambda x: x.sum()),
+            n_field_lowcov=pd.NamedAgg("fail_lowcov", lambda x: x.sum()),
             n_field_passing=pd.NamedAgg("passing", lambda x: x.sum()),
             per_field_contam=pd.NamedAgg("fail_contam", lambda x: 100 * x.mean()),
             per_field_lowcov=pd.NamedAgg("fail_lowcov", lambda x: 100 * x.mean()),
