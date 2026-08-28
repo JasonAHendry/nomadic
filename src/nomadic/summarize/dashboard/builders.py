@@ -327,7 +327,11 @@ class SummaryDashboardBuilder(ABC):
         """
 
         if "Resistance" in amplicon_sets:
-            amplicon_names = amplicon_sets["Resistance"]
+            amplicon_names = [
+                amplicon
+                for amplicon in amplicon_names
+                if amplicon in amplicon_sets["Resistance"]
+            ]
 
         amplicon_dropdown = dcc.Dropdown(
             id="amplicon-dropdown",
