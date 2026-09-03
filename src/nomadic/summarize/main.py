@@ -78,12 +78,12 @@ from nomadic.util.workspace import Workspace
 # --------------------------------------------------------------------------------
 def main(
     *,
-    workspace: Workspace,
+    workspace: Workspace | None,
     output_dir: Path,
     expt_dirs: list[Path],
     summary_name: str,
     metadata_path: Optional[Path],
-    settings_file_path: Path,
+    settings_file_path: Path | None,
     maps: list[str],
     show_dashboard: bool = True,
     prevalence_by: list[str],
@@ -155,7 +155,7 @@ def main(
     log.info(f"Loaded panel settings for panel '{panel_settings.name}'.")
 
     settings: Settings = Settings()
-    if settings_file_path.exists():
+    if settings_file_path is not None and settings_file_path.exists():
         settings = load_settings(settings_file_path)
         log.info(f"  Loaded summary settings from {settings_file_path}.")
 
@@ -276,7 +276,7 @@ def main(
         filtered_vcf=summary_dir_structure.vcfs_dir
         / "summary.variants.filtered.vcf.gz",
         annotated_vcf=summary_dir_structure.vcfs_dir
-        / "summary.variants.annotated,vcf.gz",
+        / "summary.variants.annotated.vcf.gz",
         bed_path=Path(regions.path),
         reference_name=reference_name,
         exclude_amplicons=panel_settings.excluded_amplicons,
@@ -390,21 +390,23 @@ def main(
             summary_dir_structure.panel_info_dir
             / os.path.basename(expts[0].regions.path),
         )
-    for map_name in maps:
-        file = Path(workspace.path) / "maps" / f"{map_name}.geojson"
-        if file.exists():
+    if workspace is not None:
+        # Mapping currently only if there is a workspace
+        for map_name in maps:
+            file = Path(workspace.path) / "maps" / f"{map_name}.geojson"
+            if file.exists():
+                produce_dir(output_dir / "maps")
+                shutil.copy(
+                    file, output_dir / "maps" / f"{map_name.split('-')[-1]}.geojson"
+                )
+        coords_file = f"{workspace.get_metadata_dir()}/{summary_name}.coords.csv"
+        if os.path.isfile(coords_file):
             produce_dir(output_dir / "maps")
             shutil.copy(
-                file, output_dir / "maps" / f"{map_name.split('-')[-1]}.geojson"
+                coords_file,
+                os.path.join(output_dir, "maps", "coords.csv"),
             )
-    coords_file = f"{workspace.get_metadata_dir()}/{summary_name}.coords.csv"
-    if os.path.isfile(coords_file):
-        produce_dir(output_dir / "maps")
-        shutil.copy(
-            coords_file,
-            os.path.join(output_dir, "maps", "coords.csv"),
-        )
-    if os.path.isfile(settings_file_path):
+    if settings_file_path is not None and os.path.isfile(settings_file_path):
         shutil.copy(
             settings_file_path,
             os.path.join(output_dir, "settings.yaml"),

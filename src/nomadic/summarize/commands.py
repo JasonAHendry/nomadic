@@ -17,7 +17,7 @@ from nomadic.util.workspace import Workspace
     ),
     nargs=-1,  # allow multiple arguments; gets passed as tuple
 )
-@workspace_option(optional=False)
+@workspace_option(optional=True)
 @click.option(
     "-m",
     "--metadata_csv",
@@ -112,15 +112,15 @@ from nomadic.util.workspace import Workspace
 )
 def summarize(
     experiment_dirs: tuple[Path],
-    summary_name: str,
-    workspace: Workspace,
+    summary_name: str | None,
+    workspace: Workspace | None,
     output_dir: Path | None,
     metadata_csv: Path,
     maps: tuple[str],
     dashboard: bool,
     only_dashboard: bool,
     prevalence_by: tuple[str],
-    settings_file: Path,
+    settings_file: Path | None,
     no_master_metadata: bool,
     qc_min_coverage: int,
     qc_max_contam: float,
@@ -134,8 +134,6 @@ def summarize(
     or if none are provided, all experiments of this workspace will be used.
 
     """
-    if summary_name is None:
-        summary_name = workspace.get_name()
 
     if only_dashboard and not dashboard:
         raise click.BadParameter(
@@ -143,20 +141,46 @@ def summarize(
             message="--dashboard-only can not be used together with --no-dashboard.",
         )
 
+    if summary_name is None:
+        if workspace is not None:
+            summary_name = workspace.get_name()
+        elif output_dir is not None:
+            summary_name = output_dir.name
+        else:
+            raise click.BadParameter(
+                param_hint="--summary-name",
+                message="Summary name must be provided if no workspace is specified. Provide --summary-name or change to a workspace",
+            )
+
+    if output_dir is None:
+        if workspace is None:
+            raise click.BadParameter(
+                param_hint="--output-dir",
+                message="Output directory must be provided if no workspace is specified. Provide --output-dir or change to a workspace.",
+            )
+        else:
+            output_dir = Path(workspace.get_summary_dir(summary_name))
+
     if only_dashboard:
         from .main import view
 
         return view(
-            Path(output_dir or workspace.get_summary_dir(summary_name)),
+            output_dir,
             summary_name,
             host=host,
             port=port,
         )
 
     if metadata_csv is None and not no_master_metadata:
-        metadata_csv = Path(workspace.get_master_metadata_csv(summary_name))
+        if workspace is None:
+            raise click.BadParameter(
+                param_hint="--metadata-csv",
+                message="Metadata CSV must be provided if no workspace is specified. Provide --metadata-csv or change to a workspace.",
+            )
+        else:
+            metadata_csv = Path(workspace.get_master_metadata_csv(summary_name))
 
-    if settings_file is None:
+    if settings_file is None and workspace is not None:
         settings_file = Path(workspace.get_summary_settings_file(summary_name))
 
     if not no_master_metadata and not metadata_csv.exists():
@@ -166,10 +190,17 @@ def summarize(
         )
 
     if len(experiment_dirs) == 0:
+        if workspace is None:
+            raise click.BadParameter(
+                param_hint="EXPERIMENT_DIRS",
+                message="At least one experiment directory must be provided if no workspace is specified. Provide experiment directories or change to a workspace.",
+            )
         experiment_dirs = [Path(dir) for dir in workspace.get_experiment_dirs()]
-
-    if output_dir is None:
-        output_dir = Path(workspace.get_summary_dir(summary_name))
+        if len(experiment_dirs) == 0:
+            raise click.BadParameter(
+                param_hint="EXPERIMENT_DIRS",
+                message="No experiment directories found in the workspace.",
+            )
 
     from .main import main
 

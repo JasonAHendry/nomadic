@@ -109,7 +109,7 @@ class ThroughputSummary(SummaryDashboardComponent):
                 html.Div(
                     id="throughput-summary",
                     children=[
-                        html.H3("Throughput Details"),
+                        html.H3(self.summary_name),
                         html.P(
                             [
                                 f"Experiments: {self.throughput_df.columns.shape[0] - 1}",
