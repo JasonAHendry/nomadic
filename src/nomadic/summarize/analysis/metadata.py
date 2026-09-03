@@ -3,12 +3,8 @@ from typing import Optional
 
 import pandas as pd
 
-from nomadic.util.errors import UserInputError
+from nomadic.summarize.analysis.errors import MasterMetadataError
 from nomadic.util.summary_settings import Settings, get_master_columns_mapping
-
-
-class MasterMetadataError(UserInputError):
-    """Custom error for issues related to master metadata."""
 
 
 def load_master_metadata(metadata_path, *, settings: Settings) -> pd.DataFrame:

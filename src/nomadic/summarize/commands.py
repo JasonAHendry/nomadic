@@ -2,7 +2,7 @@ from pathlib import Path
 
 import click
 
-from nomadic.summarize.analysis.metadata import MasterMetadataError
+from nomadic.summarize.analysis.errors import MasterMetadataError
 from nomadic.util.cli import workspace_option
 from nomadic.util.errors import UserInputError
 from nomadic.util.exceptions import MetadataFormatError
