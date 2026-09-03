@@ -1,9 +1,8 @@
 import os
-from nomadic.util.exceptions import ReferenceGenomeMissingError
 from abc import ABC, abstractmethod
 
 from nomadic.util.dirs import user_data_dir
-
+from nomadic.util.exceptions import ReferenceGenomeMissingError
 
 # ================================================================
 # Base classes for reference sequences

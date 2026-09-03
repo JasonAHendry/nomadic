@@ -1,8 +1,10 @@
-import seaborn as sns
+import os
 
+import seaborn as sns
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.bed import load_bed_as_dataframe
+from nomadic.util.errors import UserInputError
 from nomadic.util.exceptions import BEDFormatError
 
 
@@ -19,6 +21,7 @@ class RegionBEDParser:
         """Load the BED file, assign colors to regions"""
 
         self.path = bed_path
+        self.name = os.path.basename(bed_path).split(".")[0]
         self.df = load_bed_as_dataframe(bed_path)
 
         self.n_regions = self.df.shape[0]
@@ -56,3 +59,21 @@ class RegionBEDParser:
             row["name"]: f"{row['chrom']}:{row['start']}-{row['end']}"
             for _, row in self.df.iterrows()
         }
+
+
+def common_regions(
+    expt_regions: list[RegionBEDParser],
+) -> RegionBEDParser:
+    """
+    Check that the regions are consistent across all experiment directories and return the used regions
+
+    """
+    if len(expt_regions) == 0:
+        raise ValueError("No experiment regions provided")
+    base = expt_regions[0]
+    for r in expt_regions:
+        if not (r.df == base.df).all().all():
+            raise UserInputError(
+                "Different regions used across experiments, this is not supported. Check region BED files are the same."
+            )
+    return base

@@ -1,0 +1,5 @@
+barcode	chrom	pos	amplicon	ref	alt	dp	gt	wsaf
+sample1-mutI	Pf3D7_04_v3	748239	dhfr-p1-410	A	T	4000	mutant	0.99
+sample1-mutI	Pf3D7_04_v3	748239	dhfr-p1-410	A	C	4000	absent	0.0
+sample2-mutT	Pf3D7_04_v3	748239	dhfr-p1-410	A	T	4000	absent	0.0
+sample2-mutT	Pf3D7_04_v3	748239	dhfr-p1-410	A	C	4000	mutant	0.99

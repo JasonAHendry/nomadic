@@ -1,5 +1,5 @@
-from typing import List
 from dataclasses import dataclass
+
 from nomadic.util.fasta import load_fasta_as_dict, write_fasta_from_dict
 
 
@@ -19,7 +19,7 @@ DHPS = NucleotideChange(
 )
 
 
-def update_reference_genome(fasta_path: str, mutations: List[NucleotideChange]) -> None:
+def update_reference_genome(fasta_path: str, mutations: list[NucleotideChange]) -> None:
     """
     Update a reference genome by reverting mutations; do this IN PLACE
 

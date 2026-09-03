@@ -69,7 +69,6 @@ class RealtimeDashboardBuilder(ABC):
         the overall dashboard organisation
 
         """
-        pass
 
     def _gen_app(self):
         """

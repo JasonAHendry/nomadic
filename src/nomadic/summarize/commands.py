@@ -1,0 +1,239 @@
+from pathlib import Path
+
+import click
+
+from nomadic.summarize.analysis.errors import MasterMetadataError
+from nomadic.util.cli import workspace_option
+from nomadic.util.errors import UserInputError
+from nomadic.util.exceptions import MetadataFormatError
+from nomadic.util.workspace import Workspace
+
+
+@click.command(
+    short_help="Summarize a set of experiments.",
+)
+@click.argument(
+    "experiment_dirs",
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, path_type=Path
+    ),
+    nargs=-1,  # allow multiple arguments; gets passed as tuple
+)
+@workspace_option(optional=True)
+@click.option(
+    "-m",
+    "--metadata_csv",
+    type=click.Path(exists=True, dir_okay=False, file_okay=True, path_type=Path),
+    help="Path to the master metadata CSV file. This file needs to contain a column 'sample_id' with the sample IDs to be included in the summary. "
+    "Can contain other columns as well, which can be used to stratify the summary results",
+    show_default="<workspace>/metadata/<summary_name>.csv",
+)
+@click.option(
+    "-n",
+    "--summary_name",
+    type=str,
+    help="Name of summary",
+    show_default="name of the workspace.",
+)
+@click.option(
+    "--prevalence-by",
+    type=str,
+    help="Column in metadata_csv to calculate prevalence by for output files.",
+    multiple=True,
+)
+@click.option(
+    "--dashboard/--no-dashboard",
+    default=True,
+    help="Whether to start the web dashboard to look at the summary.",
+)
+@click.option(
+    "--only-dashboard",
+    type=bool,
+    is_flag=True,
+    default=False,
+    help="If set, only open the summary dashboard in the web browser, the summary will not be recalculated. Can not be combined with --no-dashboard.",
+)
+@click.option(
+    "-s",
+    "--settings-file",
+    type=click.Path(exists=True, dir_okay=False, file_okay=True, path_type=Path),
+    show_default="<workspace>/metadata/<summary_name>.yaml",
+    help="Path to the summary settings YAML file.",
+)
+@click.option(
+    "--no-master-metadata",
+    is_flag=True,
+    default=False,
+    help="If set, no master metadata CSV needs to be provided. In this case all samples in the workspace will be used. "
+    "This is not recommended, as it's better to be explicit about the samples to be included, but it can be used to quickly get an overview of the data in the workspace.",
+)
+@click.option(
+    "--qc-min-coverage",
+    type=int,
+    default=100,
+    show_default=True,
+    help="Minimum coverage threshold for quality control. Amplicons with less than this coverage will be marked as low coverage.",
+)
+@click.option(
+    "--qc-max-contam",
+    type=float,
+    default=0.1,
+    show_default=True,
+    help="Maximum contamination fraction for quality control. Samples with contamination above this fraction will be marked as contaminated. Contamination is defined as the mean coverage of negative controls being more than this fraction of the sample coverage.",
+)
+@click.option(
+    "--qc-replicate-passing-threshold",
+    type=click.FloatRange(0.0, 1.0),
+    default=0.8,
+    show_default=True,
+    help="Minimum fraction of passing amplicons required for a replicate to pass QC.",
+)
+@click.option(
+    "--output-dir",
+    "-o",
+    type=click.Path(dir_okay=True, file_okay=False, path_type=Path),
+    help="Path to the output directory where the summary will be stored. By default, this is <workspace>/summaries/<summary_name>.",
+)
+@click.option(
+    "--map",
+    "maps",
+    help="Name of the map to use for the dashboard. The file should be in the workspace maps directory and should be a GeoJSON file. The name should be the same as the file name without the .geojson extension",
+    multiple=True,
+)
+@click.option(
+    "--host",
+    type=str,
+    default="127.0.0.1",
+    help="Host to use for the dashboard.",
+    show_default=True,
+)
+@click.option(
+    "--port",
+    type=int,
+    help="Port to use for the dashboard. If not provided, the next free port up from 8050 will be used.",
+)
+def summarize(
+    experiment_dirs: tuple[Path],
+    summary_name: str | None,
+    workspace: Workspace | None,
+    output_dir: Path | None,
+    metadata_csv: Path,
+    maps: tuple[str],
+    dashboard: bool,
+    only_dashboard: bool,
+    prevalence_by: tuple[str],
+    settings_file: Path | None,
+    no_master_metadata: bool,
+    qc_min_coverage: int,
+    qc_max_contam: float,
+    qc_replicate_passing_threshold: float,
+    host: str,
+    port: int | None,
+):
+    """
+    Summarize a set of experiments to evaluate quality control and
+    mutation prevalence. You can either provide a list of folders of experiments,
+    or if none are provided, all experiments of this workspace will be used.
+
+    """
+
+    if only_dashboard and not dashboard:
+        raise click.BadParameter(
+            param_hint="--dashboard-only",
+            message="--dashboard-only can not be used together with --no-dashboard.",
+        )
+
+    if summary_name is None:
+        if workspace is not None:
+            summary_name = workspace.get_name()
+        elif output_dir is not None:
+            summary_name = output_dir.name
+        else:
+            raise click.BadParameter(
+                param_hint="--summary-name",
+                message="Summary name must be provided if no workspace is specified. Provide --summary-name or change to a workspace",
+            )
+
+    if output_dir is None:
+        if workspace is None:
+            raise click.BadParameter(
+                param_hint="--output-dir",
+                message="Output directory must be provided if no workspace is specified. Provide --output-dir or change to a workspace.",
+            )
+        else:
+            output_dir = Path(workspace.get_summary_dir(summary_name))
+
+    if only_dashboard:
+        from .main import view
+
+        return view(
+            output_dir,
+            summary_name,
+            host=host,
+            port=port,
+        )
+
+    if metadata_csv is None and not no_master_metadata:
+        if workspace is None:
+            raise click.BadParameter(
+                param_hint="--metadata-csv",
+                message="Metadata CSV must be provided if no workspace is specified. Provide --metadata-csv or change to a workspace.",
+            )
+        else:
+            metadata_csv = Path(workspace.get_master_metadata_csv(summary_name))
+
+    if settings_file is None and workspace is not None:
+        settings_file = Path(workspace.get_summary_settings_file(summary_name))
+
+    if not no_master_metadata and not metadata_csv.exists():
+        raise click.BadParameter(
+            param_hint="-m/--metadata_csv",
+            message=f"Master metadata file '{metadata_csv}' does not exist.",
+        )
+
+    if len(experiment_dirs) == 0:
+        if workspace is None:
+            raise click.BadParameter(
+                param_hint="EXPERIMENT_DIRS",
+                message="At least one experiment directory must be provided if no workspace is specified. Provide experiment directories or change to a workspace.",
+            )
+        experiment_dirs = [Path(dir) for dir in workspace.get_experiment_dirs()]
+        if len(experiment_dirs) == 0:
+            raise click.BadParameter(
+                param_hint="EXPERIMENT_DIRS",
+                message="No experiment directories found in the workspace.",
+            )
+
+    from .main import main
+
+    try:
+        main(
+            workspace=workspace,
+            output_dir=output_dir,
+            expt_dirs=list(experiment_dirs),
+            summary_name=summary_name,
+            metadata_path=metadata_csv,
+            settings_file_path=settings_file,
+            show_dashboard=dashboard,
+            prevalence_by=list(prevalence_by),
+            no_master_metadata=no_master_metadata,
+            qc_min_coverage=qc_min_coverage,
+            qc_max_contam=qc_max_contam,
+            qc_replicate_passing_threshold=qc_replicate_passing_threshold,
+            maps=list(maps),
+            host=host,
+            port=port,
+        )
+    except MetadataFormatError as e:
+        raise click.BadParameter(
+            message=f"Metadata format error: {e}",
+        ) from e
+    except MasterMetadataError as e:
+        raise click.BadParameter(
+            message=f"Master metadata error: {e}",
+            param_hint="-m/--metadata_csv",
+        ) from e
+    except UserInputError as e:
+        raise click.UsageError(
+            message=f"{e}",
+        ) from e

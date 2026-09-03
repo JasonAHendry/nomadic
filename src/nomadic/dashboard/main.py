@@ -2,33 +2,8 @@ import os
 from typing import Optional
 
 from nomadic.realtime.dashboard.builders import CallingRTDashboard, MappingRTDashboard
-from nomadic.util.experiment import ExperimentDirectories
-from nomadic.util.metadata import find_metadata
-from nomadic.util.regions import RegionBEDParser
+from nomadic.util.experiment import ExperimentDirectories, find_metadata, find_regions
 from nomadic.util.settings import load_settings
-
-
-def find_regions(input_dir: str) -> RegionBEDParser:
-    """
-    Given an experiment directory, search for the metadata CSV file in thee
-    expected location
-
-    TODO: Bad duplication from above, can write inner function
-    """
-
-    metadata_dir = os.path.join(input_dir, "metadata")
-    beds = [
-        f"{metadata_dir}/{file}"
-        for file in os.listdir(metadata_dir)
-        if file.endswith(".bed") and not file.endswith(".lowcomplexity_mask.bed")
-    ]  # TODO: what about no-suffix files?
-
-    if len(beds) != 1:  # Could alternatively load and LOOK
-        raise FileNotFoundError(
-            f"Expected one region BED file (*.bed) at {metadata_dir}, but found {len(beds)}."
-        )
-
-    return RegionBEDParser(beds[0])
 
 
 def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:
@@ -36,7 +11,7 @@ def variant_calling_performed(expt_dirs: ExperimentDirectories) -> bool:
     Check if the variant calling TSV is present
     """
 
-    return os.path.exists(expt_dirs.get_summary_files().variants)
+    return os.path.exists(expt_dirs.get_summary_files().aa_changes)
 
 
 def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
@@ -57,8 +32,10 @@ def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
     """
 
     metadata = find_metadata(input_dir)
-    expt_dirs = ExperimentDirectories(input_dir, metadata)
     regions = find_regions(input_dir)
+    expt_dirs = ExperimentDirectories(
+        input_dir, metadata.barcodes, os.path.basename(regions.path)
+    )
     settings = load_settings(expt_dirs.get_settings_file())
 
     if settings is not None:
@@ -94,15 +71,15 @@ def main(input_dir: str, host: str, port: Optional[int] = None) -> None:
         print("  Variant calling: True")
         dashboard = CallingRTDashboard(
             **shared_kwargs,
-            variant_csv=summary_files.variants,
+            variant_csv=summary_files.aa_changes,
         )
     else:
         print("  Variant calling: False")
         dashboard = MappingRTDashboard(**shared_kwargs)
     print("Done.")
 
-    print("")
+    print()
     print("Launching dashboard (press CNTRL+C to exit):")
-    print("")
+    print()
 
     dashboard.run(debug=False, host=host, port=port)

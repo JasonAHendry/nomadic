@@ -1,5 +1,6 @@
+import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -60,10 +61,16 @@ def main(
     # PREPARE TO RUN
     metadata = MetadataTableParser(metadata_path)
     regions = RegionBEDParser(region_bed)
-    expt_dirs = ExperimentDirectories(output, metadata, regions)
+    expt_dirs = ExperimentDirectories(
+        output,
+        barcodes=metadata.barcodes,
+        regions_basename=os.path.basename(regions.path),
+    )
     log.info(f"  Found {len(metadata.barcodes) - 1} barcodes to track.")
     log.info(f"  Found {regions.n_regions} regions of interest.")
-    log.info(f"  Outputs will be written to: {expt_dirs.expt_dir}.")
+    log.info(f"  Outputs will be written to: {expt_dirs.output_dir}.")
+    expt_dirs.setup_dirs()
+    expt_dirs.setup_metadata_dir(metadata, regions)
     log.info("Done.\n")
 
     # LOAD/STORE EXPERIMENT SETTINGS
@@ -73,7 +80,7 @@ def main(
     )
     experiment_settings = ExperimentSettings(
         name=expt_name,
-        start_date=datetime.now().replace(microsecond=0),
+        start_date=datetime.now(timezone.utc).replace(microsecond=0),
         fastq_dir=fastq_dir,
         minknow_dir=minknow_dir_settings,
         metadata_csv=metadata_path,

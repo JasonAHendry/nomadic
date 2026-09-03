@@ -1,8 +1,8 @@
 import datetime
 import os
+import re
 from abc import ABC, abstractmethod
 from typing import Optional
-import re
 
 import numpy as np
 import pandas as pd
@@ -11,11 +11,11 @@ import plotly.graph_objects as go
 import seaborn as sns
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
+from i18n import t
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.metadata import MetadataTableParser
 from nomadic.util.regions import RegionBEDParser
-from i18n import t
 
 pd.options.mode.chained_assignment = None
 
@@ -27,6 +27,24 @@ pd.options.mode.chained_assignment = None
 
 
 TIMER_INTERVAL_ID = "interval"
+
+
+def utc_now() -> datetime.datetime:
+    """Return the current UTC time"""
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def format_local_time(dt: datetime.datetime) -> str:
+    """Display a UTC timestamp in the local timezone."""
+    return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def format_elapsed_time(start: datetime.datetime, end: datetime.datetime) -> str:
+    """Display an elapsed duration without fractional seconds."""
+    elapsed = end - start
+    elapsed = datetime.timedelta(seconds=int(elapsed.total_seconds()))
+    return str(elapsed)
+
 
 MAPPING_CATS = ["n_primary", "n_supplementary", "n_secondary", "n_unmapped"]
 MAPPING_COLS = dict(
@@ -97,7 +115,6 @@ class RealtimeDashboardComponent(ABC):
         in response to the timer, as well (potentially) other inputs
 
         """
-        pass
 
 
 # --------------------------------------------------------------------------------
@@ -120,7 +137,7 @@ class ExperimentSummary(RealtimeDashboardComponent):
 
     def __init__(self, expt_name: str, component_id: str):
         super().__init__(expt_name, component_id)
-        self.t0 = datetime.datetime.now().replace(microsecond=0)
+        self.t0 = utc_now()
 
     def _define_layout(self):
         """
@@ -151,7 +168,7 @@ class ExperimentSummary(RealtimeDashboardComponent):
         def _update(_):
             """Called every time an input changes"""
 
-            t1 = datetime.datetime.now().replace(microsecond=0)
+            t1 = utc_now()
 
             children = [
                 html.H3("Run Details"),
@@ -159,9 +176,9 @@ class ExperimentSummary(RealtimeDashboardComponent):
                     [
                         f"Experiment: {self.expt_name}",
                         html.Br(),
-                        f"Started at: {self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                        f"Started at: {format_local_time(self.t0)}",
                         html.Br(),
-                        f"Time elapsed: {t1 - self.t0}",
+                        f"Time elapsed: {format_elapsed_time(self.t0, t1)}",
                     ]
                 ),
             ]
@@ -189,8 +206,10 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
         super().__init__(expt_name, component_id)
         if start_time is not None:
             self.t0 = start_time
+            if self.t0.tzinfo is None:
+                self.t0 = self.t0.replace(tzinfo=datetime.timezone.utc)
         else:
-            self.t0 = datetime.datetime.now().replace(microsecond=0)
+            self.t0 = utc_now()
         self.fastq_csv = fastq_csv
         self.is_realtime = is_realtime
 
@@ -230,7 +249,7 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
                 n_fastq = df["n_processed_fastq"].sum()
 
             # Update time
-            t1 = datetime.datetime.now().replace(microsecond=0)
+            t1 = utc_now()
 
             # Define the text section
             # TODO: this is pretty horrible to make look decent
@@ -240,9 +259,9 @@ class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
             content = [
                 f"{t('Experiment Name')}:{tab * (n_tabs - 1)}{self.expt_name}",
                 html.Br(),
-                f"{t('Started at')}:{tab * n_tabs}{self.t0.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"{t('Started at')}:{tab * n_tabs}{format_local_time(self.t0)}",
                 html.Br(),
-                f"{t('Time elapsed')}:{tab * n_tabs}{t1 - self.t0}",
+                f"{t('Time elapsed')}:{tab * n_tabs}{format_elapsed_time(self.t0, t1)}",
                 html.Br(),
                 f"{t('FASTQs Processed')}:{tab * (n_tabs - 2)}{n_fastq}",
             ]
@@ -396,7 +415,7 @@ class MappingStatsBarplot(RealtimeDashboardComponent):
                 # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
                 df.drop(columns=["sample_id"], inplace=True)
 
-            df = df.join(self.metadata.required_metadata, on="barcode", validate="1:1")
+            df = df.join(self.metadata.sample_ids_df, on="barcode", validate="1:1")
 
             x = df.apply(
                 sample_string_from_row,
@@ -582,7 +601,7 @@ class RegionCoverageStrip(RealtimeDashboardComponent):
                 # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
                 df.drop(columns=["sample_id"], inplace=True)
 
-            df = df.join(self.metadata.required_metadata, on="barcode", validate="m:1")
+            df = df.join(self.metadata.sample_ids_df, on="barcode", validate="m:1")
 
             # Prepare plotting data
             # plot_data = [
@@ -1122,17 +1141,18 @@ class VariantHeatmap(RealtimeDashboardComponent):
             df = pd.read_csv(self.variant_csv)
 
             # Filter on target, variant types, and passing QC
-            qry = (
-                "amplicon == @target_region"
-                " and mut_type in @self.MUT_SET"
-                " and gt != './.'"
-            )
+            qry = "amplicon == @target_region"
+            if "gt" in df.columns:
+                # Old format
+                qry += " and mut_type in @self.MUT_SET"
+                qry += " and gt != './.'"
+
             target_df = df.query(qry)
             if "sample_id" in target_df.columns:
                 # We used to save it, but this is not a good idea as it might be outdated if the metadata file is changed
                 target_df.drop(columns=["sample_id"], inplace=True)
             target_df = target_df.join(
-                self.metadata.required_metadata, on="barcode", validate="m:1"
+                self.metadata.sample_ids_df, on="barcode", validate="m:1"
             )
 
             # Munge for plot
@@ -1142,11 +1162,23 @@ class VariantHeatmap(RealtimeDashboardComponent):
                 ordered=True,
             )
 
+            wsaf_col = "aa_wsaf"
+            if "wsaf" in target_df.columns:
+                wsaf_col = "wsaf"
+
+            depth_col = "aa_dp"
+            if "dp" in target_df.columns:
+                depth_col = "dp"
+
+            call_col = "aa_call"
+            if "gt" in target_df.columns:
+                call_col = "gt"
+
             # Pivot
             plot_df = pd.pivot_table(
                 index="aa_change",
                 columns="sample_string",
-                values=["wsaf", "dp", "gt"],
+                values=[wsaf_col, depth_col, call_col],
                 aggfunc=lambda x: x,
                 data=target_df,
                 dropna=False,
@@ -1154,15 +1186,20 @@ class VariantHeatmap(RealtimeDashboardComponent):
             )
 
             # Reorder mutations based on position
-            mutations = target_df[["pos", "aa_change"]].drop_duplicates("aa_change")
-            mutations.sort_values(["pos", "aa_change"], inplace=True)
+            if "pos" in target_df.columns:
+                sort_cols = ["pos", "aa_change"]
+            else:
+                sort_cols = ["aa_pos", "aa_change"]
+
+            mutations = target_df[sort_cols].drop_duplicates("aa_change")
+            mutations.sort_values(sort_cols, inplace=True)
             plot_df.index = pd.Categorical(
                 values=plot_df.index, categories=mutations.aa_change, ordered=True
             )
             plot_df.sort_index(inplace=True)
 
             # Hover statment
-            customdata = np.stack([plot_df["dp"], plot_df["gt"]], axis=-1)
+            customdata = np.stack([plot_df[depth_col], plot_df[call_col]], axis=-1)
             htemp = "<b>%{x}</b><br>"
             htemp += "<b>WSAF:</b> %{z:0.3f}<br>"
             htemp += "<b>Depth:</b> %{customdata[0]}<br>"
@@ -1171,9 +1208,9 @@ class VariantHeatmap(RealtimeDashboardComponent):
             # Plot
             plot_data = [
                 go.Heatmap(
-                    x=plot_df["wsaf"].columns,
-                    y=plot_df["wsaf"].index,
-                    z=plot_df["wsaf"],
+                    x=plot_df[wsaf_col].columns,
+                    y=plot_df[wsaf_col].index,
+                    z=plot_df[wsaf_col],
                     customdata=customdata,
                     zmin=0,
                     zmax=1,

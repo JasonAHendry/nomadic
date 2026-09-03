@@ -1,0 +1,2 @@
+barcode	gene	aa_pos	aa_call	mut_wsaf	abs_wsaf	aa_dp
+sample1-mut	dhfr	51	mutant	0.99		3000

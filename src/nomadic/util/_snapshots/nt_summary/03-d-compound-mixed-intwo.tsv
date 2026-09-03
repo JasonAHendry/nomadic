@@ -1,0 +1,3 @@
+barcode	chrom	pos	amplicon	ref	alt	dp	gt	wsaf
+sample1-mixed	Pf3D7_04_v3	748238	dhfr-p1-410	A	T	4000	mixed	0.99
+sample1-mixed	Pf3D7_04_v3	748239	dhfr-p1-410	A	T	5000	mutant	0.31

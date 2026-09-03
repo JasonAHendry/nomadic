@@ -1,28 +1,27 @@
-import os
-import json
-import uuid
 import glob
-import subprocess
-import pandas as pd
+import json
+import logging
+import os
 import shlex
-
-from typing import List
+import subprocess
+import uuid
 from abc import ABC, abstractmethod
+from typing import Optional
 
-from nomadic.map.mappers import Minimap2
+import pandas as pd
+
 from nomadic.download.references import REFERENCE_COLLECTION
+from nomadic.map.mappers import Minimap2
 from nomadic.util.dirs import produce_dir
 from nomadic.util.experiment import ExperimentDirectories
 from nomadic.util.regions import RegionBEDParser
 from nomadic.util.samtools import (
-    samtools_merge,
-    samtools_index,
-    samtools_flagstats,
     samtools_depth,
+    samtools_flagstats,
+    samtools_index,
+    samtools_merge,
 )
 from nomadic.util.wrappers import bcftools
-
-import logging
 
 log = logging.getLogger("nomadic")
 
@@ -50,12 +49,11 @@ class AnalysisStepRT(ABC):
         self.barcode_dir = expt_dirs.get_barcode_dir(barcode_name)
 
     @abstractmethod
-    def run(self, input_files: List[str]):
+    def run(self, input_files: list[str]):
         """
         Run this analysis step
 
         """
-        pass
 
     @abstractmethod
     def merge(self):
@@ -64,7 +62,6 @@ class AnalysisStepRT(ABC):
         already completed results
 
         """
-        pass
 
 
 # --------------------------------------------------------------------------------
@@ -99,25 +96,30 @@ class FASTQProcessedRT(AnalysisStepRT):
         base_name = f"{self.incr_dir}/{self.barcode_name}"
         return [file for file in glob.glob(f"{base_name}*.n_processed_fastq.json")]
 
-    def run(self, new_fastqs: List[str], incr_id: str):
+    def run(self, new_fastqs: list[str], incr_id: str):
         """
         Increase count of processed FASTQs, store in JSON
 
         """
         log.info("Running FASTQ count analysis...")
-        json.dump(
-            {"barcode": self.barcode_name, "n_processed_fastq": len(new_fastqs)},
-            open(self._get_incremental_json_path(incr_id), "w"),
-        )
+        with open(self._get_incremental_json_path(incr_id), "w") as file:
+            json.dump(
+                {"barcode": self.barcode_name, "n_processed_fastq": len(new_fastqs)},
+                file,
+            )
 
     def merge(self):
         log.debug("Merging FASTQ count files...")
-        fastq_data = [json.load(open(j, "r")) for j in self._get_incremental_jsons()]
+        fastq_data = []
+        for j in self._get_incremental_jsons():
+            with open(j, "r") as file:
+                fastq_data.append(json.load(file))
         n_processed_fastq = sum([data["n_processed_fastq"] for data in fastq_data])
-        json.dump(
-            {"barcode": self.barcode_name, "n_processed_fastq": n_processed_fastq},
-            open(self.output_json, "w"),
-        )
+        with open(self.output_json, "w") as file:
+            json.dump(
+                {"barcode": self.barcode_name, "n_processed_fastq": n_processed_fastq},
+                file,
+            )
 
 
 # --------------------------------------------------------------------------------
@@ -173,7 +175,7 @@ class MappingRT(AnalysisStepRT):
         base_name = f"{self.incr_dir}/{self.barcode_name}.{self.reference.name}"
         return [file for file in glob.glob(f"{base_name}*.bam")]
 
-    def run(self, new_fastqs: List[str], incr_id: str):
+    def run(self, new_fastqs: list[str], incr_id: str):
         """
         Map all of the newly observed FASTQ files
 
@@ -272,14 +274,18 @@ class FlagstatsRT(AnalysisStepRT):
 
         log.debug("Merging `samtools flagstat` JSON files...")
 
-        dts = [json.load(open(j, "r")) for j in self._get_incremental_jsons()]
+        dts = []
+        for j in self._get_incremental_jsons():
+            with open(j, "r") as file:
+                dts.append(json.load(file))
 
         log.debug(f"Found {len(dts)} to merge.")
 
         keys = dts[0].keys()
         merged = {key: sum([dt[key] for dt in dts]) for key in keys}
 
-        json.dump(merged, open(self.output_json, "w"))
+        with open(self.output_json, "w") as file:
+            json.dump(merged, file)
 
         return self.output_json
 
@@ -371,7 +377,6 @@ class RegionCoverage(AnalysisStepRT):
         Not needed here, we are not computing from incremental BAMS
 
         """
-        pass
 
 
 # --------------------------------------------------------------------------------
@@ -598,7 +603,7 @@ class CallVariantsRTBcftools(AnalysisStepRT):
         )
 
     def _get_reheader_command(
-        self, input_vcf: str = "-", output_vcf: str = None
+        self, input_vcf: str = "-", output_vcf: Optional[str] = None
     ) -> str:
         """
         Reassign the sample name inside of the VCF to the

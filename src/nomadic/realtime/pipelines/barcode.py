@@ -1,18 +1,18 @@
-from datetime import datetime
-from typing import List
+import time
 from abc import ABC, abstractmethod
-from nomadic.util.experiment import ExperimentDirectories
-from nomadic.util.regions import RegionBEDParser
+from datetime import timedelta
+
 from nomadic.realtime.steps import (
-    FASTQProcessedRT,
-    MappingRT,
-    FlagstatsRT,
-    RegionCoverage,
-    RegionDepthProfileRT,
     CallVariantsRTBcftools,
     CallVariantsRTDelve,
+    FASTQProcessedRT,
+    FlagstatsRT,
+    MappingRT,
+    RegionCoverage,
+    RegionDepthProfileRT,
 )
-
+from nomadic.util.experiment import ExperimentDirectories
+from nomadic.util.regions import RegionBEDParser
 
 # --------------------------------------------------------------------------------
 # Interface for barcode pipelines
@@ -50,14 +50,13 @@ class BarcodePipelineRT(ABC):
         self.ref_name = ref_name
 
     @abstractmethod
-    def _run(self, new_fastq: List[str], incr_id: str) -> None:
+    def _run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Run analysis steps for the pipeline on new FASTQ files
 
         """
-        pass
 
-    def run(self, new_fastq: List[str], incr_id: str) -> None:
+    def run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Wrapper to try and make the stdout easier to read
 
@@ -65,18 +64,19 @@ class BarcodePipelineRT(ABC):
 
         """
 
-        t0 = datetime.now().replace(microsecond=0)
-        print("")
+        t0 = time.perf_counter()
+        print()
         print("=" * 80)
         print(f"Updating: {self.barcode_name}")
         print("-" * 80)
 
         self._run(new_fastq=new_fastq, incr_id=incr_id)
 
-        t1 = datetime.now().replace(microsecond=0)
+        t1 = time.perf_counter()
+        elapsed = timedelta(seconds=round(t1 - t0))
         print("-" * 80)
         print(f"Done with: {self.barcode_name}")
-        print(f"Time elapsed: {t1 - t0}")
+        print(f"Time elapsed: {elapsed}")
         print("=" * 80)
 
 
@@ -119,7 +119,7 @@ class BarcodeMappingPipelineRT(BarcodePipelineRT):
             **common, regions=RegionBEDParser(bed_path), ref_name=ref_name
         )
 
-    def _run(self, new_fastq: List[str], incr_id: str) -> None:
+    def _run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
 
@@ -191,7 +191,7 @@ class BarcodeCallingPipelineRT(BarcodePipelineRT):
         else:
             raise RuntimeError(f"Unknown caller: {caller}")
 
-    def _run(self, new_fastq: List[str], incr_id: str) -> None:
+    def _run(self, new_fastq: list[str], incr_id: str) -> None:
         """
         Run mapping and QC from a set of newly generated FASTQ files
 

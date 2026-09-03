@@ -1,9 +1,8 @@
 import os
 import subprocess
-from typing import Dict
 
 
-def load_fasta_as_dict(fasta_path: str) -> Dict[str, str]:
+def load_fasta_as_dict(fasta_path: str) -> dict[str, str]:
     """
     Load a `.fasta` file as a dictionary.
 
@@ -35,7 +34,7 @@ def load_fasta_as_dict(fasta_path: str) -> Dict[str, str]:
     return dt
 
 
-def write_fasta_from_dict(input_dt: Dict[str, str], output_fasta: str) -> None:
+def write_fasta_from_dict(input_dt: dict[str, str], output_fasta: str) -> None:
     """
     Write a `.fasta` file to `output_fasta` from an input dictionary `input_dt`.
 
@@ -68,6 +67,5 @@ def find_lowcomplexity_intervals(fasta_path: str, bed_path: str) -> None:
             f"Input file must be FASTA, with one of these suffixes: {', '.join(SUFFIXES)}."
         )
 
-    file = open(bed_path, "w")
-    subprocess.run(["sdust", fasta_path], check=True, stdout=file)
-    file.close()
+    with open(bed_path, "w") as bed_file:
+        subprocess.run(["sdust", fasta_path], check=True, stdout=bed_file)

@@ -6,17 +6,17 @@ import click
 import click.shell_completion
 
 from nomadic.util import minknow
+from nomadic.util.config import (
+    InvalidConfigError,
+    default_config_path,
+    get_command_defaults,
+    load_config,
+)
 from nomadic.util.ssh import is_ssh_target, remote_dir_exists
 from nomadic.util.workspace import (
     Workspace,
-    find_workspace_root,
     check_if_workspace_root,
-)
-from nomadic.util.config import (
-    InvalidConfigError,
-    get_command_defaults,
-    load_config,
-    default_config_path,
+    find_workspace_root,
 )
 
 WORKSPACE_OPTION_KEY = "workspace"
@@ -113,7 +113,7 @@ def complete_experiment_name(ctx: click.Context, param, incomplete):
         )
         if os.path.exists(shared_metadata_path):
             experiments.extend(list_experiment_names(shared_metadata_path))
-    experiments = sorted(list(set(experiments)))  # Remove duplicates and sort
+    experiments = sorted(set(experiments))  # Remove duplicates and sort
     return [
         click.shell_completion.CompletionItem(experiment)
         for experiment in experiments
@@ -125,7 +125,7 @@ def list_experiment_names(metadata_folder: str) -> list[str]:
     return [
         f.removesuffix(".csv").removesuffix(".xlsx")
         for f in os.listdir(metadata_folder)
-        if f.endswith(".csv") or f.endswith(".xlsx")
+        if f.endswith((".csv", ".xlsx"))
     ]
 
 
@@ -221,9 +221,7 @@ class BadParameterWithSource(click.BadParameter):
             and self.ctx.get_parameter_source(self.param.name)
             is click.core.ParameterSource.DEFAULT_MAP
         ):
-            return "Invalid config value for {param_name}: {message}".format(
-                param_name=self.param.name, message=self.message
-            )
+            return f"Invalid config value for {self.param.name}: {self.message}"
 
         if (
             self.param_hint is not None
@@ -233,10 +231,7 @@ class BadParameterWithSource(click.BadParameter):
             )
             is click.core.ParameterSource.DEFAULT_MAP
         ):
-            return "Invalid config value for {param_name}: {message}".format(
-                param_name=get_parameter_name_from_hint(self.param_hint),
-                message=self.message,
-            )
+            return f"Invalid config value for {get_parameter_name_from_hint(self.param_hint)}: {self.message}"
 
         return super().format_message()
 

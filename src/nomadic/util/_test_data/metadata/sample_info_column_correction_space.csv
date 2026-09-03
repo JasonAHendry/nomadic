@@ -1,6 +1,7 @@
-﻿Barcode,Sample ID
-Barcode1,3D7 (NB01)
-Barcode2,Dd2 (NB02)
-Barcode3,CamC580Y (NB03)
-Barcode4,GB4 (NB04)
-Barcode5,HB3 (NB05)
+﻿barcode,sample id,sample type,location,parasitemia,postclean_qubit
+barcode01,3D7,pos,berlin,1000,87
+barcode02,HB3,pos,berlin,100,34
+barcode03,NTC,neg,berlin,0,0
+barcode04,DBS-A01,field,berlin,543,44
+barcode05,DBS-A02,field,berlin,7583,85
+barcode06,DBS-A03,field,berlin,349,32
