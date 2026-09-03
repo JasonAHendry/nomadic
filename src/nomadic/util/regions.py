@@ -4,6 +4,7 @@ import seaborn as sns
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.bed import load_bed_as_dataframe
+from nomadic.util.errors import UserInputError
 from nomadic.util.exceptions import BEDFormatError
 
 
@@ -64,7 +65,7 @@ def common_regions(
     expt_regions: list[RegionBEDParser],
 ) -> RegionBEDParser:
     """
-    Check that the regions are consistent across all experiment directories and return the used regoins
+    Check that the regions are consistent across all experiment directories and return the used regions
 
     """
     if len(expt_regions) == 0:
@@ -72,7 +73,7 @@ def common_regions(
     base = expt_regions[0]
     for r in expt_regions:
         if not (r.df == base.df).all().all():
-            raise ValueError(
+            raise UserInputError(
                 "Different regions used across experiments, this is not supported. Check region BED files are the same."
             )
     return base

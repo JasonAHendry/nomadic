@@ -2,7 +2,9 @@ from pathlib import Path
 
 import click
 
+from nomadic.summarize.analysis.metadata import MasterMetadataError
 from nomadic.util.cli import workspace_option
+from nomadic.util.errors import UserInputError
 from nomadic.util.exceptions import MetadataFormatError
 from nomadic.util.workspace import Workspace
 
@@ -225,4 +227,13 @@ def summarize(
     except MetadataFormatError as e:
         raise click.BadParameter(
             message=f"Metadata format error: {e}",
+        ) from e
+    except MasterMetadataError as e:
+        raise click.BadParameter(
+            message=f"Master metadata error: {e}",
+            param_hint="-m/--metadata_csv",
+        ) from e
+    except UserInputError as e:
+        raise click.UsageError(
+            message=f"{e}",
         ) from e

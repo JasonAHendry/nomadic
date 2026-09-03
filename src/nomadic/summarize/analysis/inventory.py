@@ -14,6 +14,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from nomadic.util.errors import UserInputError
 from nomadic.util.experiment import ExperimentOutputs
 
 REQUIRED_INVENTORY_COLUMNS = ["expt_name", "barcode", "sample_id", "sample_type"]
@@ -34,7 +35,7 @@ def create_inventory_df(expts: list[ExperimentOutputs]) -> pd.DataFrame:
     inventory_df["sample_id"] = inventory_df["sample_id"].astype(str).str.strip()
     # Check for duplicates
     if inventory_df.duplicated(subset=["expt_name", "barcode"]).any():
-        raise ValueError(
+        raise UserInputError(
             "Duplicate item found in inventory dataframe. "
             "This should not happen, please check your metadata files."
             f" Duplicates: {inventory_df[inventory_df.duplicated(subset=['expt_name', 'barcode'], keep=False)]}"

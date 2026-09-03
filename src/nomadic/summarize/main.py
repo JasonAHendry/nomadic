@@ -4,6 +4,8 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+from yaml import YAMLError
+
 from nomadic.summarize.analysis.deletions import (
     gene_deletion_prevalence_by,
     gene_deletions,
@@ -52,6 +54,7 @@ from nomadic.summarize.analysis.variants import (
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.summarize.dir_structure import DirStructure, looks_like_summary_dir
 from nomadic.util.dirs import produce_dir
+from nomadic.util.errors import UserInputError
 from nomadic.util.experiment import (
     experiment_outputs,
 )
@@ -117,7 +120,7 @@ def main(
         if looks_like_summary_dir(output_dir):
             shutil.rmtree(output_dir)
         else:
-            raise ValueError(
+            raise UserInputError(
                 f"Output directory {output_dir} already exists and does not look like a summary directory. Please remove it or choose a different output directory."
             )
     summary_dir_structure = DirStructure(summary_dir=output_dir)
@@ -127,15 +130,18 @@ def main(
 
     # Check experiments are complete
     if not expt_dirs:
-        raise ValueError("No experiment directories found to summarize.")
+        raise UserInputError("No experiment directories found to summarize.")
 
     log.info("Data status:")
-    expts = [
-        experiment_outputs(
-            expt_dir, allow_missing_files=["depth", "fastq", "nt_changes"]
-        )
-        for expt_dir in expt_dirs
-    ]
+    try:
+        expts = [
+            experiment_outputs(
+                expt_dir, allow_missing_files=["depth", "fastq", "nt_changes"]
+            )
+            for expt_dir in expt_dirs
+        ]
+    except FileNotFoundError as e:
+        raise UserInputError(f"Error in experiment directories: {e}") from e
     log.info(f"  All {len(expts)} experiments are complete.")
 
     # Check experiments are consistent
@@ -156,7 +162,12 @@ def main(
 
     settings: Settings = Settings()
     if settings_file_path is not None and settings_file_path.exists():
-        settings = load_settings(settings_file_path)
+        try:
+            settings = load_settings(settings_file_path)
+        except YAMLError as e:
+            raise UserInputError(
+                f"Error loading settings from {settings_file_path}: {e}"
+            ) from e
         log.info(f"  Loaded summary settings from {settings_file_path}.")
 
     ####################
@@ -440,7 +451,7 @@ def view(input_dir: Path, summary_name: str, host: str, port: Optional[int]) -> 
         print(f"Use panel name from regions BED file: {panel_name}")
         amplicons = RegionBEDParser(str(bed_file)).names
     else:
-        raise ValueError("No regions BED file found in summary directory.")
+        raise UserInputError("No regions BED file found in summary directory.")
 
     panel_settings = get_panel_settings(panel_name)
     amplicon_sets = panel_settings.amplicon_sets

@@ -1,5 +1,7 @@
 from collections import Counter
 
+from nomadic.util.errors import UserInputError
+
 
 def common_caller(expt_callers: list[str]) -> str:
     """
@@ -10,10 +12,10 @@ def common_caller(expt_callers: list[str]) -> str:
     Returns the common variant caller if all experiments used the same caller
     """
     if len(expt_callers) == 0:
-        raise ValueError("No experiment callers provided")
+        raise UserInputError("No experiment callers provided")
     caller_counts = Counter([caller for caller in expt_callers])
     if len(caller_counts) > 1:
-        raise ValueError(
+        raise UserInputError(
             "Found more than one variant caller used across experiments: "
             + f"{', '.join([f'{v} experiment(s) used {c}' for c, v in caller_counts.items()])}."
         )
@@ -29,10 +31,10 @@ def common_reference_name(reference_names: list[str]) -> str:
     Returns the common reference name if all experiments used the same reference
     """
     if len(reference_names) == 0:
-        raise ValueError("No experiment reference names provided")
+        raise UserInputError("No experiment reference names provided")
     reference_counts = Counter([ref for ref in reference_names])
     if len(reference_counts) > 1:
-        raise ValueError(
+        raise UserInputError(
             "Found more than one reference used across experiments: "
             + f"{', '.join([f'{v} experiment(s) used {c}' for c, v in reference_counts.items()])}."
         )

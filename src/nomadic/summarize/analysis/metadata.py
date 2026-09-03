@@ -3,7 +3,12 @@ from typing import Optional
 
 import pandas as pd
 
+from nomadic.util.errors import UserInputError
 from nomadic.util.summary_settings import Settings, get_master_columns_mapping
+
+
+class MasterMetadataError(UserInputError):
+    """Custom error for issues related to master metadata."""
 
 
 def load_master_metadata(metadata_path, *, settings: Settings) -> pd.DataFrame:
@@ -16,9 +21,28 @@ def load_master_metadata(metadata_path, *, settings: Settings) -> pd.DataFrame:
         ),
         "sample_id",
     )
-    return pd.read_csv(metadata_path, dtype={sample_id_column: "str"}).rename(
-        columns=mapping
-    )
+    try:
+        df = pd.read_csv(metadata_path, dtype={sample_id_column: "str"}).rename(
+            columns=mapping
+        )
+        if sample_id_column not in df.columns:
+            raise MasterMetadataError(
+                f"Error loading master metadata from {metadata_path}: Missing required column '{sample_id_column}'"
+            )
+        return df
+
+    except FileNotFoundError as e:
+        raise MasterMetadataError(
+            f"Error loading master metadata from {metadata_path}: Master metadata file not found: {e}"
+        ) from e
+    except UnicodeDecodeError as e:
+        raise MasterMetadataError(
+            f"Error loading master metadata from {metadata_path}: Invalid csv: {e}"
+        ) from e
+    except pd.errors.ParserError as e:
+        raise MasterMetadataError(
+            f"Error loading master metadata from {metadata_path}: Parsing error: {e}"
+        ) from e
 
 
 def master_metadata_from_expts(expts, *, shared_columns: list[str]) -> pd.DataFrame:
@@ -104,9 +128,11 @@ def validate_metadata(df: pd.DataFrame) -> pd.DataFrame:
     required_columns = ["sample_id"]
     missing_columns = set(required_columns) - set(df.columns)
     if missing_columns:
-        raise ValueError(f"Missing required columns in metadata: {missing_columns}")
+        raise MasterMetadataError(
+            f"Missing required columns in metadata: {missing_columns}"
+        )
     if df["sample_id"].duplicated().any():
-        raise ValueError(
+        raise MasterMetadataError(
             f"Duplicate sample_ids found in metadata: {df['sample_id'][df['sample_id'].duplicated()].tolist()}"
         )
     return df

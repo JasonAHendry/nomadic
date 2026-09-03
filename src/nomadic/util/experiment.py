@@ -266,7 +266,6 @@ def experiment_outputs(
     # Existence of directory
     if not os.path.isdir(expt_dir):
         raise FileNotFoundError(f"Experiment directory {expt_dir} does not exist.")
-
     # Existence of metadata
     try:
         parser = find_metadata(str(expt_dir), Parser=ExtendedMetadataTableParser)

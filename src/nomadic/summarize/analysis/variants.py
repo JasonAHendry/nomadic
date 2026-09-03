@@ -9,6 +9,7 @@ import pandas as pd
 from statsmodels.stats.proportion import proportion_confint
 
 from nomadic.download.references import REFERENCE_COLLECTION
+from nomadic.util.errors import UserInputError
 from nomadic.util.timer import Timer
 from nomadic.util.vcf import (
     AA_CALL_COL,
@@ -46,7 +47,7 @@ def load_variants_from_vcfs(
         log.info(f"  Loading variants from VCFs in {len(expt_dirs)} experiments...")
 
     if any(SAMPLE_SEPERATOR in expt_dir.name for expt_dir in expt_dirs):
-        raise ValueError(
+        raise UserInputError(
             f"Experiment directories can not contain the string '{SAMPLE_SEPERATOR}', as this is used to separate experiment name and barcode when loading from VCFs. Please rename the following directories: {', '.join([d.name for d in expt_dirs if SAMPLE_SEPERATOR in d.name])}."
         )
 
@@ -332,8 +333,8 @@ def load_and_reheader_vcfs(
         vcf_dir = expt_dir / "vcfs"
         vcf_file = vcf_dir / "summary.variants.vcf.gz"
         if not vcf_file.exists():
-            raise FileNotFoundError(
-                f"VCF file not found at {vcf_file}. Cannot load variants from VCFs."
+            raise UserInputError(
+                f"Missing VCF file {vcf_file}. Cannot load variants from VCFs."
             )
 
         experiment_samples = (
@@ -343,7 +344,7 @@ def load_and_reheader_vcfs(
         )
         experiment_sample_set = set(experiment_samples)
         if len(experiment_sample_set) != len(experiment_samples):
-            raise ValueError(
+            raise UserInputError(
                 f"Duplicate sample names found in VCF file {vcf_file}. Sample names must be unique to load from VCFs."
             )
         experiment_sample_mapping[expt_name] = experiment_sample_set
