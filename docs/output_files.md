@@ -87,7 +87,7 @@ The `summary.nt_changes.csv` file reports nucleotide changes identified in each 
 | `alt` | Alternative nucleotide. |
 | `dp` | Sequencing depth at the position. This is the number of reads included in that variant call after filtering for quality and mapping criteria. |
 | `gt` | Nucleotide call: `mutant`, `mixed`, `absent`, `wt`, or `failed`. (See [Nucleotide calls](#nucleotide-calls-gt)) |
-| `wsaf` | Within-sample allele frequency. (see [Understanding the Dashboard](understand.md#preliminary-variant-calling) for more details) |
+| `wsaf` | Within-sample allele frequency. (see [Understanding the Dashboard](understand.md#variant-calling) for more details) |
 
 #### Nucleotide calls (`gt`)
 
@@ -103,4 +103,4 @@ The `gt` column in `summary.nt_changes.csv` records the call for a specific nucl
 
 These values are the same categories used by the dashboard heatmaps and the variant-calling summaries, and they provide a compact way to interpret whether a sample carries a mutation, is mixed, or lacks enough information for a call.
 
-For more information about variant calling, please see [Understanding the Dashboard](understand.md#preliminary-variant-calling).
+For more information about variant calling, please see [Understanding the Dashboard](understand.md#variant-calling).

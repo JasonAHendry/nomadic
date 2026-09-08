@@ -120,7 +120,7 @@ The summary loads the variant calls from each experiment and combines them into 
 
 The overall prevalence files report how frequently each observed amino-acid change occurs among the included samples. When `--prevalence-by` is used, additional files report prevalence for each value of the selected metadata column.
 
-The `aa_call`, `gt`, and WSAF columns use the same call categories and within-sample allele-frequency interpretation as the individual experiment results. See [Output files](output_files.md) and [Understanding the Dashboard](understand.md#preliminary-variant-calling) for more information.
+The `aa_call`, `gt`, and WSAF columns use the same call categories and within-sample allele-frequency interpretation as the individual experiment results. See [Output files](output_files.md) and [Understanding the Dashboard](understand.md#variant-calling) for more information.
 
 ## Summary output
 

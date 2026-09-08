@@ -51,7 +51,7 @@ The pie chart aggregates information across all samples. In an ideal scenario, t
 You can use the 'Region Coverage Statistics' panel to identify candidate *hrp2* and *hrp3* deletions.
 
 
-## Preliminary Variant Calling
+## Variant Calling
 The bottom panel of the dashboard **shows information about variant calling**. 
 
 ![variant_calling](img/understand/variant_calling-ama1.png)

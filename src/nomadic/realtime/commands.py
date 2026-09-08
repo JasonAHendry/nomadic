@@ -75,7 +75,7 @@ from nomadic.util.workspace import (
     "--call",
     is_flag=True,
     default=False,
-    help="Perform preliminary variant calling of biallelic SNPs in real-time. (Deprecated, use --caller instead)",
+    help="Perform variant calling of biallelic SNPs in real-time. (Deprecated, use --caller instead)",
 )
 @click.option(
     "-c",

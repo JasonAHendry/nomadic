@@ -7,7 +7,7 @@ The basic workflow is:
 1. MinKNOW writes FASTQ files into the experiment's `fastq_pass` directory.
 2. *Nomadic* finds new files for each barcode and maps them to the selected reference.
 3. Mapping statistics, amplicon coverage, and depth profiles are updated.
-4. If a caller is selected, preliminary biallelic SNP calls are also updated.
+4. If a caller is selected, SNP calls are also updated.
 5. The dashboard and experiment-level summary files are refreshed after barcode updates.
 
 The command runs a mapping and quality-control pipeline by default. Add `--caller bcftools` or `--caller delve` to include variant calling.
@@ -122,7 +122,7 @@ The selected reference must already be available to *Nomadic*. Reference availab
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `-c`, `--caller` | No variant calling | Select `bcftools` or `delve` for preliminary biallelic SNP calling. |
+| `-c`, `--caller` | No variant calling | Select `bcftools` or `delve` for SNP calling. |
 
 Variant calling adds VCF and variant summary outputs to the mapping and coverage results. The detailed output columns are described in [Output files](output_files.md).
 
