@@ -45,30 +45,62 @@ Each row contains information about coverage over a specific amplicon in a speci
 For more information about region coverage, please see [Understanding the Dashboard](understand.md#region-coverage-statistics).
 
 
-### `summary.variants.csv`
-The `summary.variants.csv`contains preliminary information about the variants identified in each sample.
-
-
-Each row contains information about the genotype, depth, quality, and within-sample allele frequency (WSAF) of a specific single-nucleotide polymorphism (SNP) in a specific sample. For all samples the same set of SNPs are described. The set of SNPs described includes all SNPs where *at least one* sample carried the alternative allele. Note this file is only generated when the `nomadic realtime ... --call` flag is used, which is the default.
+### `summary.aa_changes.csv`
+The `summary.aa_changes.csv` file reports missense amino-acid changes identified in each sample. Every observed mutation is represented for every sample, with calls of `mutant`, `mixed`, `absent`, `wt`, `unphased`, or `failed` as appropriate.
 
 | Column | Description |
 | --- | --- |
 | `barcode` | Sample barcode. |
-| `sample_id` | Sample ID. |
-| `chrom` | Chromosome of SNP. |
-| `pos` | Position of SNP. |
-| `ref` | Reference nucleotide for SNP. |
-| `alt` | Alternative nucleotide for SNP. |
-| `qual` | Variant quality score of SNP. |
-| `mut_type` | Type of mutation caused by SNP, e.g. synonymous or non-synonymous. |
-| `aa_change` | Amino acid change caused by SNP. For synonymous mutations, we still report (e.g. `V380V`). |
-| `aa_pos` | Amino acid number containing the SNP. |
-| `strand` | Strand of gene containing the SNP. |
-| `amplicon` | Name of amplicon containing SNP.  This comes from the fourth column of the BED file used when running `nomadic realtime` (e.g. `-b` flag). |
-| `gt` | Called SNP genotype for the sample. Can be reference (`0/0`), heterozygous (`0/1`), homozygous (`1/1`) or failed QC (`./.`). **Note: these are from `bcftools call` and assume a diploid genome.** |
-| `gq` | SNP genotype quality for the sample. Note this is different than variant quality (`qual`) as it refers to the quality of the genotype call, rather than whether or not the site is variable. |
-| `dp` | Sequencing depth over the SNP. Equivalent to coverage. |
-| `wsaf` | Within-sample alternative allele frequency (`ad_alt / (ad_alt + ad_ref)`), where `ad_ref` and `ad_alt` are the depths of the reference and alternative allele. |
+| `chrom` | Chromosome containing the mutation. |
+| `amplicon` | Amplicon containing the mutation. |
+| `gene` | Gene affected by the mutation. |
+| `aa_pos` | Amino-acid position. |
+| `aa_change` | Amino-acid change. |
+| `aa_call` | Amino-acid call for the sample. See [Amino-acid calls (`aa_call`)](#amino-acid-calls-aa_call). |
+| `aa_dp` | Sequencing depth at the amino-acid position. This is calculated as the minimum depth among all nucleotide positions that make up the codon for the amino-acid. |
+| `aa_wsaf` | Within-sample allele frequency for the amino-acid call. This is calculated from the wsaf of the nucleotide positions that make up the codon for the amino-acid. |
+| `nt_change` | Nucleotide change or changes underlying the amino-acid change, separated by + signs if multiple. |
 
+#### Amino-acid calls (`aa_call`)
+
+The `aa_call` column in `summary.aa_changes.csv` is a sample-level summary for a particular amino-acid change.
+
+| Value | Meaning |
+| --- | --- |
+| `mutant` | The mutation is present in the sample in a homozygous/monoclonal form. All informative reads support the alternative amino acid. |
+| `mixed` | The mutation is present but only in a subset of reads. This indicates a mixed or heterozygous call within the sample. |
+| `absent` | This amino-acid change was considered but is not present in the sample, but there is another amino-acid change at the same position. |
+| `wt` | The sample matches the reference at that amino-acid position (wild type) homozygously/monoclonally. |
+| `unphased` | More than one mixed nucleotide call exists at the same amino-acid position. As we don't phase yet, we can not determine the correct amino-acid change. |
+| `failed` | There was not enough reliable information to classify the site (e.g., low coverage, poor-quality reads, or a strand bias); the call failed or the site was not callable. |
+
+### `summary.nt_changes.csv`
+The `summary.nt_changes.csv` file reports nucleotide changes identified in each sample. Every observed nucleotide mutation is represented for every sample.
+
+| Column | Description |
+| --- | --- |
+| `barcode` | Sample barcode. |
+| `chrom` | Chromosome containing the mutation. |
+| `pos` | Reference position of the mutation. |
+| `amplicon` | Amplicon containing the mutation. |
+| `ref` | Reference nucleotide. |
+| `alt` | Alternative nucleotide. |
+| `dp` | Sequencing depth at the position. This is the number of reads included in that variant call after filtering for quality and mapping criteria. |
+| `gt` | Nucleotide call: `mutant`, `mixed`, `absent`, `wt`, or `failed`. (See [Nucleotide calls](#nucleotide-calls-gt)) |
+| `wsaf` | Within-sample allele frequency. (see [Understanding the Dashboard](understand.md#preliminary-variant-calling) for more details) |
+
+#### Nucleotide calls (`gt`)
+
+The `gt` column in `summary.nt_changes.csv` records the call for a specific nucleotide position.
+
+| Value | Meaning |
+| --- | --- |
+| `mutant` | The genotype is homozygous/monoclonal alternative at this position. |
+| `mixed` | The genotype is heterozygous or otherwise mixed at this position.|
+| `absent` | The variant is not present in this sample at this position, but there is another variant at the same position. |
+| `wt` | The position is wild type and matches the reference genotype. |
+| `failed` | The genotype could not be determined reliably from the sequencing data (e.g., low coverage, poor-quality reads, or a strand bias). |
+
+These values are the same categories used by the dashboard heatmaps and the variant-calling summaries, and they provide a compact way to interpret whether a sample carries a mutation, is mixed, or lacks enough information for a call.
 
 For more information about variant calling, please see [Understanding the Dashboard](understand.md#preliminary-variant-calling).
