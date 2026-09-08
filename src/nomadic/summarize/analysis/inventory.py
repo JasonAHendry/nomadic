@@ -14,7 +14,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from nomadic.util.errors import UserInputError
+from nomadic.util.exceptions import UserInputError
 from nomadic.util.experiment import ExperimentOutputs
 
 REQUIRED_INVENTORY_COLUMNS = ["expt_name", "barcode", "sample_id", "sample_type"]

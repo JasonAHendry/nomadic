@@ -15,7 +15,7 @@ from nomadic.util.cli import (
     minknow_dir_option,
     workspace_option,
 )
-from nomadic.util.exceptions import MetadataFormatError
+from nomadic.util.exceptions import BEDFormatError, MetadataFormatError, UserInputError
 from nomadic.util.workspace import (
     Workspace,
     looks_like_a_bed_filepath,
@@ -226,8 +226,15 @@ def realtime(
     except MetadataFormatError as e:
         raise click.BadParameter(
             param_hint="-m/--metadata_path",
-            message=str(e),
+            message=f"Failed to parse metadata file: {e}",
         ) from e
+    except BEDFormatError as e:
+        raise click.BadParameter(
+            param_hint="-b/--region_bed",
+            message=f"Failed to parse BED file: {e}",
+        ) from e
+    except UserInputError as e:
+        raise click.UsageError(f"Failed to run experiment: {e}") from e
 
 
 def find_minknow_fastq_dirs(

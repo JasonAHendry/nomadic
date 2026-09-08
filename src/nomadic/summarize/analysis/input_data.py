@@ -1,6 +1,6 @@
 from collections import Counter
 
-from nomadic.util.errors import UserInputError
+from nomadic.util.exceptions import UserInputError
 
 
 def common_caller(expt_callers: list[str]) -> str:

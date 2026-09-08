@@ -1,4 +1,4 @@
-from nomadic.util.errors import UserInputError
+from nomadic.util.exceptions import UserInputError
 
 
 class MasterMetadataError(UserInputError):

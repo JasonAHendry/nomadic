@@ -2,10 +2,9 @@ from pathlib import Path
 
 import click
 
-from nomadic.summarize.analysis.errors import MasterMetadataError
+from nomadic.summarize.analysis.exceptions import MasterMetadataError
 from nomadic.util.cli import workspace_option
-from nomadic.util.errors import UserInputError
-from nomadic.util.exceptions import MetadataFormatError
+from nomadic.util.exceptions import MetadataFormatError, UserInputError
 from nomadic.util.workspace import Workspace
 
 
@@ -166,12 +165,15 @@ def summarize(
     if only_dashboard:
         from .main import view
 
-        return view(
-            output_dir,
-            summary_name,
-            host=host,
-            port=port,
-        )
+        try:
+            return view(
+                output_dir,
+                summary_name,
+                host=host,
+                port=port,
+            )
+        except UserInputError as e:
+            raise click.ClickException(f"Failed to launch dashboard: {e}")
 
     if metadata_csv is None and not no_master_metadata:
         if workspace is None:

@@ -3,7 +3,7 @@ from typing import Optional
 
 import pandas as pd
 
-from nomadic.summarize.analysis.errors import MasterMetadataError
+from nomadic.summarize.analysis.exceptions import MasterMetadataError
 from nomadic.util.summary_settings import Settings, get_master_columns_mapping
 
 

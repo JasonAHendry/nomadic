@@ -9,7 +9,7 @@ import pandas as pd
 from statsmodels.stats.proportion import proportion_confint
 
 from nomadic.download.references import REFERENCE_COLLECTION
-from nomadic.util.errors import UserInputError
+from nomadic.util.exceptions import UserInputError
 from nomadic.util.timer import Timer
 from nomadic.util.vcf import (
     AA_CALL_COL,

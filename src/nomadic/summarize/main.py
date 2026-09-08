@@ -54,7 +54,7 @@ from nomadic.summarize.analysis.variants import (
 from nomadic.summarize.dashboard.builders import BasicSummaryDashboard
 from nomadic.summarize.dir_structure import DirStructure, looks_like_summary_dir
 from nomadic.util.dirs import produce_dir
-from nomadic.util.errors import UserInputError
+from nomadic.util.exceptions import UserInputError
 from nomadic.util.experiment import (
     experiment_outputs,
 )

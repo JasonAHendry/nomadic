@@ -4,8 +4,7 @@ import seaborn as sns
 from matplotlib.colors import rgb2hex
 
 from nomadic.util.bed import load_bed_as_dataframe
-from nomadic.util.errors import UserInputError
-from nomadic.util.exceptions import BEDFormatError
+from nomadic.util.exceptions import BEDFormatError, UserInputError
 
 
 class RegionBEDParser:
