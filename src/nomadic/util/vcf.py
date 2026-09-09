@@ -1,6 +1,7 @@
 import re
 import shlex
 import subprocess
+from dataclasses import dataclass
 from io import StringIO
 from typing import Literal, Optional
 
@@ -56,29 +57,37 @@ class VariantAnnotator:
 
         subprocess.run(cmd, check=True, shell=True)
 
+    def query_vcf(
+        self, input_vcf: str = "-", exclude_amplicons: Optional[list[str]] = None
+    ) -> "VCFData":
+        nt_data = subprocess.check_output(
+            self._query_nt_changes_command(input_vcf=input_vcf), shell=True
+        ).decode("utf-8")
+        aa_data = subprocess.check_output(
+            self._query_aa_changes_command(input_vcf=input_vcf), shell=True
+        ).decode("utf-8")
+        nt_df = self._read_nt_changes(nt_data)
+        nt_df = self._parse_nt_df(nt_df, exclude_amplicons=exclude_amplicons)
+        aa_df = self._read_aa_changes(aa_data)
+        return VCFData(nt_df=nt_df, aa_df=aa_df)
+
     def summarize_aa_changes(
         self,
-        input_vcf: str = "-",
+        vcf_data: "VCFData",
         exclude_amplicons: Optional[list[str]] = None,
         exclude_mutations: Optional[list[str]] = None,
     ) -> pd.DataFrame:
         """
         Query the amino acid changes from a VCF file and return them as a pandas DataFrame
         """
-        output = subprocess.check_output(
-            self._query_aa_changes_command(input_vcf=input_vcf), shell=True
-        ).decode("utf-8")
-        df_aa_changes = self._parse_to_aa_changes(
-            output, exclude_amplicons=exclude_amplicons
+        df_aa_changes = self._to_aa_changes(
+            vcf_data.aa_df, exclude_amplicons=exclude_amplicons
         ).query("csq_type == 'missense'")
         df_aa_changes["aa_pos"] = df_aa_changes["aa_pos"].astype(
             int
         )  # all missense should have an amino acid position, so this should be safe
 
-        output_qc = subprocess.check_output(
-            self._query_qc_command(input_vcf=input_vcf), shell=True
-        ).decode("utf-8")
-        df_qc = self._parse_to_qc(output_qc, exclude_amplicons=exclude_amplicons)
+        df_qc = self._to_qc(vcf_data.nt_df)
 
         all_samples = df_qc[BARCODE_COL].unique()
 
@@ -204,21 +213,12 @@ class VariantAnnotator:
 
     def summarize_nt_changes(
         self,
-        input_vcf: str = "-",
-        exclude_amplicons: Optional[list[str]] = None,
+        vcf_data: "VCFData",
     ) -> pd.DataFrame:
-        output = subprocess.check_output(
-            self._query_nt_changes_command(input_vcf=input_vcf), shell=True
-        ).decode("utf-8")
-        df_nt_changes = self._parse_to_nt_changes(output)
-        if exclude_amplicons is not None:
-            df_nt_changes = df_nt_changes.loc[
-                ~df_nt_changes["amplicon"].isin(exclude_amplicons)
-            ]
-        df_nt_changes["gt"] = call_from_gt(df_nt_changes["gt"])
+        nt_df = vcf_data.nt_df.copy()
 
-        df_nt_changes.loc[df_nt_changes["gt"] == "mutant", "tgt"] = df_nt_changes.loc[
-            df_nt_changes["gt"] == "mutant", "tgt"
+        nt_df.loc[nt_df["gt"] == "mutant", "tgt"] = nt_df.loc[
+            nt_df["gt"] == "mutant", "tgt"
         ].replace(
             {
                 "A/A": "A",
@@ -228,8 +228,8 @@ class VariantAnnotator:
             }
         )
 
-        df_mut = df_nt_changes.loc[
-            df_nt_changes["gt"].isin(["mutant", "mixed"]),
+        df_mut = nt_df.loc[
+            nt_df["gt"].isin(["mutant", "mixed"]),
             [BARCODE_COL, "chrom", "pos", "amplicon", "ref", "tgt", "gt", "wsaf"],
         ]
         df_mut["alt"] = df_mut["tgt"].str.split("/")
@@ -237,7 +237,7 @@ class VariantAnnotator:
         df_mut = df_mut.loc[df_mut["ref"] != df_mut["alt"]]
         df_mut = df_mut.drop(columns=["tgt"])
 
-        all_samples = df_nt_changes[BARCODE_COL].unique()
+        all_samples = nt_df[BARCODE_COL].unique()
 
         all_mutations = df_mut[
             ["chrom", "pos", "amplicon", "ref", "alt"]
@@ -245,23 +245,21 @@ class VariantAnnotator:
 
         result_df = pd.merge(
             pd.DataFrame({BARCODE_COL: all_samples}).merge(all_mutations, how="cross"),
-            df_nt_changes[[BARCODE_COL, "chrom", "pos", "dp"]],
+            nt_df[[BARCODE_COL, "chrom", "pos", "gene", "aa_pos", "dp"]],
             how="left",
             on=[BARCODE_COL, "chrom", "pos"],
             validate="many_to_one",
         )
 
         result_df = result_df.merge(
-            df_nt_changes.query("gt in ['wt', 'failed']")[
-                [BARCODE_COL, "chrom", "pos", "gt"]
-            ],
+            nt_df.query("gt in ['wt', 'failed']")[[BARCODE_COL, "chrom", "pos", "gt"]],
             how="left",
             on=[BARCODE_COL, "chrom", "pos"],
             validate="many_to_one",
         )
 
         result_df = result_df.merge(
-            df_nt_changes.query("gt in ['wt']")[[BARCODE_COL, "chrom", "pos", "wsaf"]],
+            nt_df.query("gt in ['wt']")[[BARCODE_COL, "chrom", "pos", "wsaf"]],
             how="left",
             on=[BARCODE_COL, "chrom", "pos"],
             validate="many_to_one",
@@ -368,13 +366,8 @@ class VariantAnnotator:
 
         return cmd
 
-    def _parse_to_aa_changes(
-        self, data: str, exclude_amplicons: Optional[list[str]] = None
-    ) -> pd.DataFrame:
-        """
-        Parse the output of the query command into a pandas DataFrame
-        """
-        df = pd.read_csv(
+    def _read_aa_changes(self, data: str) -> pd.DataFrame:
+        return pd.read_csv(
             StringIO(data),
             sep="\t",
             names=["barcode", "chrom", "pos", "amplicon", "tbcsq"],
@@ -387,6 +380,14 @@ class VariantAnnotator:
             },
             na_values={"tbcsq": "."},
         )
+
+    def _to_aa_changes(
+        self, aa_df: pd.DataFrame, exclude_amplicons: Optional[list[str]] = None
+    ) -> pd.DataFrame:
+        """
+        Parse the output of the query command into a pandas DataFrame
+        """
+        df = aa_df.copy()
 
         if exclude_amplicons is not None:
             df = df.loc[~df["amplicon"].isin(exclude_amplicons)]
@@ -405,7 +406,7 @@ class VariantAnnotator:
                 aa_pos,
                 aa_change,
                 nt_change,
-            ) in self._parse_tbcsq(row.tbcsq):
+            ) in self._parse_tbcsq(str(row.tbcsq)):
                 rows.append(
                     (
                         row.barcode,
@@ -505,47 +506,48 @@ class VariantAnnotator:
 
         return cmd
 
-    def _parse_to_qc(
-        self, data: str, exclude_amplicons: Optional[list[str]] = None
+    def _parse_nt_df(
+        self, nt_df: pd.DataFrame, exclude_amplicons: Optional[list[str]] = None
     ) -> pd.DataFrame:
-        """
-        Parse the output of the query command into a pandas DataFrame
-        """
-
-        df = pd.read_csv(
-            StringIO(data),
-            sep="\t",
-            names=["barcode", "chrom", "pos", "amplicon", "bcsq", "gt", "dp", "wsaf"],
-            na_values={"wsaf": ".", "dp": ".", "bcsq": "."},
-            dtype={
-                "barcode": str,
-                "chrom": str,
-                "pos": int,
-                "amplicon": str,
-                "bcsq": str,
-                "gt": str,
-                "dp": "Int64",
-                "wsaf": "Float64",
-            },
-        )
+        df = nt_df.copy()
         if exclude_amplicons is not None:
             df = df.loc[~df["amplicon"].isin(exclude_amplicons)]
-
-        df["dp"] = df["dp"].fillna(0)
 
         bcsq_info = extract_bcsq_info(df["bcsq"])
         df[["gene", "aa_pos"]] = bcsq_info[["gene", "aa_pos"]]
         df[["gene", "aa_pos"]] = resolve_bcsq_references(df, bcsq_info["ref_pos"])
 
+        df["gt"] = call_from_gt(df["gt"])
+
+        # df["dp"] = df["dp"].fillna(0)
+        return df
+
+    def _to_qc(self, nt_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Parse the output of the query command into a pandas DataFrame
+        """
+
+        df = nt_df[
+            [
+                "barcode",
+                "chrom",
+                "pos",
+                "amplicon",
+                "gene",
+                "aa_pos",
+                "gt",
+                "dp",
+                "wsaf",
+            ]
+        ]
+
         df.dropna(subset=["gene", "aa_pos"], inplace=True)
         df["aa_pos"] = df["aa_pos"].astype(int)
         df["gene"] = df["gene"].astype(str)
 
-        df[AA_CALL_COL] = call_from_gt(df["gt"])
-
         df = df.assign(
-            mut_wsaf=df["wsaf"].where(df[AA_CALL_COL].isin(["mutant", "mixed"])),
-            abs_wsaf=df["wsaf"].where(df[AA_CALL_COL].isin(["wt"])),
+            mut_wsaf=df["wsaf"].where(df["gt"].isin(["mutant", "mixed"])),
+            abs_wsaf=df["wsaf"].where(df["gt"].isin(["wt"])),
         )
 
         return aggregate_qc_by_aa_pos(df)
@@ -558,14 +560,14 @@ class VariantAnnotator:
         from a VCF file and output them as a TSV file
         """
         cmd = "bcftools query"
-        cmd += f" -f '[%SAMPLE\t%CHROM\t%POS\t%REF\t%AMP_ID\t%GT\t%TGT\t%DP\t%{self.wsaf_query_tag}\n]'"
+        cmd += f" -f '[%SAMPLE\t%CHROM\t%POS\t%REF\t%AMP_ID\t%INFO/BCSQ\t%GT\t%TGT\t%DP\t%{self.wsaf_query_tag}\n]'"
         if output_tsv:
             cmd += f" -o {shlex.quote(output_tsv)}"
         cmd += f" {shlex.quote(input_vcf)}"
 
         return cmd
 
-    def _parse_to_nt_changes(self, data: str) -> pd.DataFrame:
+    def _read_nt_changes(self, data: str) -> pd.DataFrame:
         """
         Parse the output of the query command into a pandas DataFrame
         """
@@ -579,18 +581,20 @@ class VariantAnnotator:
                 "pos",
                 "ref",
                 "amplicon",
+                "bcsq",
                 "gt",
                 "tgt",
                 "dp",
                 "wsaf",
             ],
-            na_values={"wsaf": ".", "dp": "."},
+            na_values={"wsaf": ".", "dp": ".", "bcsq": "."},
             dtype={
                 "barcode": str,
                 "chrom": str,
                 "pos": int,
                 "ref": str,
                 "amplicon": str,
+                "bcsq": str,
                 "gt": str,
                 "tgt": str,
                 "dp": "Int64",
@@ -599,6 +603,12 @@ class VariantAnnotator:
         )
 
         return df
+
+
+@dataclass
+class VCFData:
+    nt_df: pd.DataFrame
+    aa_df: pd.DataFrame
 
 
 def extract_aa_pos(bcsq: str) -> Optional[int]:
@@ -762,9 +772,9 @@ def call_from_gt(gts: pd.Series) -> pd.Series:
 def aggregate_qc_by_aa_pos(df: pd.DataFrame) -> pd.DataFrame:
     # to be able to agg faster
     df = df.assign(
-        failed=df[AA_CALL_COL].eq("failed"),
-        mixed=df[AA_CALL_COL].eq("mixed"),
-        mutant=df[AA_CALL_COL].eq("mutant"),
+        failed=df["gt"].eq("failed"),
+        mixed=df["gt"].eq("mixed"),
+        mutant=df["gt"].eq("mutant"),
     )
 
     result = (

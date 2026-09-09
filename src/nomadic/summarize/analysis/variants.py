@@ -91,8 +91,11 @@ def load_variants_from_vcfs(
     if log is not None:
         log.info("  Summarizing amino acid changes...")
 
+    vcf_data = annotator.query_vcf(
+        str(annotated_vcf), exclude_amplicons=exclude_amplicons
+    )
     variant_df = annotator.summarize_aa_changes(
-        input_vcf=str(annotated_vcf),
+        vcf_data=vcf_data,
         exclude_amplicons=exclude_amplicons,
         exclude_mutations=exclude_mutations,
     )
@@ -102,8 +105,7 @@ def load_variants_from_vcfs(
     if log is not None:
         log.info("  Summarizing nt changes...")
     nt_df = annotator.summarize_nt_changes(
-        input_vcf=str(annotated_vcf),
-        exclude_amplicons=exclude_amplicons,
+        vcf_data=vcf_data,
     )
 
     timer.time("Summarizing nucleotide changes")

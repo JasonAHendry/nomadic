@@ -185,8 +185,9 @@ class ExperimentPipelineRT(ABC):
         )
         annotated_vcf = filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz")
         annotator.annotate_variants(filtered_vcf, annotated_vcf)
-        aa_df = annotator.summarize_aa_changes(annotated_vcf)
-        nt_df = annotator.summarize_nt_changes(annotated_vcf)
+        vcf_data = annotator.query_vcf(annotated_vcf)
+        aa_df = annotator.summarize_aa_changes(vcf_data)
+        nt_df = annotator.summarize_nt_changes(vcf_data)
 
         aa_csv_path = self.expt_dirs.get_summary_files().aa_changes
         aa_df.to_csv(aa_csv_path, index=False)

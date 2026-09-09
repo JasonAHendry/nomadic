@@ -117,12 +117,8 @@ def test_csq_command(vcf_annotator):
     ids=lambda p: p.stem,
 )
 def test_aa_changes(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot):
-    cmd = vcf_annotator._query_aa_changes_command(
-        input_vcf=str(annotated_vcf),
-    )
-
-    output = subprocess.check_output(cmd, shell=True).decode("utf-8")
-    df = vcf_annotator._parse_to_aa_changes(output)
+    vcf_data = vcf_annotator.query_vcf(str(annotated_vcf))
+    df = vcf_annotator._to_aa_changes(vcf_data.aa_df)
 
     data = df.to_csv(sep="\t", index=False)
     snapshot.snapshot_dir = snapshot_dir / "aa_changes"
@@ -135,10 +131,8 @@ def test_aa_changes(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapsh
     ids=lambda p: p.stem,
 )
 def test_qc(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot):
-    cmd = vcf_annotator._query_qc_command(input_vcf=str(annotated_vcf))
-
-    output = subprocess.check_output(cmd, shell=True).decode("utf-8")
-    df = vcf_annotator._parse_to_qc(output)
+    vcf_data = vcf_annotator.query_vcf(str(annotated_vcf))
+    df = vcf_annotator._to_qc(vcf_data.nt_df)
 
     data = df.to_csv(sep="\t", index=False)
     snapshot.snapshot_dir = snapshot_dir / "qc"
@@ -153,7 +147,8 @@ def test_qc(vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot):
 def test_summarize_aa_changes(
     vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot
 ):
-    df = vcf_annotator.summarize_aa_changes(input_vcf=str(annotated_vcf))
+    vcf_data = vcf_annotator.query_vcf(str(annotated_vcf))
+    df = vcf_annotator.summarize_aa_changes(vcf_data=vcf_data)
 
     data = df.to_csv(sep="\t", index=False)
     snapshot.snapshot_dir = snapshot_dir / "summary"
@@ -168,7 +163,8 @@ def test_summarize_aa_changes(
 def test_summarize_nt_changes(
     vcf_annotator: VariantAnnotator, annotated_vcf: Path, snapshot
 ):
-    df = vcf_annotator.summarize_nt_changes(input_vcf=str(annotated_vcf))
+    vcf_data = vcf_annotator.query_vcf(str(annotated_vcf))
+    df = vcf_annotator.summarize_nt_changes(vcf_data=vcf_data)
 
     data = df.to_csv(sep="\t", index=False)
     snapshot.snapshot_dir = snapshot_dir / "nt_summary"
