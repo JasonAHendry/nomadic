@@ -205,6 +205,17 @@ def main(
         log.info("No included field samples, exiting...")
         return
 
+    for prevalence_by_col in prevalence_by:
+        if METADATA_COLUMN_PREFIX + prevalence_by_col not in master_metadata_df.columns:
+            cols = ", ".join(
+                col.removeprefix(METADATA_COLUMN_PREFIX)
+                for col in master_metadata_df.columns
+                if col.startswith(METADATA_COLUMN_PREFIX)
+            )
+            raise UserInputError(
+                f"Prevalence by column '{prevalence_by_col}' not found in master metadata. Available columns are: {cols}"
+            )
+
     # Throughput data
     log.info("Overall sequencing throughput:")
     throughput, throughput_df = compute_throughput(inventory_df)
@@ -284,10 +295,8 @@ def main(
         expt_dirs,
         caller=caller,
         temp_dir=Path(output_dir) / "temp_vcf_processing",
-        filtered_vcf=summary_dir_structure.vcfs_dir
-        / "summary.variants.filtered.vcf.gz",
-        annotated_vcf=summary_dir_structure.vcfs_dir
-        / "summary.variants.annotated.vcf.gz",
+        filtered_vcf=summary_dir_structure.vcfs_dir / "variants.filtered.vcf.gz",
+        annotated_vcf=summary_dir_structure.vcfs_dir / "variants.annotated.vcf.gz",
         bed_path=Path(regions.path),
         reference_name=reference_name,
         exclude_amplicons=panel_settings.excluded_amplicons,
@@ -320,7 +329,7 @@ def main(
             set_df = aa_changes_df[aa_changes_df["amplicon"].isin(amplicons)]
             set_df.to_csv(
                 summary_dir_structure.variants_dir
-                / f"summary.aa_changes.{set_name.lower()}.csv",
+                / f"aa_changes.{set_name.lower()}.csv",
                 index=False,
             )
     else:
@@ -337,23 +346,52 @@ def main(
     timer.time("Writing nt changes to CSV")
 
     # Then we will compute prevalence
-    prev_df = compute_variant_prevalence(aa_changes_df)
-    timer.time("Computing variant prevalence")
-    prev_df.to_csv(
-        summary_dir_structure.prevalence_dir / "summary.aa_changes.prevalence.csv",
-        index=False,
-    )
-    timer.time("Writing aa changes prevalence to CSV")
+    if panel_settings.amplicon_sets:
+        prev_dfs = []
+        for set_name, amplicons in panel_settings.amplicon_sets.items():
+            set_df = aa_changes_df[aa_changes_df["amplicon"].isin(amplicons)]
+            prev_df = compute_variant_prevalence(set_df)
+            prev_dfs.append(prev_df)
+        timer.time("Computing variant prevalence")
 
-    for col in prevalence_by:
-        prev_by_col_df = compute_variant_prevalence(
-            aa_changes_df, master_metadata_df, [METADATA_COLUMN_PREFIX + col]
-        ).pipe(rename_prevalence_by_cols, METADATA_COLUMN_PREFIX, "by_")
-        prev_by_col_df.to_csv(
-            summary_dir_structure.prevalence_dir
-            / f"summary.aa_changes.prevalence-{col}.csv",
+        for i, (set_name, amplicons) in enumerate(panel_settings.amplicon_sets.items()):
+            prev_dfs[i].to_csv(
+                summary_dir_structure.variants_dir
+                / f"prevalence.aa_changes.{set_name.lower()}.csv",
+                index=False,
+            )
+        timer.time("Writing aa changes prevalence to CSV")
+    else:
+        prev_df = compute_variant_prevalence(aa_changes_df)
+        timer.time("Computing variant prevalence")
+        prev_df.to_csv(
+            summary_dir_structure.variants_dir / "prevalence.aa_changes.csv",
             index=False,
         )
+        timer.time("Writing aa changes prevalence to CSV")
+
+    for col in prevalence_by:
+        if panel_settings.amplicon_sets:
+            for set_name, amplicons in panel_settings.amplicon_sets.items():
+                set_df = aa_changes_df[aa_changes_df["amplicon"].isin(amplicons)]
+
+                prev_by_col_df = compute_variant_prevalence(
+                    set_df, master_metadata_df, [METADATA_COLUMN_PREFIX + col]
+                ).pipe(rename_prevalence_by_cols, METADATA_COLUMN_PREFIX, "by_")
+                prev_by_col_df.to_csv(
+                    summary_dir_structure.variants_dir
+                    / f"prevalence.aa_changes.{set_name.lower()}.by-{col}.csv",
+                    index=False,
+                )
+        else:
+            prev_by_col_df = compute_variant_prevalence(
+                aa_changes_df, master_metadata_df, [METADATA_COLUMN_PREFIX + col]
+            ).pipe(rename_prevalence_by_cols, METADATA_COLUMN_PREFIX, "by_")
+            prev_by_col_df.to_csv(
+                summary_dir_structure.variants_dir
+                / f"prevalence.aa_changes.by-{col}.csv",
+                index=False,
+            )
 
     # --------------------------------------------------------------------------------
     # Gene deletion analysis
@@ -365,7 +403,7 @@ def main(
         produce_dir(summary_dir_structure.gene_deletions_dir)
         gene_deletion_df = gene_deletions(coverage_df, panel_settings.deletion_genes)
         gene_deletion_df.to_csv(
-            summary_dir_structure.gene_deletions_dir / "summary.gene_deletions.csv",
+            summary_dir_structure.gene_deletions_dir / "gene-deletions.csv",
             index=False,
         )
 
@@ -373,8 +411,7 @@ def main(
             gene_deletion_df, master_metadata_df, []
         )
         prev_gen_deletions_df.to_csv(
-            summary_dir_structure.gene_deletions_dir
-            / "summary.gene-deletions.prevalence.csv",
+            summary_dir_structure.gene_deletions_dir / "prevalence.gene-deletions.csv",
             index=False,
         )
 
@@ -384,7 +421,7 @@ def main(
             ).pipe(rename_prevalence_by_cols, METADATA_COLUMN_PREFIX, "by_")
             prev_gen_deletion_by_col_df.to_csv(
                 summary_dir_structure.gene_deletions_dir
-                / f"summary.gene-deletions.prevalence-{col}.csv",
+                / f"prevalence.gene-deletions.by-{col}.csv",
                 index=False,
             )
 
@@ -398,7 +435,7 @@ def main(
     if expts:
         shutil.copy(
             expts[0].regions.path,
-            summary_dir_structure.panel_info_dir
+            summary_dir_structure.metadata_dir
             / os.path.basename(expts[0].regions.path),
         )
     if workspace is not None:
@@ -445,7 +482,7 @@ def view(input_dir: Path, summary_name: str, host: str, port: Optional[int]) -> 
         print(f"Loading settings from {settings_file}...")
         settings = load_settings(settings_file)
 
-    bed_file = next(dir.panel_info_dir.glob("*.bed"), None)
+    bed_file = next(dir.metadata_dir.glob("*.bed"), None)
     if bed_file is not None:
         panel_name = bed_file.stem.removesuffix(".amplicons")
         print(f"Use panel name from regions BED file: {panel_name}")
@@ -465,8 +502,8 @@ def view(input_dir: Path, summary_name: str, host: str, port: Optional[int]) -> 
         samples_csv=str(dir.samples_qc_file),
         samples_amplicons_csv=str(dir.samples_by_amplicon_qc_file),
         experiment_qc_csv=str(dir.experiment_qc_file),
-        aa_changes_csvs=list(glob.glob(f"{dir.variants_dir}/summary.aa_changes*.csv")),
-        gene_deletions_csv=str(dir.gene_deletions_dir / "summary.gene_deletions.csv"),
+        aa_changes_csvs=list(glob.glob(f"{dir.variants_dir}/aa_changes*.csv")),
+        gene_deletions_csv=str(dir.gene_deletions_dir / "gene-deletions.csv"),
         master_csv=str(dir.metadata_file),
         geojson_glob=f"{input_dir}/maps/*.geojson",
         location_coords_csv=f"{input_dir}/maps/coords.csv",
