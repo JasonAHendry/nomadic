@@ -602,6 +602,31 @@ class SummaryDashboardBuilder(ABC):
         self.components.append(self.prevalence_map)
         self.layout.append(map_row)
 
+    def _add_footer(self):
+        footer = html.Footer(
+            className="footer",
+            children=[
+                html.P(
+                    children=[
+                        "For more information, please see the ",
+                        html.A(
+                            href="https://jasonahendry.github.io/nomadic/",
+                            children="documentation",
+                            target="_blank",
+                        ),
+                        " or ",
+                        html.A(
+                            href="https://github.com/JasonAHendry/nomadic",
+                            children="source code",
+                            target="_blank",
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+        self.layout.append(footer)
+
 
 class BasicSummaryDashboard(SummaryDashboardBuilder):
     """
@@ -706,6 +731,7 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
                 self.shape_name_key,
                 self.amplicon_sets,
             )
+        self._add_footer()
 
 
 def setup_translations():
