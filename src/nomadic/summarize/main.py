@@ -197,6 +197,17 @@ def main(
     n_excluded = n_excluded_samples(full_inventory_df)
     full_inventory_df.to_csv(summary_dir_structure.inventory_file, index=False)
 
+    # Throughput data
+    log.info("Overall sequencing throughput:")
+    throughput, throughput_df = compute_throughput(full_inventory_df)
+    log.info(f"  Experiments included: {throughput.n_expts_included}")
+    log.info(f"  Positive controls: {throughput.n_pos}")
+    log.info(f"  Negative controls: {throughput.n_neg}")
+    log.info(f"  Fields samples sequenced (total): {throughput.n_field_total}")
+    log.info(f"  Field samples (unique): {throughput.n_field_unique}")
+    log.info(f"  Excluded samples: {n_excluded}")
+    throughput_df.to_csv(summary_dir_structure.throughput_file, index=True)
+
     inventory_df = drop_excluded_samples(full_inventory_df)
 
     # Filter experiment directories to only those that are in the master metadata, i.e. that have at least one included sample
@@ -215,16 +226,6 @@ def main(
             raise UserInputError(
                 f"Prevalence by column '{prevalence_by_col}' not found in master metadata. Available columns are: {cols}"
             )
-
-    # Throughput data
-    log.info("Overall sequencing throughput:")
-    throughput, throughput_df = compute_throughput(inventory_df)
-    log.info(f"  Positive controls: {throughput.n_pos}")
-    log.info(f"  Negative controls: {throughput.n_neg}")
-    log.info(f"  Fields samples sequenced (total): {throughput.n_field_total}")
-    log.info(f"  Field samples (unique): {throughput.n_field_unique}")
-    log.info(f"  Excluded samples: {n_excluded}")
-    throughput_df.to_csv(summary_dir_structure.throughput_file, index=True)
 
     ############################
     # Quality control

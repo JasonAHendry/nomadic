@@ -102,6 +102,21 @@ class ThroughputSummary(SummaryDashboardComponent):
 
         """
 
+        # addapted from summary, probably better to use a table or so
+        tab = "\t"
+        n_tabs = 5
+
+        content = [
+            f"{t('Name')}:{tab * (n_tabs)}{self.summary_name}",
+            html.Br(),
+            f"{t('Experiments included')}:{tab * (n_tabs - 3)}{len(self.throughput_df.query('field_included > 0')) - 2}",
+            html.Br(),
+            f"{t('Field samples (total)')}:{tab * (n_tabs - 3)}{self.throughput_df.loc['All', 'field_included']}",
+            html.Br(),
+            f"{t('Field samples (unique)')}:{tab * (n_tabs - 3)}{self.throughput_df.loc['All', 'field_unique']}",
+            html.Br(),
+        ]
+
         layout = html.Div(
             className="logo-and-summary",
             children=[
@@ -109,17 +124,8 @@ class ThroughputSummary(SummaryDashboardComponent):
                 html.Div(
                     id="throughput-summary",
                     children=[
-                        html.H3(self.summary_name),
-                        html.P(
-                            [
-                                f"Experiments: {self.throughput_df.columns.shape[0] - 1}",
-                                html.Br(),
-                                f"Field samples (total): {self.throughput_df.loc['field', 'All']}",
-                                html.Br(),
-                                f"Field samples (unique): {self.throughput_df.loc['field_unique', 'All']}",
-                                html.Br(),
-                            ]
-                        ),
+                        html.H3("Summary", style=dict(margin="0px", marginTop="20px")),
+                        html.Pre(content, style=dict(fontFamily="Arial", margin="0px")),
                     ],
                 ),
             ],

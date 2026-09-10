@@ -122,70 +122,10 @@ class RealtimeDashboardComponent(ABC):
 #
 # --------------------------------------------------------------------------------
 
+
 # --------------------------------------------------------------------------------
 # OVERALL STATISTICS
 # --------------------------------------------------------------------------------
-
-
-class ExperimentSummary(RealtimeDashboardComponent):
-    """
-    Make a pie chart that shows read mapping statistics
-
-    """
-
-    logo_src_path = "assets/nomadic_logo.png"
-
-    def __init__(self, expt_name: str, component_id: str):
-        super().__init__(expt_name, component_id)
-        self.t0 = utc_now()
-
-    def _define_layout(self):
-        """
-        Define the layout to be a dcc.Graph object with the
-        appropriate ID
-
-        """
-
-        layout = html.Div(
-            className="logo-and-summary",
-            children=[
-                html.Img(id="logo", src=self.logo_src_path),
-                html.Div(id="expt-summary"),
-            ],
-        )
-
-        return layout
-
-    def callback(self, app: Dash) -> None:
-        """
-        Define the update callback for the pie chart
-
-        """
-
-        @app.callback(
-            Output(self.component_id, "children"), Input("interval", "n_intervals")
-        )
-        def _update(_):
-            """Called every time an input changes"""
-
-            t1 = utc_now()
-
-            children = [
-                html.H3("Run Details"),
-                html.P(
-                    [
-                        f"Experiment: {self.expt_name}",
-                        html.Br(),
-                        f"Started at: {format_local_time(self.t0)}",
-                        html.Br(),
-                        f"Time elapsed: {format_elapsed_time(self.t0, t1)}",
-                    ]
-                ),
-            ]
-
-            return children
-
-
 class ExperimentSummaryFASTQ(RealtimeDashboardComponent):
     """
     Overview of the experimental state, and number of FASTQ files

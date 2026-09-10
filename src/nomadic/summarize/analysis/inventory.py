@@ -115,6 +115,8 @@ def experiments_in_inventory(
 class Throughput:
     """Class to store throughput information"""
 
+    n_expts: int
+    n_expts_included: int
     n_pos: int
     n_neg: int
     n_field_total: int
@@ -125,31 +127,59 @@ def compute_throughput(
     inventory_df: pd.DataFrame, add_unique: bool = True
 ) -> tuple[Throughput, pd.DataFrame]:
     """
-    Compute a simple throughput crosstable
+    Compute throughput crosstable
 
     Also add information about uniqueness
 
     """
+    inventory_df = inventory_df.assign(
+        sample_type=np.where(
+            inventory_df["status"] == "control",
+            inventory_df["sample_type"],
+            inventory_df["sample_type"] + "_" + inventory_df["status"],
+        )
+    )
     throughput_df = pd.crosstab(
-        inventory_df["sample_type"], inventory_df["expt_name"], margins=True
+        inventory_df["expt_name"], inventory_df["sample_type"], margins=True
     )
 
+    inventory_included_expts_df = inventory_df.groupby("expt_name").filter(
+        lambda x: (x["status"] == "included").sum() > 0
+    )
+
+    throughtput_included_expts_df = pd.crosstab(
+        inventory_included_expts_df["expt_name"],
+        inventory_included_expts_df["sample_type"],
+        margins=True,
+    )
+
+    throughput_df.loc["included_expts"] = throughtput_included_expts_df.loc["All"]
+
     if add_unique:
-        um = inventory_df.drop_duplicates("sample_id")
-        throughput_df.loc["field_unique"] = pd.crosstab(
-            um["sample_type"], um["expt_name"], margins=True
-        ).loc["field"]
+        um = inventory_df.drop_duplicates("sample_id").query("status == 'included'")
+        throughput_df["field_unique"] = pd.crosstab(
+            um["expt_name"], um["sample_type"], margins=True
+        )["field_included"]
+
+    throughput_df.loc["included_expts", "field_unique"] = throughput_df.loc[
+        "All", "field_unique"
+    ]
 
     # Ensure all expected rows are present
     throughput_df = (
-        throughput_df.reindex(["pos", "neg", "field", "field_unique"], fill_value=0)
+        throughput_df.reindex(
+            columns=["All", "pos", "neg", "field_included", "field_unique"],
+            fill_value=0,
+        )
         .fillna(0)
         .astype(int)
     )
 
     return Throughput(
-        n_pos=int(throughput_df.loc["pos", "All"]),
-        n_neg=int(throughput_df.loc["neg", "All"]),
-        n_field_total=int(throughput_df.loc["field", "All"]),
-        n_field_unique=int(throughput_df.loc["field_unique", "All"]),
+        n_expts=int(throughput_df.shape[0]),
+        n_expts_included=int(throughput_df.query("field_included > 0").shape[0] - 2),
+        n_pos=int(throughput_df.loc["included_expts", "pos"]),
+        n_neg=int(throughput_df.loc["included_expts", "neg"]),
+        n_field_total=int(throughput_df.loc["All", "field_included"]),
+        n_field_unique=int(throughput_df.loc["All", "field_unique"]),
     ), throughput_df

@@ -651,9 +651,9 @@ class BasicSummaryDashboard(SummaryDashboardBuilder):
         # Read header only
         df_header = pd.read_csv(throughput_csv, nrows=0)
         dtypes: dict[str, type[str | int]] = {col: int for col in df_header.columns}
-        dtypes["sample_type"] = str
+        dtypes["expt_name"] = str
         self.throughput_df = pd.read_csv(
-            throughput_csv, index_col="sample_type", dtype=dtypes
+            throughput_csv, index_col="expt_name", dtype=dtypes
         )
         samples_df = pd.read_csv(samples_csv, dtype={"sample_id": str})
         samples_amplicons_df = pd.read_csv(
