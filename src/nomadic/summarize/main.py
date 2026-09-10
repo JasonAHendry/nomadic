@@ -200,12 +200,12 @@ def main(
     # Throughput data
     log.info("Overall sequencing throughput:")
     throughput, throughput_df = compute_throughput(full_inventory_df)
-    log.info(f"  Experiments included: {throughput.n_expts_included}")
-    log.info(f"  Positive controls: {throughput.n_pos}")
-    log.info(f"  Negative controls: {throughput.n_neg}")
-    log.info(f"  Fields samples sequenced (total): {throughput.n_field_total}")
-    log.info(f"  Field samples (unique): {throughput.n_field_unique}")
-    log.info(f"  Excluded samples: {n_excluded}")
+    log.info(f"  Experiments included: {throughput.n_expts_included:d}")
+    log.info(f"  Positive controls: {throughput.n_pos:d}")
+    log.info(f"  Negative controls: {throughput.n_neg:d}")
+    log.info(f"  Fields samples sequenced (total): {throughput.n_field_total:d}")
+    log.info(f"  Field samples (unique): {throughput.n_field_unique:d}")
+    log.info(f"  Excluded samples: {n_excluded:d}")
     throughput_df.to_csv(summary_dir_structure.throughput_file, index=True)
 
     inventory_df = drop_excluded_samples(full_inventory_df)
@@ -256,12 +256,12 @@ def main(
     contam_perc = 100 * field_coverage_summary.n_contam / field_coverage_summary.n
     pass_perc = 100 * field_coverage_summary.n_pass / field_coverage_summary.n
     log.info(
-        f"  Coverage below <{qc_min_coverage}x: {field_coverage_summary.n_lowcov} ({low_cov_perc:.2f}%)"
+        f"  Coverage below <{qc_min_coverage:d}x: {field_coverage_summary.n_lowcov} ({low_cov_perc:.1f}%)"
     )
     log.info(
-        f"  Contamination >{qc_max_contam}: {field_coverage_summary.n_contam} ({contam_perc}%)"
+        f"  Contamination >{qc_max_contam:.2f}: {field_coverage_summary.n_contam} ({contam_perc:.1f}%)"
     )
-    log.info(f"  Passing QC: {field_coverage_summary.n_pass} ({pass_perc}%)")
+    log.info(f"  Passing QC: {field_coverage_summary.n_pass} ({pass_perc:.1f}%)")
     coverage_df.to_csv(summary_dir_structure.coverage_file, index=False)
 
     replicates_qc_df = replicates_qc(coverage_df, qc_replicate_passing_threshold)
