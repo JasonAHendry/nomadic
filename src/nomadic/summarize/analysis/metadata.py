@@ -21,9 +21,9 @@ def load_master_metadata(metadata_path, *, settings: Settings) -> pd.DataFrame:
         df = pd.read_csv(metadata_path, dtype={sample_id_column: "str"}).rename(
             columns=mapping
         )
-        if sample_id_column not in df.columns:
+        if "sample_id" not in df.columns:
             raise MasterMetadataError(
-                f"Error loading master metadata from {metadata_path}: Missing required column '{sample_id_column}'"
+                f"Error loading master metadata from {metadata_path}: Missing required column 'sample_id'"
             )
         return df
 

@@ -112,7 +112,7 @@ class PipelineFactory:
             self.expt_dirs,
             self.regions,
             threads=self.threads,
-            reference=self.ref_name,
+            reference=self.reference,
         )
 
     def get_dashboard(self, *, start_time=None) -> RealtimeDashboardBuilder:
