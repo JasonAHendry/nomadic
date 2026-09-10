@@ -53,10 +53,10 @@ nomadic summarize \
     --output-dir path/to/summaries/malaria-cohort
 ```
 
-To calculate prevalence separately for one or more metadata columns, repeat `--prevalence-by`. The column names specified must exist in the master metadata CSV. (Only necessary if you want to write the prevalence files.):
+To calculate prevalence separately for one or more metadata columns, provide a comma-separated list to `--prevalence-by`. The column names specified must exist in the master metadata CSV. (Only necessary if you want to write the prevalence files.):
 
 ```
-nomadic summarize --prevalence-by country --prevalence-by collection_site
+nomadic summarize --prevalence-by country,collection_site
 ```
 
 To open a summary that has already been calculated without recalculating it, use `--only-dashboard`:
@@ -85,13 +85,20 @@ nomadic summarize --only-dashboard
 | `--dashboard` / `--no-dashboard` | Start or suppress the dashboard after the analysis. The dashboard is started by default. |
 | `--only-dashboard` | Open an existing summary dashboard without recalculating the summary. |
 
+### Performance and logging
+
+| Option | Default | Description |
+| --- | ---: | --- |
+| `-t`, `--threads` | `8` | Number of threads used for analysis. |
+| `-v`, `--verbose` | disabled | Increase logging verbosity for debugging. |
+
 ### Prevalence
 
 | Option | Description |
 | --- | --- |
-| `--prevalence-by COLUMN` | Calculate prevalence separately for a metadata column. This option can be repeated. |
+| `--prevalence-by COLUMN[,COLUMN...]` | Calculate prevalence separately for one or more metadata columns. Pass multiple columns as a comma-separated list. |
 
-For example, `--prevalence-by country --prevalence-by site` creates separate prevalence files for each country and site grouping.
+For example, `--prevalence-by country,site` creates separate prevalence files for each country and site grouping.
 
 ### Quality control
 
@@ -128,39 +135,38 @@ A completed summary has the following structure:
 
 ```
 <summary-dir>/
-├── panel_info/
+├── metadata/
+│   ├── master_metadata.csv
 │   └── <panel>.amplicons.bed
-├── sample_info/
-│   ├── inventory.csv
-│   ├── metadata.csv
-│   └── throughput.csv
+├── seq_inventory/
+│   ├── sample_inventory.csv
+│   └── samples.by_experiment.csv
 ├── quality_control/
-│   ├── summary.coverage.csv
-│   ├── summary.replicates_qc.csv
-│   ├── summary.samples_qc.csv
-│   ├── summary.samples_amplicons_qc.csv
-│   └── summary.experiments_qc.csv
+│   ├── coverage.csv
+│   ├── replicates_qc.csv
+│   ├── samples_qc.csv
+│   ├── samples_amplicons_qc.csv
+│   └── experiments_qc.csv
 ├── variants/
-│   ├── summary.aa_changes.csv
-│   └── summary.nt_changes.csv
-├── vcfs/
-│   ├── summary.variants.filtered.vcf.gz
-│   └── summary.variants.annotated.vcf.gz
-└── prevalence/
-    ├── summary.aa_changes.prevalence.csv
-    └── summary.aa_changes.prevalence-<column>.csv
+│   ├── aa_changes.csv
+│   ├── nt_changes.csv
+│   ├── prevalence.aa_changes.csv
+│   ├── prevalence.aa_changes.by-<column>.csv
+│   └── vcfs/
+│       ├── variants.filtered.vcf.gz
+│       └── variants.annotated.vcf.gz
 ```
 
 | Directory | Contents |
 | --- | --- |
-| `panel_info/` | The amplicon BED file used by the experiments. |
-| `sample_info/` | The sample inventory, normalized metadata, and sequencing throughput summary. |
+| `metadata/` | The normalized master metadata and amplicon BED file used by the experiments. |
+| `seq_inventory/` | The sample inventory and sequencing throughput summary. |
 | `quality_control/` | Amplicon-, replicate-, sample-, and experiment-level QC summaries. |
-| `variants/` | Combined amino-acid and nucleotide change tables. |
-| `vcfs/` | Filtered and annotated combined VCF files. |
-| `prevalence/` | Overall and metadata-stratified amino-acid prevalence tables. |
+| `variants/` | Combined amino-acid and nucleotide change tables, prevalence tables, and the `vcfs/` directory. |
 
 The detailed columns in the variant tables are described in [Output files](output_files.md). Coverage and QC tables include the sample and experiment identifiers, amplicon coverage, contamination measurements, failure flags, and passing status.
+
+If the panel defines amplicon sets, the summary writes separate amino-acid change and prevalence files for each set. For example, a set named `Resistance` produces `variants/aa_changes.resistance.csv` and `variants/prevalence.aa_changes.resistance.csv`. When prevalence is grouped by metadata, the corresponding file is named `variants/prevalence.aa_changes.resistance.by-<column>.csv`.
 
 ## Summary dashboard
 
@@ -193,7 +199,7 @@ Check that the file is a readable CSV and contains a column named `sample_id`. C
 
 ### No samples are included
 
-The master metadata file controls which samples enter the summary. Check that its `sample_id` values match the experiment metadata and that field samples have not all been excluded. To verify which samples are included, inspect the `sample_info/inventory.csv` file in the summary output. Check for differences between the master metadata and the inventory to identify any mismatches or exclusions. Check also `quality_control/summary.samples_qc.csv` for samples that have not been sequenced, as this can also mean the sample ids do not match between the master metadata and experiment metadata.
+The master metadata file controls which samples enter the summary. Check that its `sample_id` values match the experiment metadata and that field samples have not all been excluded. To verify which samples are included, inspect the `seq_inventory/sample_inventory.csv` file in the summary output. Check for differences between the master metadata and the inventory to identify any mismatches or exclusions. Check also `quality_control/samples_qc.csv` for samples that have not been sequenced, as this can also mean the sample ids do not match between the master metadata and experiment metadata.
 
 ### The experiments are not compatible
 
