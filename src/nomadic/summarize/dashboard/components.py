@@ -1008,8 +1008,8 @@ class MapComponent(SummaryDashboardComponent):
                 # Add scatter markers for sample sites
                 fig.add_trace(
                     go.Scattermapbox(
-                        lat=merged_df["lat"],
-                        lon=merged_df["long"],
+                        lat=merged_df["latitude"],
+                        lon=merged_df["longitude"],
                         mode="markers+text",
                         marker=dict(
                             size=merged_df["scaled_size"],

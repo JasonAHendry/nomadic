@@ -37,7 +37,7 @@ from nomadic.util.workspace import Workspace
 @click.option(
     "--prevalence-by",
     type=str,
-    help="Column in metadata_csv to calculate prevalence by for output files.",
+    help="Column names in metadata_csv to calculate prevalence by for output files, separated by ',' e.g. 'country,year'.",
 )
 @click.option(
     "--dashboard/--no-dashboard",
