@@ -5,8 +5,8 @@ channels:
 dependencies:
   - python >= 3.10
   - minimap2
-  - samtools >=1.20
-  - bcftools >=1.20
+  - samtools >=1.23
+  - bcftools >=1.23
   - htslib
   - bedtools
   - delve-bio =0.3.*
@@ -16,11 +16,13 @@ dependencies:
   - pandas
   - openpyxl
   - numpy
+  - statsmodels
   - seaborn
   - click
   - platformdirs
   - pyyaml
   - i18nice
+  - pydantic
   - black
   - flake8
   - pip
@@ -29,3 +31,5 @@ dependencies:
   - mkdocs-material
   - pymdown-extensions
   - rsync
+  - pip:
+      - pytest-snapshot

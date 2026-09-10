@@ -1,8 +1,7 @@
 import os
-import subprocess
 import shlex
+import subprocess
 from abc import ABC, abstractmethod
-
 
 # ================================================================
 # Define abstract base class for different mapping
@@ -41,11 +40,10 @@ class MappingAlgorithm(ABC):
 
         """
         if fastq_dir is not None:
-            fastq_dir = fastq_dir
             self.input_fastqs = [
                 f"{fastq_dir}/{fastq}"
                 for fastq in os.listdir(fastq_dir)
-                if fastq.endswith(".fastq") or fastq.endswith(".fastq.gz")
+                if fastq.endswith((".fastq", ".fastq.gz"))
             ]
         elif fastq_paths is not None:
             self.input_fastqs = fastq_paths
@@ -57,7 +55,6 @@ class MappingAlgorithm(ABC):
         """
         Define the command for the mapping algorithm
         """
-        pass
 
     def run(self, output_bam: str, threads: int, verbose=False):
         """

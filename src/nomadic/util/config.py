@@ -15,8 +15,6 @@ default_config_path = ".config.yaml"
 class InvalidConfigError(Exception):
     """Raised when the config is invalid"""
 
-    pass
-
 
 def load_config(config_path: str) -> dict:
     """

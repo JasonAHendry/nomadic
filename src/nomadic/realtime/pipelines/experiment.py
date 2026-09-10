@@ -38,17 +38,21 @@ class ExperimentPipelineRT(ABC):
         metadata: MetadataTableParser,
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
-        reference: Reference = PlasmodiumFalciparum3D7(),
+        threads: int,
+        reference: Reference | None = None,
     ):
         """
         Store important metadata as instance attributes
 
         """
+        if reference is None:
+            reference = PlasmodiumFalciparum3D7()
 
         self.expt_dirs = expt_dirs
         self.metadata = metadata
         self.regions = regions
         self.reference = reference
+        self.threads = threads
 
     @abstractmethod
     def run(self):
@@ -56,7 +60,6 @@ class ExperimentPipelineRT(ABC):
         Run the complete pipeline
 
         """
-        pass
 
     def _run_fastq(self):
         """
@@ -67,9 +70,10 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(
-                    open(f"{barcode_dir}/fastq/{b}.n_processed_fastq.json", "r")
-                )
+                with open(
+                    f"{barcode_dir}/fastq/{b}.n_processed_fastq.json", "r"
+                ) as file:
+                    dt = json.load(file)
                 fastq_dts.append(dt)
             except FileNotFoundError:
                 continue
@@ -86,11 +90,11 @@ class ExperimentPipelineRT(ABC):
         for b in self.metadata.barcodes:
             barcode_dir = self.expt_dirs.get_barcode_dir(b)
             try:
-                dt = json.load(
-                    open(
-                        f"{barcode_dir}/qcbams/{b}.{self.reference.name}.flagstats.json"
-                    )
-                )
+                with open(
+                    f"{barcode_dir}/qcbams/{b}.{self.reference.name}.flagstats.json",
+                    "r",
+                ) as file:
+                    dt = json.load(file)
                 dt["barcode"] = b
                 qcbams_dts.append(dt)
             except FileNotFoundError:
@@ -144,7 +148,7 @@ class ExperimentPipelineRT(ABC):
         """
 
         # Merge VCF
-        vcf_dir = produce_dir(self.expt_dirs.approach_dir, "vcfs")
+        vcf_dir = produce_dir(self.expt_dirs.output_dir, "vcfs")
         vcfs = []
         for b in self.metadata.barcodes:
             if b == "unclassified":
@@ -176,23 +180,28 @@ class ExperimentPipelineRT(ABC):
 
         # Annotate
         annotator = VariantAnnotator(
-            input_vcf=filtered_vcf,
+            fasta_path=self.reference.fasta_path,
+            gff_path=self.reference.gff_path,
             bed_path=self.regions.path,
-            reference=self.reference,
             caller=caller,
-            output_vcf=filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz"),
+            threads=self.threads,
         )
-        annotator.run()
-        csv_path = self.expt_dirs.get_summary_files().variants
-        temp_path = csv_path.replace(".csv", "temp.csv")
-        annotator.convert_to_csv(temp_path)
+        annotated_vcf = filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz")
+        annotator.annotate_variants(filtered_vcf, annotated_vcf)
+        vcf_data = annotator.query_vcf(annotated_vcf)
+        aa_df = annotator.summarize_aa_changes(vcf_data)
+        nt_df = annotator.summarize_nt_changes(vcf_data)
 
-        df = pd.read_csv(temp_path)
-        df.to_csv(csv_path, index=False)
+        aa_csv_path = self.expt_dirs.get_summary_files().aa_changes
+        aa_df.to_csv(aa_csv_path, index=False)
+
+        nt_csv_path = self.expt_dirs.get_summary_files().nt_changes
+        if nt_csv_path is not None:
+            nt_df.to_csv(nt_csv_path, index=False)
 
         # Clean-up
-        os.remove(temp_path)
         os.remove(filtered_vcf)
+        # Keep unfiltered VCF
 
 
 # --------------------------------------------------------------------------------
@@ -239,10 +248,15 @@ class ExptCallingPipelineRT(ExperimentPipelineRT):
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
         caller: str,
-        reference: Reference = PlasmodiumFalciparum3D7(),
+        threads: int,
+        reference: Reference | None = None,
     ):
+        if reference is None:
+            reference = PlasmodiumFalciparum3D7()
         self.caller = caller
-        super().__init__(metadata, expt_dirs, regions, reference)
+        super().__init__(
+            metadata, expt_dirs, regions, threads=threads, reference=reference
+        )
 
     def run(self):
         self._run_fastq()

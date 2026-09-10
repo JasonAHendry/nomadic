@@ -1,6 +1,7 @@
 import gzip
-import pandas as pd
 from dataclasses import dataclass
+
+import pandas as pd
 
 
 def load_gff(gff_path: str) -> pd.DataFrame:

@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 
 class LoggingFascade:
@@ -13,7 +14,10 @@ class LoggingFascade:
     FILE_FORMAT = "[%(asctime)s][%(levelname)s] %(message)s"
 
     def __init__(
-        self, logger_name: str = "Default", verbose: bool = False, log_path: str = None
+        self,
+        logger_name: str = "Default",
+        verbose: bool = False,
+        log_path: Optional[str] = None,
     ):
         """
         Instantiate the the default logger, create the console and optionally

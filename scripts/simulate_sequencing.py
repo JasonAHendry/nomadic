@@ -3,9 +3,10 @@
 # 2023/06/01, J. Hendry
 
 import os
-import shutil
 import random
+import shutil
 import time
+
 import pandas as pd
 
 AWAITED_FASTQ_DIR = "example_data/awaited_fastqs"

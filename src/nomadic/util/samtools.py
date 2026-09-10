@@ -1,7 +1,7 @@
-import os
-import uuid
 import json
+import os
 import subprocess
+import uuid
 
 
 def samtools_view(input_bam, args, output_bam):
@@ -23,8 +23,6 @@ def samtools_view(input_bam, args, output_bam):
 
     subprocess.run(["samtools", "view", input_bam, args, "-o", output_bam], check=True)
 
-    return None
-
 
 def samtools_index(input_bam):
     """
@@ -40,8 +38,6 @@ def samtools_index(input_bam):
     """
 
     subprocess.run(["samtools", "index", input_bam], check=True)
-
-    return None
 
 
 def samtools_merge(bam_files, output_bam):
@@ -62,8 +58,6 @@ def samtools_merge(bam_files, output_bam):
     """
 
     subprocess.run(["samtools", "merge", "-f", output_bam, *bam_files], check=True)
-
-    return None
 
 
 def samtools_flagstats(input_bam: str, output_json: str) -> None:
@@ -89,7 +83,8 @@ def samtools_flagstats(input_bam: str, output_json: str) -> None:
         subprocess.run(cmd, check=True, stdout=file)
 
     # Clean and write to output
-    orig_dt = json.load(open(temp_json, "r"))["QC-passed reads"]
+    with open(temp_json, "r") as f:
+        orig_dt = json.load(f)["QC-passed reads"]
     # NB: These are counting ALIGNMENTS not READS
     # A single read can have multiple alignments
     clean_dt = {
@@ -100,7 +95,8 @@ def samtools_flagstats(input_bam: str, output_json: str) -> None:
         "n_supplementary": orig_dt["supplementary"],
         "n_unmapped": orig_dt["total"] - orig_dt["mapped"],
     }
-    json.dump(clean_dt, open(output_json, "w"))
+    with open(output_json, "w") as f:
+        json.dump(clean_dt, f)
 
     # Remove temporary JSON
     os.remove(temp_json)
@@ -133,5 +129,3 @@ def samtools_depth(input_bam, output_path, region_str=None):
     cmd.extend(["-o", output_path])
     cmd.append(input_bam)
     subprocess.run(cmd, check=True)
-
-    return None

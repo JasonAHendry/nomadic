@@ -1,7 +1,7 @@
 import pytest
+
 from .bed import BEDRecord
 from .exceptions import BEDFormatError
-
 
 # --------------------------------------------------------------------------------
 # Tests for BEDRecord

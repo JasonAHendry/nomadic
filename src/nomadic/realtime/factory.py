@@ -1,26 +1,23 @@
-from typing import List
-
 from nomadic.download.references import REFERENCE_COLLECTION
-from nomadic.util.metadata import MetadataTableParser
-from nomadic.util.experiment import ExperimentDirectories
-from nomadic.util.regions import RegionBEDParser
-
-from nomadic.realtime.watchers import BarcodeWatcher
+from nomadic.realtime.dashboard.builders import (
+    CallingRTDashboard,
+    MappingRTDashboard,
+    RealtimeDashboardBuilder,
+)
 from nomadic.realtime.pipelines.barcode import (
-    BarcodePipelineRT,
-    BarcodeMappingPipelineRT,
     BarcodeCallingPipelineRT,
+    BarcodeMappingPipelineRT,
+    BarcodePipelineRT,
 )
 from nomadic.realtime.pipelines.experiment import (
     ExperimentPipelineRT,
-    ExptMappingPipelineRT,
     ExptCallingPipelineRT,
+    ExptMappingPipelineRT,
 )
-from nomadic.realtime.dashboard.builders import (
-    RealtimeDashboardBuilder,
-    MappingRTDashboard,
-    CallingRTDashboard,
-)
+from nomadic.realtime.watchers import BarcodeWatcher
+from nomadic.util.experiment import ExperimentDirectories
+from nomadic.util.metadata import MetadataTableParser
+from nomadic.util.regions import RegionBEDParser
 
 
 class PipelineFactory:
@@ -80,7 +77,7 @@ class PipelineFactory:
 
         return BarcodeMappingPipelineRT(**kwargs)
 
-    def get_watchers(self) -> List[BarcodeWatcher]:
+    def get_watchers(self) -> list[BarcodeWatcher]:
         """
         Initialise watchers for each barcode, and return them
 
@@ -102,10 +99,21 @@ class PipelineFactory:
         """
         if self.caller:
             return ExptCallingPipelineRT(
-                self.metadata, self.expt_dirs, self.regions, self.caller, self.reference
+                self.metadata,
+                self.expt_dirs,
+                self.regions,
+                self.caller,
+                threads=self.threads,
+                reference=self.reference,
             )
 
-        return ExptMappingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
+        return ExptMappingPipelineRT(
+            self.metadata,
+            self.expt_dirs,
+            self.regions,
+            threads=self.threads,
+            reference=self.reference,
+        )
 
     def get_dashboard(self, *, start_time=None) -> RealtimeDashboardBuilder:
         """
@@ -122,7 +130,7 @@ class PipelineFactory:
                 read_mapping_csv=summary_files.read_mapping,
                 region_coverage_csv=summary_files.region_coverage,
                 depth_profiles_csv=summary_files.depth_profiles,
-                variant_csv=summary_files.variants,
+                variant_csv=summary_files.aa_changes,
                 start_time=start_time,
                 is_realtime=True,
             )

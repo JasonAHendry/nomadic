@@ -15,8 +15,8 @@ from nomadic.util.cli import (
     complete_bed_file,
     complete_experiment_name,
     load_default_function_for,
-    workspace_option,
     minknow_dir_option,
+    workspace_option,
 )
 from nomadic.util.workspace import Workspace
 

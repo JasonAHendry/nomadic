@@ -51,7 +51,7 @@ The pie chart aggregates information across all samples. In an ideal scenario, t
 You can use the 'Region Coverage Statistics' panel to identify candidate *hrp2* and *hrp3* deletions.
 
 
-## Preliminary Variant Calling
+## Variant Calling
 The bottom panel of the dashboard **shows information about variant calling**. 
 
 ![variant_calling](img/understand/variant_calling-ama1.png)
@@ -64,9 +64,9 @@ In the heatmap, the samples are on the x-axis and the variants (i.e. mutations) 
 
 | Colour | WSAF | Interpretation | Conclusion |
 | --- | --- | --- | --- |
-| Dark purple | 0.0 | None of the reads in the sample carry the mutation. | The sample **does not** have the mutation. It is homozygous reference. |
-| Dark red | 1.0 | All of the reads in the sample carry the mutation. | The sample **does** carry the mutation. It is homozygous alternative. |
-| Light blue, yellow, orange | 0.0 < WSAF < 1.0 | The WSAF is between 0 and 1. These means some, but not all, of the reads in the sample carry the mutation. For *P. falciparum* malaria, this indicates that the sample is polyclonal, and at least one clone has the mutation. | The sample **does** carry the mutation. It is heterozygous alternative. |
+| Dark purple | 0.0 | None of the reads in the sample carry the mutation. | The sample **does not** have the mutation. It is clonal/homozygous reference. |
+| Dark red | 1.0 | All of the reads in the sample carry the mutation. | The sample **does** carry the mutation. It is clonal/homozygous alternative. |
+| Light blue, yellow, orange | 0.0 < WSAF < 1.0 | The WSAF is between 0 and 1. These means some, but not all, of the reads in the sample carry the mutation. For *P. falciparum* malaria, this indicates that the sample is polyclonal, and at least one clone has the mutation. | The sample **does** carry the mutation. It is mixed/heterozygous alternative. |
 | White | Not available | This indicates that not enough sequencing reads have been collected for the sample to make a determination. | Not enough data. Sample has failed or more sequencing time is required. |
 
 In the plot above shows the target *ama1* for a set of control samples. The first three barcodes are 3D7, HB3 and Dd2. They are monoclonal, so all mutations are either dark purple (WSAF=0) or dark red (WSAF=1). After that, we have mixed strains together at different proportions, making them polyclonal, which leads to intermediate colours. The last three barcodes (46, 47, 48) are negative controls, hence they are the heatmap is white.

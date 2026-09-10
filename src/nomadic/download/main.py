@@ -1,6 +1,6 @@
+from .corrections import DHPS, update_reference_genome
 from .downloader import ReferenceDownloader
 from .references import REFERENCE_COLLECTION
-from .corrections import DHPS, update_reference_genome
 
 
 def main(reference_name: str, all: bool = False) -> None:

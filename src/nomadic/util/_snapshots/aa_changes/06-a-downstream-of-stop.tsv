@@ -1,0 +1,3 @@
+barcode	chrom	pos	amplicon	csq_type	gene	transcript	coding_strand	aa_pos	aa_change	nt_change
+sample1-stop-mut	Pf3D7_04_v3	748237	dhfr-p1-410	stop_gained	dhfr	PF3D7_0417200.1	+	50	C50*	748237T>A
+sample1-stop-mut	Pf3D7_04_v3	748239	dhfr-p1-410	*missense	dhfr	PF3D7_0417200.1	+	51	N51I	748239A>T

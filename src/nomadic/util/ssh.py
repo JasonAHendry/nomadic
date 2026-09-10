@@ -1,6 +1,6 @@
 import re
-import subprocess
 import shlex
+import subprocess
 
 import click
 
@@ -48,7 +48,9 @@ def remote_dir_exists(ssh_target: str, verbose: bool = False) -> tuple[bool, str
 def remote_command(host: str, command: str, verbose: bool = False) -> tuple[bool, str]:
     if verbose:
         click.echo(f"Running: ssh {host} {shlex.quote(command)}")
-    proc = subprocess.run(["ssh", host, command], text=True, capture_output=True)
+    proc = subprocess.run(
+        ["ssh", host, command], text=True, capture_output=True, check=False
+    )
     if proc.returncode != 0:
         msg = proc.stderr.strip() or f"ssh exited {proc.returncode}"
         return False, msg

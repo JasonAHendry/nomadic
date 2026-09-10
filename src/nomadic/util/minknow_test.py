@@ -1,14 +1,14 @@
 import glob
-from pathlib import Path
 import platform
+from pathlib import Path
 
 from nomadic.util import minknow
 from nomadic.util.minknow import (
+    default_data_dir,
     is_fastq_dir,
     is_minknow_base_dir,
     is_minknow_experiment_dir,
     resolve_minknow_fastq_dirs,
-    default_data_dir,
 )
 
 test_folder = Path("src/nomadic/util/_test_data")
@@ -103,9 +103,7 @@ def test_default_data_dir_gridION(monkeypatch):
 
     monkeypatch.setattr(Path, "is_dir", fake_is_dir)
     monkeypatch.setattr(
-        minknow,
-        "is_minknow_base_dir",
-        lambda path: True if path == gridION_path else False,
+        minknow, "is_minknow_base_dir", lambda path: path == gridION_path
     )
 
     assert default_data_dir() == Path("/data")

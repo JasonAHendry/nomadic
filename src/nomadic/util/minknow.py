@@ -2,7 +2,7 @@ import glob
 import platform
 import warnings
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 
 class MinknowPathError(Exception):
@@ -62,7 +62,7 @@ def is_minknow_experiment_dir(path: Path) -> bool:
 
 def resolve_minknow_fastq_dirs(
     minknow_path: Path, experiment_name: str
-) -> Tuple[Path, str]:
+) -> tuple[Path, str]:
     """
     This function looks to see if the supplied path resembles a minknow data folder or a
     specific fastq_pass folder from a specific experiment

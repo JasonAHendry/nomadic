@@ -18,7 +18,6 @@ def configure():
     """
     Configure different nomadics functionality. This mostly sets standard options in '.config.yaml' that can be overwritten from the command line.
     """
-    pass
 
 
 @configure.command(short_help="Configure the nomadic share command.")

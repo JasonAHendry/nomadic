@@ -1,3 +1,10 @@
 [build-system]
 requires = ["setuptools>=42.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff.lint]
+ignore = [
+    "UP045", # To me, Optional seems shorter
+    "RUF012", # will fix this later
+    "C408", # Would need a lot of changes, fix maybe later
+]

@@ -27,6 +27,7 @@ nav:
   - Usage:
       - Quick Start: quick_start.md
       - Basic Usage: basic.md
+      - Summarizing Experiments: summary.md
       - Sharing and Backing up: share_backup.md
       - Advanced Usage: advanced.md
   - Understanding the Dashboard: understand.md

@@ -1,4 +1,5 @@
 import click
+
 from .references import REFERENCE_COLLECTION
 
 

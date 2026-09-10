@@ -3,7 +3,7 @@ import os
 import platformdirs
 
 
-def produce_dir(*args):
+def produce_dir(*args) -> str:
     """
     Produce a new directory by concatenating `args`,
     if it does not already exist

@@ -52,7 +52,6 @@ def verify_compatible_settings(
         raise IncompatibleSettingsError("n barcodes")
     if old_settings.n_regions != new_settings.n_regions:
         raise IncompatibleSettingsError("n regions")
-    return None
 
 
 class IncompatibleSettingsError(Exception):
