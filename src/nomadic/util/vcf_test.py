@@ -22,6 +22,7 @@ def vcf_annotator():
         gff_path=reference.gff_path,
         bed_path=str(bed_path),
         caller="delve",
+        threads=8,
     )
     return annotator
 

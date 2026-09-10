@@ -27,6 +27,7 @@ def prepare_vcf(vcf_file: Path):
         gff_path=reference.gff_path,
         bed_path=str(bed_path),
         caller="delve",
+        threads=8,
     )
 
     cmd = f"{annotator._annotate_command(input_vcf=str(vcf_file))} | {annotator._fill_wsaf_command()} | {annotator._csq_command(output_vcf=str(output_folder / vcf_file.name))}"

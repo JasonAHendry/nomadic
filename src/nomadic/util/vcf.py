@@ -33,10 +33,12 @@ class VariantAnnotator:
         gff_path: str,
         bed_path: str,
         caller: Literal["delve", "bcftools"],
+        threads: int = 8,
     ):
         self.bed_path = bed_path
         self.fasta_path = fasta_path
         self.gff_path = gff_path
+        self.threads = threads
 
         if caller == "delve":
             self.wsaf_filltag_str = "FORMAT/WSAF=FORMAT/MVAF"
@@ -47,11 +49,11 @@ class VariantAnnotator:
         else:
             raise ValueError(f"Unknown caller: {caller}")
 
-    def annotate_variants(self, input_vcf: str, output_vcf: str, *, threads: int = 8):
+    def annotate_variants(self, input_vcf: str, output_vcf: str):
 
         cmd_annotate = self._annotate_command(input_vcf=input_vcf, pipe=True)
         cmd_fill_wsaf = self._fill_wsaf_command(pipe=True)
-        cmd_csq = self._csq_command(output_vcf=output_vcf, threads=threads)
+        cmd_csq = self._csq_command(output_vcf=output_vcf, threads=self.threads)
 
         cmd = f"{cmd_annotate} | {cmd_fill_wsaf} | {cmd_csq}"
 

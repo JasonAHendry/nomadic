@@ -38,6 +38,7 @@ class ExperimentPipelineRT(ABC):
         metadata: MetadataTableParser,
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
+        threads: int,
         reference: Reference | None = None,
     ):
         """
@@ -51,6 +52,7 @@ class ExperimentPipelineRT(ABC):
         self.metadata = metadata
         self.regions = regions
         self.reference = reference
+        self.threads = threads
 
     @abstractmethod
     def run(self):
@@ -182,6 +184,7 @@ class ExperimentPipelineRT(ABC):
             gff_path=self.reference.gff_path,
             bed_path=self.regions.path,
             caller=caller,
+            threads=self.threads,
         )
         annotated_vcf = filtered_vcf.replace(".vcf.gz", ".annotated.vcf.gz")
         annotator.annotate_variants(filtered_vcf, annotated_vcf)
@@ -245,12 +248,15 @@ class ExptCallingPipelineRT(ExperimentPipelineRT):
         expt_dirs: ExperimentDirectories,
         regions: RegionBEDParser,
         caller: str,
+        threads: int,
         reference: Reference | None = None,
     ):
         if reference is None:
             reference = PlasmodiumFalciparum3D7()
         self.caller = caller
-        super().__init__(metadata, expt_dirs, regions, reference)
+        super().__init__(
+            metadata, expt_dirs, regions, threads=threads, reference=reference
+        )
 
     def run(self):
         self._run_fastq()

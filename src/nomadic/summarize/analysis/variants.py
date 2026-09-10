@@ -32,6 +32,8 @@ def load_variants_from_vcfs(
     reference_name: str,
     exclude_amplicons: Optional[list[str]] = None,
     exclude_mutations: Optional[list[str]] = None,
+    verbose: bool = False,
+    threads: int = 8,
     log: Optional[Logger] = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -81,6 +83,7 @@ def load_variants_from_vcfs(
         gff_path=REFERENCE_COLLECTION[reference_name].gff_path,
         bed_path=(str(bed_path)),
         caller=caller,
+        threads=threads,
     )
 
     annotator.annotate_variants(
@@ -130,8 +133,9 @@ def load_variants_from_vcfs(
     timer.time("fixing sample names and sanity checking")
 
     if log is not None:
-        log.info("  Done loading variants from VCFs.")
-    timer.report()
+        log.info("Done loading variants from VCFs.")
+    if verbose:
+        timer.report()
 
     shutil.rmtree(temp_dir)
 

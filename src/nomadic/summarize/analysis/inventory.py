@@ -153,17 +153,20 @@ def compute_throughput(
         margins=True,
     )
 
-    throughput_df.loc["included_expts"] = throughtput_included_expts_df.loc["All"]
-
     if add_unique:
         um = inventory_df.drop_duplicates("sample_id").query("status == 'included'")
-        throughput_df["field_unique"] = pd.crosstab(
-            um["expt_name"], um["sample_type"], margins=True
-        )["field_included"]
+        if um.empty:
+            throughput_df["field_unique"] = 0
+        else:
+            throughput_df["field_unique"] = pd.crosstab(
+                um["expt_name"], um["sample_type"], margins=True
+            )["field_included"]
 
     throughput_df.loc["included_expts", "field_unique"] = throughput_df.loc[
         "All", "field_unique"
     ]
+
+    throughput_df.loc["included_expts"] = throughtput_included_expts_df.loc["All"]
 
     # Ensure all expected rows are present
     throughput_df = (

@@ -94,6 +94,8 @@ def main(
     qc_min_coverage: int,
     qc_max_contam: float,
     qc_replicate_passing_threshold: float,
+    verbose: bool,
+    threads: int,
     host: str = "127.0.0.1",
     port: Optional[int] = None,
 ) -> None:
@@ -105,7 +107,7 @@ def main(
     ###############
     # Log setup
     ##############
-    log = LoggingFascade(logger_name="nomadic")
+    log = LoggingFascade(logger_name="nomadic", verbose=verbose)
     log.info("Input parameters:")
     log.info(f"  Summary Name: {summary_name}")
     if no_master_metadata:
@@ -197,17 +199,6 @@ def main(
     n_excluded = n_excluded_samples(full_inventory_df)
     full_inventory_df.to_csv(summary_dir_structure.inventory_file, index=False)
 
-    # Throughput data
-    log.info("Overall sequencing throughput:")
-    throughput, throughput_df = compute_throughput(full_inventory_df)
-    log.info(f"  Experiments included: {throughput.n_expts_included:d}")
-    log.info(f"  Positive controls: {throughput.n_pos:d}")
-    log.info(f"  Negative controls: {throughput.n_neg:d}")
-    log.info(f"  Fields samples sequenced (total): {throughput.n_field_total:d}")
-    log.info(f"  Field samples (unique): {throughput.n_field_unique:d}")
-    log.info(f"  Excluded samples: {n_excluded:d}")
-    throughput_df.to_csv(summary_dir_structure.throughput_file, index=True)
-
     inventory_df = drop_excluded_samples(full_inventory_df)
 
     # Filter experiment directories to only those that are in the master metadata, i.e. that have at least one included sample
@@ -226,6 +217,17 @@ def main(
             raise UserInputError(
                 f"Prevalence by column '{prevalence_by_col}' not found in master metadata. Available columns are: {cols}"
             )
+
+    # Throughput data
+    log.info("Overall sequencing throughput:")
+    throughput, throughput_df = compute_throughput(full_inventory_df)
+    log.info(f"  Experiments included: {throughput.n_expts_included:d}")
+    log.info(f"  Positive controls: {throughput.n_pos:d}")
+    log.info(f"  Negative controls: {throughput.n_neg:d}")
+    log.info(f"  Fields samples sequenced (total): {throughput.n_field_total:d}")
+    log.info(f"  Field samples (unique): {throughput.n_field_unique:d}")
+    log.info(f"  Excluded samples: {n_excluded:d}")
+    throughput_df.to_csv(summary_dir_structure.throughput_file, index=True)
 
     ############################
     # Quality control
@@ -302,6 +304,8 @@ def main(
         reference_name=reference_name,
         exclude_amplicons=panel_settings.excluded_amplicons,
         exclude_mutations=panel_settings.filtered_mutations,
+        threads=threads,
+        verbose=verbose,
         log=log,
     )
     timer.time("Loading and annotating variants from VCFs")
@@ -463,7 +467,8 @@ def main(
 
     log.info("Summary analysis complete.")
 
-    timer.report()
+    if verbose:
+        timer.report()
 
     if show_dashboard:
         view(output_dir, summary_name, host=host, port=port)

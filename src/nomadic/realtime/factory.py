@@ -99,10 +99,21 @@ class PipelineFactory:
         """
         if self.caller:
             return ExptCallingPipelineRT(
-                self.metadata, self.expt_dirs, self.regions, self.caller, self.reference
+                self.metadata,
+                self.expt_dirs,
+                self.regions,
+                self.caller,
+                threads=self.threads,
+                reference=self.reference,
             )
 
-        return ExptMappingPipelineRT(self.metadata, self.expt_dirs, self.ref_name)
+        return ExptMappingPipelineRT(
+            self.metadata,
+            self.expt_dirs,
+            self.regions,
+            threads=self.threads,
+            reference=self.ref_name,
+        )
 
     def get_dashboard(self, *, start_time=None) -> RealtimeDashboardBuilder:
         """

@@ -38,7 +38,6 @@ from nomadic.util.workspace import Workspace
     "--prevalence-by",
     type=str,
     help="Column in metadata_csv to calculate prevalence by for output files.",
-    multiple=True,
 )
 @click.option(
     "--dashboard/--no-dashboard",
@@ -100,6 +99,21 @@ from nomadic.util.workspace import Workspace
     multiple=True,
 )
 @click.option(
+    "-t",
+    "--threads",
+    type=int,
+    default=8,
+    show_default=True,
+    help="Number of threads to use for analysis. Note that using more threads can increase the computational load and might lead to slower performance if the computer is not powerful enough.",
+)
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Increase logging verbosity. Helpful for debugging.",
+)
+@click.option(
     "--host",
     type=str,
     default="127.0.0.1",
@@ -120,12 +134,14 @@ def summarize(
     maps: tuple[str],
     dashboard: bool,
     only_dashboard: bool,
-    prevalence_by: tuple[str],
+    prevalence_by: str | None,
     settings_file: Path | None,
     no_master_metadata: bool,
     qc_min_coverage: int,
     qc_max_contam: float,
     qc_replicate_passing_threshold: float,
+    verbose: bool,
+    threads: int,
     host: str,
     port: int | None,
 ):
@@ -217,12 +233,14 @@ def summarize(
             metadata_path=metadata_csv,
             settings_file_path=settings_file,
             show_dashboard=dashboard,
-            prevalence_by=list(prevalence_by),
+            prevalence_by=prevalence_by.split(",") if prevalence_by is not None else [],
             no_master_metadata=no_master_metadata,
             qc_min_coverage=qc_min_coverage,
             qc_max_contam=qc_max_contam,
             qc_replicate_passing_threshold=qc_replicate_passing_threshold,
             maps=list(maps),
+            verbose=verbose,
+            threads=threads,
             host=host,
             port=port,
         )
