@@ -1,0 +1,1416 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Mobile sequencing and analysis in real-time">
+      
+      
+      
+      
+        <link rel="prev" href="../basic/">
+      
+      
+        <link rel="next" href="../share_backup/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Summarizing Experiments - Nomadic</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../css/custom.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#summarising-completed-experiments" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Nomadic" class="md-header__button md-logo" aria-label="Nomadic" data-md-component="logo">
+      
+  <img src="../img/little_logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Nomadic
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Summarizing Experiments
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JasonAHendry/nomadic.git" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Nomadic" class="md-nav__button md-logo" aria-label="Nomadic" data-md-component="logo">
+      
+  <img src="../img/little_logo.svg" alt="logo">
+
+    </a>
+    Nomadic
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JasonAHendry/nomadic.git" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../basic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basic Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Summarizing Experiments
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Summarizing Experiments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#summarising-completed-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summarising completed experiments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#command-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#input-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input and metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-and-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary and dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-and-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance and logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prevalence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prevalence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality control
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-control_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality control
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variant-and-prevalence-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variant and prevalence analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary dashboard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-metadata-file-cannot-be-loaded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The metadata file cannot be loaded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-samples-are-included" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No samples are included
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-experiments-are-not-compatible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The experiments are not compatible
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#experiment-files-are-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experiment files are missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-output-directory-already-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The output directory already exists
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../share_backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing and Backing up
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../understand/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding the Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../output_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#summarising-completed-experiments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summarising completed experiments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#command-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Command options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Command options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#input-and-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input and metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary-and-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary and dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-and-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance and logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prevalence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prevalence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality control
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-control_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality control
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variant-and-prevalence-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variant and prevalence analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary dashboard
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-metadata-file-cannot-be-loaded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The metadata file cannot be loaded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-samples-are-included" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No samples are included
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-experiments-are-not-compatible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The experiments are not compatible
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#experiment-files-are-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experiment files are missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-output-directory-already-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The output directory already exists
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Summarizing Experiments</h1>
+
+<h2 id="summarising-completed-experiments">Summarising completed experiments</h2>
+<p>The <code>nomadic summarize</code> command combines the results of several completed <em>Nomadic</em> experiments. It evaluates quality control, combines variant calls, calculates mutation prevalence, and creates a dashboard for exploring the results across samples and experiments.</p>
+<p>Use <code>nomadic summarize</code> after the individual experiments have been processed with <code>nomadic realtime</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The experiments included in one summary must use the same reference genome, variant caller, and amplicon regions. <em>Nomadic</em> checks these inputs before beginning the summary analysis.</p>
+</div>
+<h2 id="before-you-start">Before you start</h2>
+<p>You need:</p>
+<ul>
+<li>One or more completed <em>Nomadic</em> experiment directories (full, or shared through <code>nomadic share</code>).</li>
+<li>A master metadata CSV containing the samples to include.</li>
+<li>The same reference genome, variant caller, and amplicon panel in every experiment.</li>
+<li>Negative controls in all included experiments if you want contamination to be evaluated by the default QC workflow.</li>
+</ul>
+<p>The master metadata CSV must contain a <code>sample_id</code> column. The sample IDs are matched to the sample IDs in the experiment metadata. Leading and trailing whitespace is removed, but sample IDs must otherwise match exactly and must be unique in the master metadata file.</p>
+<p>Other columns in the master metadata file are retained in the summary. They can also be used to calculate prevalence separately for groups of samples with <code>--prevalence-by</code>.</p>
+<p>By default, <em>Nomadic</em> looks for the master metadata file at:</p>
+<div class="highlight"><pre><span></span><code>&lt;workspace&gt;/metadata/&lt;summary_name&gt;.csv
+</code></pre></div>
+<p>You can use <code>--no-master-metadata</code> to create a quick overview using the samples found in the experiments. This is not recommended for a final analysis because it does not explicitly define which samples should be included.</p>
+<h2 id="quick-start">Quick start</h2>
+<p>When you are inside a workspace, summarize all experiment directories in that workspace with:</p>
+<div class="highlight"><pre><span></span><code>nomadic summarize
+</code></pre></div>
+<p>The default summary name is the workspace name, and the output is written to:</p>
+<div class="highlight"><pre><span></span><code>&lt;workspace&gt;/summaries/&lt;summary_name&gt;/
+</code></pre></div>
+<p>The dashboard opens automatically when the analysis is complete. To summarize a particular set of experiments, provide their directories explicitly:</p>
+<div class="highlight"><pre><span></span><code>nomadic summarize \
+    results/experiment-01 \
+    results/experiment-02 \
+    --metadata_csv path/to/master-metadata.csv \
+    --summary_name malaria-cohort \
+    --output-dir path/to/summaries/malaria-cohort
+</code></pre></div>
+<p>To calculate prevalence separately for one or more metadata columns, provide a comma-separated list to <code>--prevalence-by</code>. The column names specified must exist in the master metadata CSV. (Only necessary if you want to write the prevalence files.):</p>
+<div class="highlight"><pre><span></span><code>nomadic summarize --prevalence-by country,collection_site
+</code></pre></div>
+<p>To open a summary that has already been calculated without recalculating it, use <code>--only-dashboard</code>:</p>
+<div class="highlight"><pre><span></span><code>nomadic summarize --only-dashboard
+</code></pre></div>
+<h2 id="command-options">Command options</h2>
+<h3 id="input-and-metadata">Input and metadata</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EXPERIMENT_DIRS</code></td>
+<td>One or more experiment directories. If omitted inside a workspace, all experiment directories in the workspace are used.</td>
+</tr>
+<tr>
+<td><code>--workspace</code></td>
+<td>Workspace containing the experiments, metadata, and summary output. (Optional, but needed if you want to use defaults for other options.)</td>
+</tr>
+<tr>
+<td><code>-m</code>, <code>--metadata_csv</code></td>
+<td>Master metadata CSV. It must contain a unique <code>sample_id</code> column. The default is <code>&lt;workspace&gt;/metadata/&lt;summary_name&gt;.csv</code>.</td>
+</tr>
+<tr>
+<td><code>-n</code>, <code>--summary_name</code></td>
+<td>Name of the summary. The default is the workspace name.</td>
+</tr>
+<tr>
+<td><code>--no-master-metadata</code></td>
+<td>Use samples discovered in the experiments instead of requiring a master metadata CSV. This is intended for a quick overview.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="summary-and-dashboard">Summary and dashboard</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-o</code>, <code>--output-dir</code></td>
+<td>Directory where the summary is stored. The default is <code>&lt;workspace&gt;/summaries/&lt;summary_name&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>--dashboard</code> / <code>--no-dashboard</code></td>
+<td>Start or suppress the dashboard after the analysis. The dashboard is started by default.</td>
+</tr>
+<tr>
+<td><code>--only-dashboard</code></td>
+<td>Open an existing summary dashboard without recalculating the summary.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="performance-and-logging">Performance and logging</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th style="text-align: right;">Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-t</code>, <code>--threads</code></td>
+<td style="text-align: right;"><code>8</code></td>
+<td>Number of threads used for analysis.</td>
+</tr>
+<tr>
+<td><code>-v</code>, <code>--verbose</code></td>
+<td style="text-align: right;">disabled</td>
+<td>Increase logging verbosity for debugging.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="prevalence">Prevalence</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--prevalence-by COLUMN[,COLUMN...]</code></td>
+<td>Calculate prevalence separately for one or more metadata columns. Pass multiple columns as a comma-separated list.</td>
+</tr>
+</tbody>
+</table>
+<p>For example, <code>--prevalence-by country,site</code> creates separate prevalence files for each country and site grouping.</p>
+<h3 id="quality-control">Quality control</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th style="text-align: right;">Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--qc-min-coverage</code></td>
+<td style="text-align: right;"><code>100</code></td>
+<td>Minimum mean coverage required for an amplicon to pass coverage QC.</td>
+</tr>
+<tr>
+<td><code>--qc-max-contam</code></td>
+<td style="text-align: right;"><code>0.1</code></td>
+<td>Maximum relative contamination fraction.</td>
+</tr>
+<tr>
+<td><code>--qc-replicate-passing-threshold</code></td>
+<td style="text-align: right;"><code>0.8</code></td>
+<td>Minimum fraction of passing amplicons required for a replicate to pass QC. The value must be between <code>0</code> and <code>1</code>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="quality-control_1">Quality control</h2>
+<p>Quality control is evaluated for each amplicon and sample. An amplicon fails low-coverage QC when its mean coverage is below <code>--qc-min-coverage</code>.</p>
+<p>Contamination is evaluated using the mean coverage of negative controls from the same experiment and amplicon. A sample can fail because:</p>
+<ul>
+<li>The negative-control coverage is at least <code>--qc-min-coverage</code> (absolute contamination).</li>
+<li>The negative-control coverage is at least <code>--qc-max-contam</code> of the sample coverage (relative contamination).</li>
+</ul>
+<p>An amplicon passes when it has sufficient coverage and does not fail contamination QC. The amplicon results are then combined into replicate, sample, and experiment summaries. By default, a replicate must have at least 80% passing amplicons to pass QC.</p>
+<p>Only samples and amplicons in the analysis set are used for the downstream variant and prevalence results. The QC files retain the individual failure flags so that results can be investigated in more detail.</p>
+<h2 id="variant-and-prevalence-analysis">Variant and prevalence analysis</h2>
+<p>The summary loads the variant calls from each experiment and combines them into summary VCF and CSV files. Calls are filtered to the QC analysis set, panel-specific exclusions are applied, and variants that are never observed are removed from the summary results.</p>
+<p>The overall prevalence files report how frequently each observed amino-acid change occurs among the included samples. When <code>--prevalence-by</code> is used, additional files report prevalence for each value of the selected metadata column.</p>
+<p>The <code>aa_call</code>, <code>gt</code>, and WSAF columns use the same call categories and within-sample allele-frequency interpretation as the individual experiment results. See <a href="../output_files/">Output files</a> and <a href="../understand/#variant-calling">Understanding the Dashboard</a> for more information.</p>
+<h2 id="summary-output">Summary output</h2>
+<p>A completed summary has the following structure:</p>
+<div class="highlight"><pre><span></span><code>&lt;summary-dir&gt;/
+├── metadata/
+│   ├── master_metadata.csv
+│   └── &lt;panel&gt;.amplicons.bed
+├── seq_inventory/
+│   ├── sample_inventory.csv
+│   └── samples.by_experiment.csv
+├── quality_control/
+│   ├── coverage.csv
+│   ├── replicates_qc.csv
+│   ├── samples_qc.csv
+│   ├── samples_amplicons_qc.csv
+│   └── experiments_qc.csv
+├── variants/
+│   ├── aa_changes.csv
+│   ├── nt_changes.csv
+│   ├── prevalence.aa_changes.csv
+│   ├── prevalence.aa_changes.by-&lt;column&gt;.csv
+│   └── vcfs/
+│       ├── variants.filtered.vcf.gz
+│       └── variants.annotated.vcf.gz
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Directory</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>metadata/</code></td>
+<td>The normalized master metadata and amplicon BED file used by the experiments.</td>
+</tr>
+<tr>
+<td><code>seq_inventory/</code></td>
+<td>The sample inventory and sequencing throughput summary.</td>
+</tr>
+<tr>
+<td><code>quality_control/</code></td>
+<td>Amplicon-, replicate-, sample-, and experiment-level QC summaries.</td>
+</tr>
+<tr>
+<td><code>variants/</code></td>
+<td>Combined amino-acid and nucleotide change tables, prevalence tables, and the <code>vcfs/</code> directory.</td>
+</tr>
+</tbody>
+</table>
+<p>The detailed columns in the variant tables are described in <a href="../output_files/">Output files</a>. Coverage and QC tables include the sample and experiment identifiers, amplicon coverage, contamination measurements, failure flags, and passing status.</p>
+<p>If the panel defines amplicon sets, the summary writes separate amino-acid change and prevalence files for each set. For example, a set named <code>Resistance</code> produces <code>variants/aa_changes.resistance.csv</code> and <code>variants/prevalence.aa_changes.resistance.csv</code>. When prevalence is grouped by metadata, the corresponding file is named <code>variants/prevalence.aa_changes.resistance.by-&lt;column&gt;.csv</code>.</p>
+<h2 id="summary-dashboard">Summary dashboard</h2>
+<p>The summary dashboard provides an overview of the combined experiments. Its main views include:</p>
+<ul>
+<li>Throughput and sample inventory, including included and excluded samples.</li>
+<li>Sample QC status and amplicon coverage.</li>
+<li>Experimental QC metrics, including amplicon coverage, low coverage and contamination.</li>
+<li>Variant prevalence across the included samples.</li>
+</ul>
+<p>The <strong>Sample Statistics</strong> view summarizes the number of samples passing QC for each amplicon and shows samples that were not sequenced.</p>
+<p><img alt="Sample statistics dashboard" src="../img/summary/sample-qc.png" /></p>
+<p>The <strong>Experiment QC Statistics</strong> view compares QC performance between experiments. The statistic shown can be changed using the selector above the plot.</p>
+<p><img alt="Experiment QC statistics dashboard" src="../img/summary/experiment-qc.png" /></p>
+<p>The <strong>Prevalence</strong> view shows the prevalence of selected variants and can group results by metadata columns.</p>
+<p><img alt="Variant prevalence dashboard" src="../img/summary/prevalence.png" /></p>
+<p>The dashboard is launched automatically after a summary is calculated unless <code>--no-dashboard</code> is used. It can be reopened later with <code>--only-dashboard</code>.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="the-metadata-file-cannot-be-loaded">The metadata file cannot be loaded</h3>
+<p>Check that the file is a readable CSV and contains a column named <code>sample_id</code>. Confirm that the sample IDs are unique and match the IDs in the experiment metadata. Check that the file is in the correct location within the workspace.</p>
+<h3 id="no-samples-are-included">No samples are included</h3>
+<p>The master metadata file controls which samples enter the summary. Check that its <code>sample_id</code> values match the experiment metadata and that field samples have not all been excluded. To verify which samples are included, inspect the <code>seq_inventory/sample_inventory.csv</code> file in the summary output. Check for differences between the master metadata and the inventory to identify any mismatches or exclusions. Check also <code>quality_control/samples_qc.csv</code> for samples that have not been sequenced, as this can also mean the sample ids do not match between the master metadata and experiment metadata.</p>
+<h3 id="the-experiments-are-not-compatible">The experiments are not compatible</h3>
+<p>All experiments in one summary must use the same reference genome, variant caller, and amplicon regions. Re-run the command with compatible experiment directories or create separate summaries.</p>
+<h3 id="experiment-files-are-missing">Experiment files are missing</h3>
+<p>The experiment directories must contain the outputs needed for summary analysis. Check that each experiment completed successfully before running <code>nomadic summarize</code>.</p>
+<h3 id="the-output-directory-already-exists">The output directory already exists</h3>
+<p>A directory that looks like an existing summary is recalculated and replaced. If the directory contains other files or does not have the expected summary structure, choose a different <code>--output-dir</code> or move the existing directory first.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
