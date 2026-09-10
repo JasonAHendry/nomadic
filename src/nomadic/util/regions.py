@@ -68,11 +68,11 @@ def common_regions(
 
     """
     if len(expt_regions) == 0:
-        raise ValueError("No experiment regions provided")
+        raise UserInputError("No experiment regions provided")
     base = expt_regions[0]
     for r in expt_regions:
-        if not (r.df == base.df).all().all():
+        if not (r.df.equals(base.df)):
             raise UserInputError(
-                "Different regions used across experiments, this is not supported. Check region BED files are the same."
+                f"Different regions used across experiments, {r.path} differs from {base.path}. This is not supported, check region BED files are the same."
             )
     return base
