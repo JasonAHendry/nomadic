@@ -1,11 +1,14 @@
+import difflib
 import glob
 import platform
 import warnings
 from pathlib import Path
 from typing import Optional
 
+from nomadic.util.exceptions import UserInputError
 
-class MinknowPathError(Exception):
+
+class MinknowPathError(UserInputError):
     pass
 
 
@@ -74,6 +77,18 @@ def resolve_minknow_fastq_dirs(
 
     if is_minknow_base_dir(minknow_path):
         minknow_dir = minknow_path / experiment_name
+        if not minknow_dir.exists():
+            closest_match = get_most_similar_experiment_name(
+                experiment_name, minknow_path
+            )
+            if closest_match:
+                raise UserInputError(
+                    f"'{experiment_name}' does not match any existing minknow experiments in '{minknow_path}'. Did you mean '{closest_match}'?",
+                )
+            else:
+                raise UserInputError(
+                    f"'{experiment_name}' does not match any existing minknow experiments in '{minknow_path}', please ensure the experiment name is correct and matches the minknow experiment name.",
+                )
     elif is_minknow_experiment_dir(minknow_path):
         minknow_dir = minknow_path
     else:
@@ -114,3 +129,16 @@ def default_data_dir() -> Path:
                 return integrated_devices_path
 
             return standard_path
+
+
+def get_most_similar_experiment_name(
+    experiment_name: str, minknow_path: Path
+) -> str | None:
+    close_matches = difflib.get_close_matches(
+        experiment_name.lower(),
+        [d.name for d in minknow_path.glob("*") if d.is_dir()],
+        cutoff=0.8,
+    )
+    if close_matches:
+        return close_matches[0]
+    return None

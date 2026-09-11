@@ -1,3 +1,5 @@
+import difflib
+import glob
 import os
 from pathlib import Path
 from shutil import rmtree
@@ -246,6 +248,8 @@ def find_minknow_fastq_dirs(
             return minknow.resolve_minknow_fastq_dirs(minknow_dir, experiment_name)
         except minknow.MinknowPathError as e:
             raise BadParameterWithSource(message=str(e), param_hint="-k/--minknow_dir")
+        except UserInputError as e:
+            raise click.UsageError(f"Could not find minknow folders: {e}") from e
     else:
         # If fastq_dir is manually given, we assume there is no minknow dir
         return None, fastq_dir
@@ -297,9 +301,55 @@ def find_metadata_file(experiment_name: str, workspace: Workspace) -> str:
             break
 
     if metadata_path is None or not os.path.isfile(metadata_path):
-        msg = f"Metadata file not found. Did you create your metadata file in `{workspace.get_metadata_dir()}`"
-        if shared_workspace:
-            msg += f", or in `{shared_workspace}`"
-        msg += f", and does the name match `{experiment_name}`?"
+        msg = "Metadata file not found. "
+        closest_match = find_closest_metadata_file(
+            experiment_name,
+            [workspace.get_metadata_dir()]
+            + ([shared_workspace.get_metadata_dir()] if shared_workspace else []),
+        )
+        if closest_match is not None:
+            closest_experiment_name, closest_metadata_path = closest_match
+            msg += f"Did you mean `{closest_experiment_name}`? The closest metadata file is `{closest_metadata_path}`. Either rename your metadata file to match the experiment name or correct the experiment name in your command."
+        else:
+            msg += (
+                f"Did you create your metadata file in `{workspace.get_metadata_dir()}`"
+            )
+            if shared_workspace:
+                msg += f", or in `{shared_workspace}`"
+            msg += f", and does the name match `{experiment_name}`?"
         raise click.BadParameter(message=msg)
     return metadata_path
+
+
+def find_closest_metadata_file(
+    experiment_name: str, metadata_folders: list[str]
+) -> tuple[str, str] | None:
+    """
+    Find the closest metadata file to the given experiment name within the specified metadata folders.
+
+    Args:
+        experiment_name (str): The name of the experiment to find a metadata file for.
+        metadata_folders (list[str]): A list of folders to search for metadata files.
+
+    Returns:
+        tuple[str, str] | None: A tuple containing the closest matching experiment name and the path to the metadata file,
+        or None if no close match is found.
+    """
+    files = []
+    for folder in metadata_folders:
+        files.extend(file for file in glob.glob(f"{folder}/*") if os.path.isfile(file))
+
+    close_matches = difflib.get_close_matches(
+        experiment_name,
+        [os.path.splitext(os.path.basename(f))[0] for f in files],
+        cutoff=0.8,
+    )
+    if not close_matches:
+        return None
+    closest_match = close_matches[0]
+
+    for file in files:
+        if os.path.splitext(os.path.basename(file))[0] == closest_match:
+            return closest_match, file
+
+    return None
