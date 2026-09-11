@@ -77,7 +77,7 @@ def resolve_minknow_fastq_dirs(
 
     if is_minknow_base_dir(minknow_path):
         minknow_dir = minknow_path / experiment_name
-        if not minknow_dir.exists():
+        if not minknow_dir.is_dir():
             closest_match = get_most_similar_experiment_name(
                 experiment_name, minknow_path
             )
@@ -136,7 +136,12 @@ def get_most_similar_experiment_name(
 ) -> str | None:
     close_matches = difflib.get_close_matches(
         experiment_name.lower(),
-        [d.name for d in minknow_path.glob("*") if d.is_dir()],
+        [
+            d.name
+            for d in minknow_path.glob("*")
+            if d.is_dir()
+            and d.name not in {"persistence", "reads", "queued_reads", "intermediates"}
+        ],
         cutoff=0.8,
     )
     if close_matches:

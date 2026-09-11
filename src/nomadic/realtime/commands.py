@@ -337,7 +337,12 @@ def find_closest_metadata_file(
     """
     files = []
     for folder in metadata_folders:
-        files.extend(file for file in glob.glob(f"{folder}/*") if os.path.isfile(file))
+        files.extend(
+            file
+            for file in glob.glob(f"{folder}/*")
+            if os.path.isfile(file)
+            and os.path.splitext(file)[1].lower() in {".csv", ".xlsx"}
+        )
 
     close_matches = difflib.get_close_matches(
         experiment_name,
