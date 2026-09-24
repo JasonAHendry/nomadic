@@ -114,7 +114,7 @@ When a workspace is created with `nomadic start`, its `.config.yaml` is initiali
 | Option | Default | Description |
 | --- | --- | --- |
 | `-b`, `--region_bed` | Required unless configured | BED file path or panel name, such as `nomads8` or `nomadsMVP`. |
-| `-r`, `--reference_name` | Required unless configured | Reference genome used for mapping and downstream analysis. Supported values include `Pf3D7`, `PfDd2`, `Pv`, `Poc`, `Pm`, `AgPEST`, `AaDONGOLA2021`, `AcolN3`, `AfunGA1`, `AsUCISS2018`, and `Hs`. |
+| `-r`, `--reference_name` | Required unless configured | Reference genome used for mapping and downstream analysis. Supported values include `Pf3D7`, `AgPEST`, `AaDONGOLA2021`, `AcolN3`, `AfunGA1`, `AsUCISS2018`, and `Hs`. |
 
 The selected reference must already be available to *Nomadic*. Reference availability is checked before processing begins.
 

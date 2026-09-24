@@ -25,12 +25,6 @@ class Reference(ABC):
         self.gff_path = None
 
     @property
-    def gff_standard_path(self):
-        if self.gff_path is None:
-            return None
-        return self.gff_path.replace(".gff", ".standard.gff")
-
-    @property
     def fasta_mask_path(self):
         if self.fasta_path is None:
             return None
@@ -76,12 +70,6 @@ class Reference(ABC):
             raise ReferenceGenomeMissingError(
                 f"For the reference genome '{self.name}'"
                 + f" the GFF file is missing. Please run `nomadic download -r {self.name}`."
-            )
-
-        if not self.exists_locally(self.gff_standard_path):
-            raise ReferenceGenomeMissingError(
-                f"For the reference genome '{self.name}'"
-                + f" the standardised GFF file is missing. Please run `nomadic download -r {self.name}`."
             )
 
         if not self.exists_locally(self.fasta_mask_path):
@@ -161,40 +149,87 @@ class VectorBase(Reference):
         )
 
 
+class Ensemble(Reference):
+    """
+    Encapsulate reference sequence downloads from ensemble
+
+    """
+
+    source = "ensemblegenomes"
+    source_url = "https://ftp.ebi.ac.uk/pub/ensemblgenomes/"
+
+    release = 63
+
+    def __init__(self, clade, genus, species, assembly):
+        self.clade = clade
+        self.genus = genus
+        self.species = species
+        self.assembly = assembly
+        self.data_url = f"{self.source_url}/release-{self.release}/{self.clade}"
+        self.set_fasta()
+        self.set_gff()
+
+    def set_fasta(self):
+        """Set .fasta file download URL and local path"""
+        fasta_fn = f"{self.genus.capitalize()}_{self.species[1:].lower()}.{self.assembly}.dna.toplevel.fa.gz"
+        self.fasta_url = f"{self.data_url}/fasta/{self.genus.lower()}_{self.species[1:].lower()}/dna/{fasta_fn}"
+        self.fasta_path = f"{Reference.root_path()}/resources/{self.source}/{self.release}/{fasta_fn.replace('.fa.gz', '.fasta')}"
+
+    def set_gff(self):
+        """Set .gff file download URL and local path"""
+
+        gff_fn = f"{self.genus.capitalize()}_{self.species[1:].lower()}.{self.assembly}.{self.release}.gff3.gz"
+        self.gff_url = f"{self.data_url}/gff3/{self.genus.lower()}_{self.species[1:].lower()}/{gff_fn}"
+        self.gff_path = f"{Reference.root_path()}/resources/{self.source}/{self.release}/{gff_fn.replace('.gff3.gz', '.gff')}"
+
+
 # ===============================================================
 # Classes for specific reference sequences
 #
 # ================================================================
 
+# Note: PlasmoDB can not be used anymore without auth, so we use now ensemble for Plasmodium references
 
-class PlasmodiumFalciparum3D7(PlasmoDB):
+
+class PlasmodiumFalciparum3D7Plasmo(PlasmoDB):
     def __init__(self):
         self.name = "Pf3D7"
         super().__init__(species="Pfalciparum", strain="3D7")
 
 
-class PlasmodiumFalciparumDd2(PlasmoDB):
+class PlasmodiumFalciparumDd2Plasmo(PlasmoDB):
     def __init__(self):
         self.name = "PfDd2"
         super().__init__(species="Pfalciparum", strain="Dd2")
 
 
-class PlasmodiumVivax(PlasmoDB):
+class PlasmodiumVivaxPlasmo(PlasmoDB):
     def __init__(self):
         self.name = "Pv"
         super().__init__(species="Pvivax", strain="P01")
 
 
-class PlasmodiumOvale(PlasmoDB):
+class PlasmodiumOvalePlasmo(PlasmoDB):
     def __init__(self):
         self.name = "Poc"
         super().__init__(species="Povalecurtisi", strain="GH01")
 
 
-class PlasmodiumMalariae(PlasmoDB):
+class PlasmodiumMalariaePlasmo(PlasmoDB):
     def __init__(self):
         self.name = "Pm"
         super().__init__(species="Pmalariae", strain="UG01")
+
+
+class PlasmodiumFalciparum3D7(Ensemble):
+    def __init__(self):
+        self.name = "Pf3D7"
+        super().__init__(
+            clade="protists",
+            genus="Plasmodium",
+            species="Pfalciparum",
+            assembly="GCA000002765v3",
+        )
 
 
 class AnophelesGambiaePEST(VectorBase):
@@ -230,11 +265,11 @@ class AnophelesStephensi(VectorBase):
 class HomoSapiens(Reference):
     """
     Download the Homo Sapiens reference genome from
-    Ensembl
+    ncbi
 
     """
 
-    source = "ensembl"
+    source = "ncbi"
     source_url = "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/"
     source_url += "000/001/405/GCA_000001405.15_GRCh38/"
 
@@ -264,10 +299,6 @@ REFERENCE_COLLECTION = {
     r.name: r
     for r in [
         PlasmodiumFalciparum3D7(),
-        PlasmodiumFalciparumDd2(),
-        PlasmodiumVivax(),
-        PlasmodiumOvale(),
-        PlasmodiumMalariae(),
         AnophelesGambiaePEST(),
         AnophelesArabiensis(),
         AnophelesColuzzi(),
