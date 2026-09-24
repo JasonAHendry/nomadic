@@ -1,7 +1,9 @@
 import subprocess
 from pathlib import Path
 
-from nomadic.download.references import PlasmodiumFalciparum3D7
+from nomadic.download.references import (
+    PlasmodiumFalciparum3D7,
+)
 from nomadic.util.vcf import VariantAnnotator
 
 test_vcf_folders = [Path("src/nomadic/util/_test_data/vcfs/delve")]
@@ -24,7 +26,7 @@ def prepare_vcf(vcf_file: Path):
     bed_path = Path("src/nomadic/util/_test_data/beds/nomadsMVP.amplicons.bed")
     annotator = VariantAnnotator(
         fasta_path=reference.fasta_path,
-        gff_path=reference.gff_standard_path,
+        gff_path=reference.gff_path,
         bed_path=str(bed_path),
         caller="delve",
         threads=8,

@@ -25,12 +25,6 @@ class Reference(ABC):
         self.gff_path = None
 
     @property
-    def gff_standard_path(self):
-        if self.gff_path is None:
-            return None
-        return self.gff_path.replace(".gff", ".standard.gff")
-
-    @property
     def fasta_mask_path(self):
         if self.fasta_path is None:
             return None
@@ -76,12 +70,6 @@ class Reference(ABC):
             raise ReferenceGenomeMissingError(
                 f"For the reference genome '{self.name}'"
                 + f" the GFF file is missing. Please run `nomadic download -r {self.name}`."
-            )
-
-        if not self.exists_locally(self.gff_standard_path):
-            raise ReferenceGenomeMissingError(
-                f"For the reference genome '{self.name}'"
-                + f" the standardised GFF file is missing. Please run `nomadic download -r {self.name}`."
             )
 
         if not self.exists_locally(self.fasta_mask_path):

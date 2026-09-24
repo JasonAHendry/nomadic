@@ -80,7 +80,7 @@ def load_variants_from_vcfs(
     REFERENCE_COLLECTION[reference_name].confirm_downloaded()
     annotator = VariantAnnotator(
         fasta_path=REFERENCE_COLLECTION[reference_name].fasta_path,
-        gff_path=REFERENCE_COLLECTION[reference_name].gff_standard_path,
+        gff_path=REFERENCE_COLLECTION[reference_name].gff_path,
         bed_path=(str(bed_path)),
         caller=caller,
         threads=threads,

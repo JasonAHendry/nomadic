@@ -7,12 +7,6 @@ import urllib.request
 
 from nomadic.download.references import Reference
 from nomadic.util.fasta import find_lowcomplexity_intervals
-from nomadic.util.gff import (
-    load_gff,
-    parse_attributes,
-    replace_attribute_keys,
-    write_attributes,
-)
 
 # Retryable network/IO errors; a corrupt/truncated gzip stream also warrants a retry
 RETRYABLE_ERRORS = (
@@ -116,7 +110,7 @@ class ReferenceDownloader:
             else:
                 self._create_lowcomplexity_fasta_mask()
 
-    def download_gff(self, standardise: bool = False):
+    def download_gff(self):
         if self.ref is None:
             raise ValueError("Reference genome is not set.")
         if self.ref.gff_path and not self.exists_locally(self.ref.gff_path):
@@ -129,55 +123,6 @@ class ReferenceDownloader:
             print("Done.")
         else:
             print("Already downloaded GFF.")
-
-        if standardise:
-            if self.exists_locally(self.ref.gff_standard_path):
-                print("Already standardised GFF.")
-            else:
-                self._standardise_gff()
-
-    def _standardise_gff(self) -> None:
-        """
-        Try to standardise the GFF file into GFF3 format
-
-        """
-
-        # Settings
-        to_gff3 = {"protein_coding_gene": "gene", "mRNA": "transcript"}
-        # These are the important fields used by bcftools, see:
-        # https://samtools.github.io/bcftools/bcftools-man.html#csq
-        KEEP_FIELDS = [  # noqa: F841 field is later used inside of pandas query
-            "gene",
-            "transcript",
-            "exon",
-            "CDS",
-            "three_prime_UTR",
-            "five_prime_UTR",
-            *to_gff3.keys(),
-        ]
-
-        # Standardise
-        gff_df = load_gff(self.ref.gff_path)
-        gff_df.query("feature in @KEEP_FIELDS", inplace=True)
-        gff_df["feature"] = [to_gff3.get(f, f) for f in gff_df["feature"]]
-
-        # Rename attributes to what bcftools expects
-        # see https://samtools.github.io/bcftools/bcftools-man.html#csq
-        gff_df["attribute"] = [
-            write_attributes(
-                replace_attribute_keys(
-                    parse_attributes(a),
-                    {
-                        "ebi_biotype": "biotype",
-                        "gene_ebi_biotype": "biotype",
-                    },
-                )
-            )
-            for a in gff_df["attribute"]
-        ]
-
-        # Write to 'standardised' path
-        gff_df.to_csv(self.ref.gff_standard_path, sep="\t", index=False, header=False)
 
     def _create_lowcomplexity_fasta_mask(self) -> None:
         """
