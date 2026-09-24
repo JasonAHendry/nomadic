@@ -181,7 +181,7 @@ class ExperimentPipelineRT(ABC):
         # Annotate
         annotator = VariantAnnotator(
             fasta_path=self.reference.fasta_path,
-            gff_path=self.reference.gff_path,
+            gff_path=self.reference.gff_standard_path,
             bed_path=self.regions.path,
             caller=caller,
             threads=self.threads,

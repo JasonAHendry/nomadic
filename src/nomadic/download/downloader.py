@@ -143,13 +143,18 @@ class ReferenceDownloader:
         """
 
         # Settings
+        to_gff3 = {"protein_coding_gene": "gene", "mRNA": "transcript"}
+        # These are the important fields used by bcftools, see:
+        # https://samtools.github.io/bcftools/bcftools-man.html#csq
         KEEP_FIELDS = [  # noqa: F841 field is later used inside of pandas query
-            "protein_coding_gene",
-            "mRNA",
+            "gene",
+            "transcript",
             "exon",
             "CDS",
+            "three_prime_UTR",
+            "five_prime_UTR",
+            *to_gff3.keys(),
         ]
-        to_gff3 = {"protein_coding_gene": "gene", "mRNA": "transcript"}
 
         # Standardise
         gff_df = load_gff(self.ref.gff_path)

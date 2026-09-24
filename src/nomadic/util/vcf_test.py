@@ -19,7 +19,7 @@ def vcf_annotator():
     bed_path = bed_test_data_dir / "nomadsMVP.amplicons.bed"
     annotator = VariantAnnotator(
         fasta_path=reference.fasta_path,
-        gff_path=reference.gff_path,
+        gff_path=reference.gff_standard_path,
         bed_path=str(bed_path),
         caller="delve",
         threads=8,

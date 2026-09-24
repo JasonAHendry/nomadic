@@ -24,7 +24,7 @@ def prepare_vcf(vcf_file: Path):
     bed_path = Path("src/nomadic/util/_test_data/beds/nomadsMVP.amplicons.bed")
     annotator = VariantAnnotator(
         fasta_path=reference.fasta_path,
-        gff_path=reference.gff_path,
+        gff_path=reference.gff_standard_path,
         bed_path=str(bed_path),
         caller="delve",
         threads=8,

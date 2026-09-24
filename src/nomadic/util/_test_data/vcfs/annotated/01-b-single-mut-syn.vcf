@@ -32,12 +32,12 @@
 ##FORMAT=<ID=LQR,Number=1,Type=Integer,Description="Number of low quality reads">
 ##INFO=<ID=AMP_ID,Number=1,Type=String,Description=Amplicon identifier>
 ##bcftools_annotateVersion=1.23+htslib-1.23
-##bcftools_annotateCommand=annotate -a src/nomadic/util/_test_data/beds/nomadsMVP.amplicons.bed -c CHROM,FROM,TO,AMP_ID -H '##INFO=<ID=AMP_ID,Number=1,Type=String,Description=Amplicon identifier>' src/nomadic/util/_test_data/vcfs/delve/01-b-single-mut-syn.vcf; Date=Tue Aug 18 13:59:22 2026
+##bcftools_annotateCommand=annotate -a src/nomadic/util/_test_data/beds/nomadsMVP.amplicons.bed -c CHROM,FROM,TO,AMP_ID -H '##INFO=<ID=AMP_ID,Number=1,Type=String,Description=Amplicon identifier>' src/nomadic/util/_test_data/vcfs/delve/01-b-single-mut-syn.vcf; Date=Thu Sep 24 15:27:57 2026
 ##FORMAT=<ID=WSAF,Number=.,Type=Float,Description="Added by +fill-tags expression FORMAT/WSAF=FORMAT/MVAF">
 ##bcftools_pluginVersion=1.23+htslib-1.23
-##bcftools_pluginCommand=plugin fill-tags -- - -t FORMAT/WSAF=FORMAT/MVAF; Date=Tue Aug 18 13:59:22 2026
+##bcftools_pluginCommand=plugin fill-tags -- - -t FORMAT/WSAF=FORMAT/MVAF; Date=Thu Sep 24 15:27:57 2026
 ##bcftools/csqVersion=1.23+htslib-1.23
-##bcftools/csqCommand=csq -f '/Users/u_bohmeier/Library/Application Support/nomadic/resources/plasmodb/67/PlasmoDB-67_Pfalciparum3D7_Genome.fasta' -g '/Users/u_bohmeier/Library/Application Support/nomadic/resources/plasmodb/67/PlasmoDB-67_Pfalciparum3D7.gff' --phase a -Oz --threads 8 -o src/nomadic/util/_test_data/vcfs/annotated/01-b-single-mut-syn.vcf -; Date=Tue Aug 18 13:59:22 2026
+##bcftools/csqCommand=csq -f '/Users/u_bohmeier/Library/Application Support/nomadic/resources/ensemblegenomes/63/Plasmodium_falciparum.GCA000002765v3.dna.toplevel.fasta' -g '/Users/u_bohmeier/Library/Application Support/nomadic/resources/ensemblegenomes/63/Plasmodium_falciparum.GCA000002765v3.63.standard.gff' --phase a -Oz --threads 8 -o src/nomadic/util/_test_data/vcfs/annotated/01-b-single-mut-syn.vcf -; Date=Thu Sep 24 15:27:57 2026
 ##INFO=<ID=BCSQ,Number=.,Type=String,Description="Haplotype-aware consequence annotation from BCFtools/csq, see http://samtools.github.io/bcftools/howtos/csq-calling.html for details. Format: Consequence|gene|transcript|biotype|strand|amino_acid_change|dna_change">
 ##FORMAT=<ID=BCSQ,Number=.,Type=Integer,Description="Bitmask of indexes to INFO/BCSQ, with interleaved first/second haplotype. Use \"bcftools query -f'[%CHROM\t%POS\t%SAMPLE\t%TBCSQ\n]'\" to translate.">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample1-mut
