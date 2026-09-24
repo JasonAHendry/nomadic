@@ -14,6 +14,7 @@ RETRYABLE_ERRORS = (
     TimeoutError,
     ConnectionError,
     OSError,
+    EOFError,
     gzip.BadGzipFile,
 )
 
