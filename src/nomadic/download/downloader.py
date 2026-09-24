@@ -51,7 +51,7 @@ class ReferenceDownloader:
         self.produce_dir(dest_path)
         download_tmp_path = dest_path + ".download.tmp"
         decompressed_tmp_path = dest_path + ".tmp"
-        is_gzipped = url.endswith(".gz")
+        needs_unzip = url.endswith(".gz") and not dest_path.endswith(".gz")
 
         last_error: BaseException = RuntimeError(
             f"Failed to download {url} after {self.MAX_RETRIES} attempts."
@@ -62,7 +62,7 @@ class ReferenceDownloader:
                     url=url, filename=download_tmp_path, reporthook=print_progress
                 )
                 print()  # Newline after progress bar which uses \r
-                if is_gzipped:
+                if needs_unzip:
                     print("Decompressing gzipped file...")
                     with (
                         gzip.open(download_tmp_path, "rb") as f_in,
