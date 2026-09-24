@@ -1,0 +1,82 @@
+# YAML file containing POTENTIAL amplicon drug resistance markers in the format:
+# drug name
+  # - gene_mutation e.g. crt_K76T
+
+# Taken from https://www.who.int/tools/compendium-of-molecular-markers-for-antimalarial-drug-resistance
+#Genes:
+#  crt:   Chloroquine resistance transporter
+#  cytb:  Cytochrome b (mitochondrial)
+#  chfr:  Dihydrofolate reductase
+#  dhps:  Dihydropteroate synthase
+#  gch1:  GTP-cyclohydrolase I
+#  k13:   Kelch 13 (kelch-propeller domain protein)
+#  mdr1:  Multidrug resistance gene 1
+#  pm2/3: Plasmepsin 2 and 3
+
+artemisinin:
+    - k13_P413A
+    - k13_F495L
+    - k13_R515K
+    - k13_M579I
+    - k13_D584V
+    - k13_P527H
+    - k13_G625R
+    - k13_K438N
+    - k13_G449A
+    - k13_T508N
+    - k13_Y511H
+    - k13_S577L
+    - k13_A582V
+    - k13_N585K
+    - k13_Q613E
+    - k13_R100K
+    - k13_E107V
+    - k13_G50E
+
+atovaquone:
+    - cytb_Y268C
+    - cytb_M133I
+    - cytb_M133I, cytb_L271F
+    - cytb_M133I, cytb_P275T
+    - cytb_M133I, cytb_K272R
+    - cytb_M133I, cytb_G280D
+    - cytb_L283I, cytb_V284K
+
+chloroquine:
+    - crt_K76T, crt_A144T, crt_L160Y, crt_N326D
+
+cycloguanil:
+    - dhfr_S108N/T
+    - dhfr_I164L
+    - dhfr_C50R, dhfr_S108N
+    - dhfr_A16V, dhfr_S108T
+    - dhfr_N51I, dhfr_C59R
+    - dhfr_N51I, dhfr_S108N
+    - dhfr_C59R, dhfr_S108N
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhfr_I164L
+
+lumefantrine:
+    - mdr1_amplification
+
+quinine:
+    - crt_Q352K
+    - crt_Q352R
+    - mdr1_amplification
+    - mdr1_S1034C, mdr1_N1042D, mdr1_D1246Y
+
+sulphadoxine-pyrimethamine:
+    - dhfr_N51I
+    - dhfr_C59R
+    - dhfr_I164L
+    - dhfr_C59R, dhfr_S108N, dhfr_I164L
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhfr_I164L
+    - dhps_A437G, dhps_K540E
+    - dhps_A437G
+    - dhps_S436F, dhps_A613S
+    - dhps_S436A, dhps_A437G
+    - dhps_A437G, dhps_A581G
+    - dhps_S436F, dhps_A437G, dhps_A613S
+    - dhps_S436F, dhps_A437G, dhps_A613S
+    - dhps_S436A, dhps_A437G, dhps_K540E
+    - dhps_S436A, dhps_A437G, dhps_K540E, dhps_A613T
