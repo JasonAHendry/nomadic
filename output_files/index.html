@@ -1,0 +1,1716 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Mobile sequencing and analysis in real-time">
+      
+      
+      
+      
+        <link rel="prev" href="../understand/">
+      
+      
+        <link rel="next" href="../faq/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Output Files - Nomadic</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../css/custom.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#realtime-experiment-output-files" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Nomadic" class="md-header__button md-logo" aria-label="Nomadic" data-md-component="logo">
+      
+  <img src="../img/little_logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Nomadic
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Output Files
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue-grey" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JasonAHendry/nomadic.git" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Nomadic" class="md-nav__button md-logo" aria-label="Nomadic" data-md-component="logo">
+      
+  <img src="../img/little_logo.svg" alt="logo">
+
+    </a>
+    Nomadic
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JasonAHendry/nomadic.git" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../basic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basic Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../summary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Summarizing Experiments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../share_backup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing and Backing up
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../understand/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding the Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Files
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Output Files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#realtime-experiment-output-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Realtime experiment output files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Realtime experiment output files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#summaryread_mappingcsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.read_mapping.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summaryregion_coveragecsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.region_coverage.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#realtime-aa-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.aa_changes.csv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="summary.aa_changes.csv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#amino-acid-calls-aa_call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amino-acid calls (aa_call)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#realtime-nt-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.nt_changes.csv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="summary.nt_changes.csv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nucleotide-calls-gt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nucleotide calls (gt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summarize-output-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summarize output files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Summarize output files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#seq_inventorysample_inventorycsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        seq_inventory/sample_inventory.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seq_inventorysamplesby_experimentcsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        seq_inventory/samples.by_experiment.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlcoveragecsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/coverage.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlreplicates_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/replicates_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlsamples_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/samples_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlsamples_amplicons_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/samples_amplicons_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlexperiments_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/experiments_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variantsaa_changescsv-and-variantsaa_changessetcsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        variants/aa_changes.csv and variants/aa_changes.&lt;set&gt;.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variantsnt_changescsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        variants/nt_changes.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variantsprevalenceaa_changescsv-and-related-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        variants/prevalence.aa_changes.csv and related files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#realtime-experiment-output-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Realtime experiment output files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Realtime experiment output files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#summaryread_mappingcsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.read_mapping.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summaryregion_coveragecsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.region_coverage.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#realtime-aa-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.aa_changes.csv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="summary.aa_changes.csv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#amino-acid-calls-aa_call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amino-acid calls (aa_call)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#realtime-nt-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        summary.nt_changes.csv
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="summary.nt_changes.csv">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nucleotide-calls-gt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nucleotide calls (gt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summarize-output-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summarize output files
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Summarize output files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#seq_inventorysample_inventorycsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        seq_inventory/sample_inventory.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#seq_inventorysamplesby_experimentcsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        seq_inventory/samples.by_experiment.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlcoveragecsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/coverage.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlreplicates_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/replicates_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlsamples_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/samples_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlsamples_amplicons_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/samples_amplicons_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality_controlexperiments_qccsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality_control/experiments_qc.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variantsaa_changescsv-and-variantsaa_changessetcsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        variants/aa_changes.csv and variants/aa_changes.&lt;set&gt;.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variantsnt_changescsv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        variants/nt_changes.csv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variantsprevalenceaa_changescsv-and-related-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        variants/prevalence.aa_changes.csv and related files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Output Files</h1>
+
+<p><em>Nomadic</em> produces several files that provide information about the quality of your sequencing run, and the variants that were detected.</p>
+<p><em>Nomadic</em> produces output files in two contexts:</p>
+<ul>
+<li><strong>Realtime experiment outputs</strong>, written to <code>results/&lt;expt_name&gt;/</code> by
+    <code>nomadic realtime</code>.</li>
+<li><strong>Summarize outputs</strong>, written to a summary directory by <code>nomadic summarize</code>
+    when combining multiple experiments. See <a href="../summary/">Summarizing Experiments</a>
+    for the workflow and dashboard.</li>
+</ul>
+<h2 id="realtime-experiment-output-files">Realtime experiment output files</h2>
+<h3 id="summaryread_mappingcsv"><code>summary.read_mapping.csv</code></h3>
+<p>This file contains read-mapping statistics for each barcode. The values come
+from <a href="https://www.htslib.org/doc/samtools-flagstat.html"><code>samtools flagstat</code></a>
+and summarize how well reads mapped to the reference genome.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>barcode</code></td>
+<td>Sample barcode.</td>
+</tr>
+<tr>
+<td><code>sample_id</code></td>
+<td>Sample ID.</td>
+</tr>
+<tr>
+<td><code>n_total</code></td>
+<td>Total number of read alignments.</td>
+</tr>
+<tr>
+<td><code>n_mapped</code></td>
+<td>Number of mapped read alignments.</td>
+</tr>
+<tr>
+<td><code>n_unmapped</code></td>
+<td>Number of unmapped reads.</td>
+</tr>
+<tr>
+<td><code>n_primary</code></td>
+<td>Number of reads mapping uniquely.</td>
+</tr>
+<tr>
+<td><code>n_secondary</code></td>
+<td>Number of reads mapping to more than one location.</td>
+</tr>
+<tr>
+<td><code>n_supplementary</code></td>
+<td>Number of reads mapping as chimeras.</td>
+</tr>
+</tbody>
+</table>
+<p>For more information about read mapping, see <a href="../understand/#read-mapping-statistics">Understanding the Dashboard</a>.</p>
+<h3 id="summaryregion_coveragecsv"><code>summary.region_coverage.csv</code></h3>
+<p>This file contains coverage over each amplicon in each sample. The values
+come from <a href="https://www.htslib.org/doc/samtools-bedcov.html"><code>samtools bedcov</code></a>.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>barcode</code></td>
+<td>Sample barcode.</td>
+</tr>
+<tr>
+<td><code>sample_id</code></td>
+<td>Sample ID.</td>
+</tr>
+<tr>
+<td><code>chrom</code></td>
+<td>Chromosome of the amplicon.</td>
+</tr>
+<tr>
+<td><code>start</code></td>
+<td>Start position of the amplicon.</td>
+</tr>
+<tr>
+<td><code>end</code></td>
+<td>End position of the amplicon.</td>
+</tr>
+<tr>
+<td><code>length</code></td>
+<td>Length of the amplicon.</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>Amplicon name from the fourth column of the BED file.</td>
+</tr>
+<tr>
+<td><code>n_reads</code></td>
+<td>Number of reads mapping to the amplicon.</td>
+</tr>
+<tr>
+<td><code>mean_cov</code></td>
+<td>Mean coverage over the amplicon.</td>
+</tr>
+<tr>
+<td><code>cov_gr100</code></td>
+<td>Number of positions within the amplicon having greater than 100x coverage.</td>
+</tr>
+<tr>
+<td><code>per_cov_gr100</code></td>
+<td>Percentage of positions within the amplicon having greater than 100x coverage.</td>
+</tr>
+<tr>
+<td><code>total_cov</code></td>
+<td>Total coverage over the amplicon, equal to mean coverage times length.</td>
+</tr>
+</tbody>
+</table>
+<p>For more information about region coverage, see <a href="../understand/#region-coverage-statistics">Understanding the Dashboard</a>.</p>
+<h3 id="realtime-aa-changes"><code>summary.aa_changes.csv</code></h3>
+<p>This file reports missense amino-acid changes identified in each sample. Every
+observed mutation is represented for every sample, with calls of <code>mutant</code>,
+<code>mixed</code>, <code>absent</code>, <code>wt</code>, <code>unphased</code>, or <code>failed</code> as appropriate.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>barcode</code></td>
+<td>Sample barcode.</td>
+</tr>
+<tr>
+<td><code>chrom</code></td>
+<td>Chromosome containing the mutation.</td>
+</tr>
+<tr>
+<td><code>amplicon</code></td>
+<td>Amplicon containing the mutation.</td>
+</tr>
+<tr>
+<td><code>gene</code></td>
+<td>Gene affected by the mutation.</td>
+</tr>
+<tr>
+<td><code>aa_pos</code></td>
+<td>Amino-acid position.</td>
+</tr>
+<tr>
+<td><code>aa_change</code></td>
+<td>Amino-acid change.</td>
+</tr>
+<tr>
+<td><code>aa_call</code></td>
+<td>Amino-acid call for the sample. See <a href="#amino-acid-calls-aa_call">Amino-acid calls (<code>aa_call</code>)</a>.</td>
+</tr>
+<tr>
+<td><code>aa_dp</code></td>
+<td>Sequencing depth at the amino-acid position, calculated as the minimum depth among the nucleotide positions making up the codon.</td>
+</tr>
+<tr>
+<td><code>aa_wsaf</code></td>
+<td>Within-sample allele frequency for the amino-acid call.</td>
+</tr>
+<tr>
+<td><code>nt_change</code></td>
+<td>Nucleotide change or changes underlying the amino-acid change, separated by <code>+</code> signs if multiple.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="amino-acid-calls-aa_call">Amino-acid calls (<code>aa_call</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mutant</code></td>
+<td>The mutation is present in a homozygous or monoclonal form.</td>
+</tr>
+<tr>
+<td><code>mixed</code></td>
+<td>The mutation is present in only a subset of reads.</td>
+</tr>
+<tr>
+<td><code>absent</code></td>
+<td>This amino-acid change is not present, but another amino-acid change occurs at the same position.</td>
+</tr>
+<tr>
+<td><code>wt</code></td>
+<td>The sample matches the reference at that amino-acid position.</td>
+</tr>
+<tr>
+<td><code>unphased</code></td>
+<td>More than one mixed nucleotide call exists at the same amino-acid position, so the correct amino-acid change cannot be determined.</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>There is not enough reliable information to classify the site.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="realtime-nt-changes"><code>summary.nt_changes.csv</code></h3>
+<p>This file reports nucleotide changes identified in each sample. Every observed
+nucleotide mutation is represented for every sample.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>barcode</code></td>
+<td>Sample barcode.</td>
+</tr>
+<tr>
+<td><code>chrom</code></td>
+<td>Chromosome containing the mutation.</td>
+</tr>
+<tr>
+<td><code>pos</code></td>
+<td>Reference position of the mutation.</td>
+</tr>
+<tr>
+<td><code>amplicon</code></td>
+<td>Amplicon containing the mutation.</td>
+</tr>
+<tr>
+<td><code>ref</code></td>
+<td>Reference nucleotide.</td>
+</tr>
+<tr>
+<td><code>alt</code></td>
+<td>Alternative nucleotide.</td>
+</tr>
+<tr>
+<td><code>gene</code></td>
+<td>Gene containing the position, when annotated.</td>
+</tr>
+<tr>
+<td><code>aa_pos</code></td>
+<td>Amino-acid position, when annotated.</td>
+</tr>
+<tr>
+<td><code>dp</code></td>
+<td>Sequencing depth at the position.</td>
+</tr>
+<tr>
+<td><code>gt</code></td>
+<td>Nucleotide call: <code>mutant</code>, <code>mixed</code>, <code>absent</code>, <code>wt</code>, or <code>failed</code>. See <a href="#nucleotide-calls-gt">Nucleotide calls (<code>gt</code>)</a>.</td>
+</tr>
+<tr>
+<td><code>wsaf</code></td>
+<td>Within-sample allele frequency.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="nucleotide-calls-gt">Nucleotide calls (<code>gt</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mutant</code></td>
+<td>The genotype is homozygous or monoclonal alternative at this position.</td>
+</tr>
+<tr>
+<td><code>mixed</code></td>
+<td>The genotype is heterozygous or otherwise mixed at this position.</td>
+</tr>
+<tr>
+<td><code>absent</code></td>
+<td>The variant is not present, but another variant occurs at the same position.</td>
+</tr>
+<tr>
+<td><code>wt</code></td>
+<td>The position matches the reference genotype.</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>The genotype could not be determined reliably.</td>
+</tr>
+</tbody>
+</table>
+<p>These call categories are also used by the dashboard heatmaps. For more
+information about variant calling, see <a href="../understand/#variant-calling">Understanding the Dashboard</a>.</p>
+<h2 id="summarize-output-files">Summarize output files</h2>
+<p>The files below are written by <code>nomadic summarize</code> when it combines completed
+experiments. Only the CSV outputs are described here. The <code>&lt;set&gt;</code> placeholder
+means an amplicon set configured for the panel, and <code>&lt;column&gt;</code> means a metadata
+column supplied with <code>--prevalence-by</code>. Files containing either placeholder are
+created only when the corresponding option or panel configuration is used.</p>
+<h3 id="seq_inventorysample_inventorycsv"><code>seq_inventory/sample_inventory.csv</code></h3>
+<p>This file lists the samples found across the input experiments and records
+whether each sample is included, excluded, or a control.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expt_name</code></td>
+<td>Experiment name.</td>
+</tr>
+<tr>
+<td><code>barcode</code></td>
+<td>Sample barcode.</td>
+</tr>
+<tr>
+<td><code>sample_id</code></td>
+<td>Sample identifier.</td>
+</tr>
+<tr>
+<td><code>sample_type</code></td>
+<td>Sample type, such as <code>field</code>, <code>pos</code>, or <code>neg</code>.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Inventory status: <code>included</code>, <code>excluded</code>, or <code>control</code>.</td>
+</tr>
+<tr>
+<td>Other metadata columns</td>
+<td>Metadata columns carried into the inventory when available.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="seq_inventorysamplesby_experimentcsv"><code>seq_inventory/samples.by_experiment.csv</code></h3>
+<p>This file is a throughput cross-tabulation. Its index identifies an experiment
+or an aggregate row such as <code>All</code> or <code>included_expts</code>. The columns are
+<code>All</code>, <code>pos</code>, <code>neg</code>, <code>field_included</code>, and <code>field_unique</code>.</p>
+<h3 id="quality_controlcoveragecsv"><code>quality_control/coverage.csv</code></h3>
+<p>This file contains one row per amplicon and barcode after merging experiment
+coverage with the sample inventory. It is the detailed QC input for the other
+QC summaries.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expt_name</code></td>
+<td>Experiment name.</td>
+</tr>
+<tr>
+<td><code>barcode</code></td>
+<td>Sample barcode.</td>
+</tr>
+<tr>
+<td><code>sample_id</code></td>
+<td>Sample identifier.</td>
+</tr>
+<tr>
+<td><code>sample_type</code></td>
+<td>Sample type.</td>
+</tr>
+<tr>
+<td><code>chrom</code>, <code>start</code>, <code>end</code>, <code>length</code>, <code>name</code></td>
+<td>Amplicon coordinates and name.</td>
+</tr>
+<tr>
+<td><code>n_reads</code>, <code>mean_cov</code>, <code>cov_gr100</code>, <code>per_cov_gr100</code>, <code>total_cov</code></td>
+<td>Amplicon coverage measurements from the experiment output.</td>
+</tr>
+<tr>
+<td><code>mean_cov_neg</code></td>
+<td>Mean coverage of the negative control for the experiment and amplicon.</td>
+</tr>
+<tr>
+<td><code>fail_lowcov</code></td>
+<td>Whether mean coverage is below the configured minimum.</td>
+</tr>
+<tr>
+<td><code>fail_contam_rel</code></td>
+<td>Whether relative contamination exceeds the configured maximum.</td>
+</tr>
+<tr>
+<td><code>fail_contam_abs</code></td>
+<td>Whether negative-control coverage reaches the configured absolute threshold.</td>
+</tr>
+<tr>
+<td><code>fail_contam</code></td>
+<td>Whether the amplicon fails either contamination check.</td>
+</tr>
+<tr>
+<td><code>passing</code></td>
+<td>Whether the amplicon passes coverage and contamination QC.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Detailed status, such as <code>pass</code>, <code>lowcov</code>, <code>contam</code>, <code>duplicate</code>, or <code>control</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quality_controlreplicates_qccsv"><code>quality_control/replicates_qc.csv</code></h3>
+<p>This file summarizes QC for each field-sample replicate, identified by
+experiment, barcode, and sample ID.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expt_name</code>, <code>barcode</code>, <code>sample_id</code></td>
+<td>Replicate identifiers.</td>
+</tr>
+<tr>
+<td><code>n_amplicons</code></td>
+<td>Number of amplicons evaluated.</td>
+</tr>
+<tr>
+<td><code>n_passing</code></td>
+<td>Number of passing amplicons.</td>
+</tr>
+<tr>
+<td><code>n_fail_contam</code></td>
+<td>Number of amplicons failing contamination QC.</td>
+</tr>
+<tr>
+<td><code>n_fail_lowcov</code></td>
+<td>Number of amplicons failing low-coverage QC.</td>
+</tr>
+<tr>
+<td><code>passing</code></td>
+<td>Whether the replicate meets the configured passing-amplicon threshold.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quality_controlsamples_qccsv"><code>quality_control/samples_qc.csv</code></h3>
+<p>This file summarizes all samples in the master metadata, including samples
+that were not sequenced.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sample_id</code></td>
+<td>Sample identifier.</td>
+</tr>
+<tr>
+<td><code>n_replicates</code></td>
+<td>Number of sequenced replicates.</td>
+</tr>
+<tr>
+<td><code>n_passing</code></td>
+<td>Number of passing replicates.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>passing</code>, <code>failing</code>, or <code>not_sequenced</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quality_controlsamples_amplicons_qccsv"><code>quality_control/samples_amplicons_qc.csv</code></h3>
+<p>This file summarizes replicate QC for each sample and amplicon. It contains
+<code>sample_id</code>, <code>name</code>, <code>n_replicates</code>, <code>n_passing</code>, and <code>status</code>, where <code>status</code>
+uses the same values as <code>samples_qc.csv</code>.</p>
+<h3 id="quality_controlexperiments_qccsv"><code>quality_control/experiments_qc.csv</code></h3>
+<p>This file summarizes field-sample QC for each experiment and amplicon. It
+contains <code>expt_name</code>, <code>name</code>, <code>mean_cov_field</code>, <code>mean_cov_neg</code>, <code>n_field</code>,
+<code>n_field_contam</code>, <code>n_field_lowcov</code>, <code>n_field_passing</code>,
+<code>per_field_contam</code>, <code>per_field_lowcov</code>, and <code>per_field_passing</code>.</p>
+<h3 id="variantsaa_changescsv-and-variantsaa_changessetcsv"><code>variants/aa_changes.csv</code> and <code>variants/aa_changes.&lt;set&gt;.csv</code></h3>
+<p>These files contain amino-acid calls combined across experiments and filtered
+to the QC analysis set. They use the same columns and call categories as
+<a href="#realtime-aa-changes">the realtime amino-acid changes file</a>. When the panel defines
+amplicon sets, one file is written per set instead of the unsuffixed file.</p>
+<h3 id="variantsnt_changescsv"><code>variants/nt_changes.csv</code></h3>
+<p>This file contains nucleotide calls combined across experiments and filtered to
+the QC analysis set. It uses the same columns and call categories as
+<a href="#realtime-nt-changes">the realtime nucleotide changes file</a>.</p>
+<h3 id="variantsprevalenceaa_changescsv-and-related-files"><code>variants/prevalence.aa_changes.csv</code> and related files</h3>
+<p><code>prevalence.aa_changes.csv</code> reports amino-acid change prevalence across the
+included samples. The corresponding <code>&lt;set&gt;</code> file is written for each configured
+amplicon set. When <code>--prevalence-by &lt;column&gt;</code> is used, the output is named
+<code>prevalence.aa_changes.by-&lt;column&gt;.csv</code>, or
+<code>prevalence.aa_changes.&lt;set&gt;.by-&lt;column&gt;.csv</code> for an amplicon set.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>chrom</code>, <code>amplicon</code>, <code>gene</code>, <code>aa_pos</code>, <code>aa_change</code></td>
+<td>Amino-acid change identifiers.</td>
+</tr>
+<tr>
+<td><code>n_samples</code></td>
+<td>Number of sample-level calls included in the group.</td>
+</tr>
+<tr>
+<td><code>n_passed</code></td>
+<td>Number of calls with an interpretable result.</td>
+</tr>
+<tr>
+<td><code>n_wt</code></td>
+<td>Number of wild-type calls.</td>
+</tr>
+<tr>
+<td><code>n_mixed</code></td>
+<td>Number of mixed calls.</td>
+</tr>
+<tr>
+<td><code>n_mut</code></td>
+<td>Number of mutant calls.</td>
+</tr>
+<tr>
+<td><code>per_wt</code>, <code>per_mixed</code>, <code>per_mut</code></td>
+<td>Percentages among passed calls.</td>
+</tr>
+<tr>
+<td><code>prevalence</code></td>
+<td>Percentage of passed calls that are mixed or mutant.</td>
+</tr>
+<tr>
+<td><code>prevalence_lowci</code>, <code>prevalence_highci</code></td>
+<td>Lower and upper bounds of the 95% beta confidence interval for prevalence.</td>
+</tr>
+<tr>
+<td><code>by_&lt;column&gt;</code></td>
+<td>Group value when prevalence is stratified by metadata.</td>
+</tr>
+</tbody>
+</table>
+<p>The summary variant tables remove variants never observed in the analysis set
+and apply panel-specific filtering before prevalence is calculated.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
