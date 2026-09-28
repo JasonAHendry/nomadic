@@ -1,0 +1,53 @@
+# YAML file containing CANDIDATE amplicon drug resistance markers in the format:
+# drug name
+  # - gene_mutation e.g. crt_K76T
+
+# Taken from https://www.who.int/tools/compendium-of-molecular-markers-for-antimalarial-drug-resistance
+#Genes:
+#  crt:   Chloroquine resistance transporter
+#  cytb:  Cytochrome b (mitochondrial)
+#  chfr:  Dihydrofolate reductase
+#  dhps:  Dihydropteroate synthase
+#  gch1:  GTP-cyclohydrolase I
+#  k13:   Kelch 13 (kelch-propeller domain protein)
+#  mdr1:  Multidrug resistance gene 1
+#  pm2/3: Plasmepsin 2 and 3
+
+amodiaquine:
+    - crt_C72S, crt_K76T, crt_A220S, crt_N326D, crt_I356L
+    - mdr1_N86Y
+
+artemisinin:
+    - k13_E252Q
+    - k13_P441L
+    - k13_C469F
+    - k13_N537I
+    - k13_N537D
+    - k13_G538V
+    - k13_V568G
+
+chloroquine:
+    - crt_C72S, crt_V73, crt_M74, crt_N75, crt_K76T
+    - crt_C72S, crt_K76T, , crt_A220S, crt_N326D, crt_I356L
+    - crt_M74I, crt_N75E, crt_K76T, crt_A220S, crt_Q271E, crt_R371I
+    - crt_M74I, crt_N75E, crt_K76T, crt_A220S, crt_Q271E, crt_I356T, crt_R371I
+    - crt_M74I, crt_N75E, crt_K76T+ A220S, crt_Q271E, crt_N326S, crt_R371I
+    - crt_M74I, crt_N75E, crt_K76T, crt_A220S, crt_Q271E, crt_N326S, crt_I356T, crt_R371I
+
+sulphadoxine-pyrimethamine:
+    - dhfr_S108N
+    - dhfr_N51I, dhfr_S108N
+    - dhfr_C59R, dhfr_S108N
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N
+    - gch1_amplification
+    - dhfr_C59R, dhfr_S108N, dhps_S436A
+    - dhfr_C59R, dhfr_S108N, dhps_A437G
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_A437G, dhps_A581G
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_S436A, dhps_A437G, dhps_K540E
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_A437G, dhps_A581G, dhps_613T
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_S436A, dhps_A437G, dhps_A613S
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_S436A, dhps_A437G, dhps_A581G
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_A437G, dhps_K540E, dhps_A581G
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_S436A , dhps_A437G, dhps_A581G, dhps_A613S
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_A437G, dhps_K540E, dhps_A581G, dhps_S436A
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_I431V, dhps_S436A, dhps_A437G, dhps_A581G, dhps_A613S

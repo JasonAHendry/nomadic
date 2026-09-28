@@ -1,0 +1,56 @@
+# YAML file containing VALIDATED amplicon drug resistance markers in the format:
+# drug name
+  # - gene_mutation e.g. crt_K76T
+
+# Taken from https://www.who.int/tools/compendium-of-molecular-markers-for-antimalarial-drug-resistance
+#Genes:
+#  crt:   Chloroquine resistance transporter
+#  cytb:  Cytochrome b (mitochondrial)
+#  chfr:  Dihydrofolate reductase
+#  dhps:  Dihydropteroate synthase
+#  gch1:  GTP-cyclohydrolase I
+#  k13:   Kelch 13 (kelch-propeller domain protein)
+#  mdr1:  Multidrug resistance gene 1
+#  pm2/3: Plasmepsin 2 and 3
+
+artemisinin:
+    - k13_F446I
+    - k13_N458Y
+    - k13_C469Y
+    - k13_M476I
+    - k13_Y493H
+    - k13_G533S
+    - k13_R539T
+    - k13_I543T
+    - k13_P553L
+    - k13_R561H
+    - k13_P574L
+    - k13_C580Y
+    - k13_R622I
+    - k13_A675V
+
+atovaquone:
+    - cytb_Y268S
+
+chloroquine:
+    - crt_K76T
+    - crt_C72, crt_V73, crt_M74I, crt_N75E, crt_K76T
+    - mdr1_N86Y
+
+mefloquine:
+    - mdr1_amplification
+
+piperaquine:
+    - crt_T93S
+    - crt_H97Y
+    - crt_F145I
+    - crt_I218F
+    - crt_C350R
+    - pm2/3_amplification
+
+sulphadoxine-pyrimethamine:
+    - dhfr_C59R, dhfr_S108N, dhps_K540E
+    - dhfr_N51I, dhfr_S108N, dhps_A437G, dhps_K540E
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_A437G
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_S436A, dhps_A437G
+    - dhfr_N51I, dhfr_C59R, dhfr_S108N, dhps_A437G, dhps_K540E
