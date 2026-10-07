@@ -18,10 +18,11 @@ Please visit our [documentation](https://jasonahendry.github.io/nomadic) to lear
  - [x] Support for different reference genomes or amplicons panels.
 
  ## Installation
- *Nomadic* can be installed from [bioconda](https://anaconda.org/bioconda/nomadic)
+ *Nomadic* can be installed from [bioconda](https://anaconda.org/bioconda/nomadic). It is recommended to install nomadic into its own environment with:
  ```
- conda install bioconda::nomadic
+conda create -c bioconda -n nomadic nomadic
  ```
+ More info on the installation including how to setup bioconda can be found in our [documentation](https://jasonahendry.github.io/nomadic/installation/).
 
  ## Quickstart
 Navigate to a directory where your nomadic files should live and setup a workspace with
